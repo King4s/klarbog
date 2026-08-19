@@ -17,7 +17,7 @@ fn sample_entry(actor: Actor, minor: i64) -> JournalEntry {
     let currency = Currency::new("DKK").unwrap();
     JournalEntry {
         as_of: Utc::now(),
-        memo: "api test".into(),
+        memo: "api test #receipt".into(),
         actor: actor.clone(),
         legs: vec![
             Leg {
@@ -121,7 +121,7 @@ async fn preview_commit_posts() {
         .unwrap();
     let preview_env: Envelope<Value> = serde_json::from_slice(&preview_bytes).unwrap();
     assert!(preview_env.ok);
-    assert!(preview_env
+    assert!(!preview_env
         .applied_rules
         .contains(&"dk.expense.receipt_hint".to_string()));
     let token = preview_env.data.unwrap()["confirm_token"]

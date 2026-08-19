@@ -1,4 +1,4 @@
-//! Retention, backup manifest, GDPR export stub, templates (slice 9).
+//! Retention, backup manifest, GDPR export v1, templates (slice 9+18).
 //! No journal-write capability (ADR-004). Reuses [`LocalFsStore`] (ADR-007).
 
 mod backup;
@@ -14,8 +14,8 @@ pub use backup::{
     ManifestInvoiceRef, ManifestPartyRef, MANIFEST_KEY, MANIFEST_SHA256_KEY,
 };
 pub use gdpr::{
-    build_gdpr_export, gdpr_export_path, write_gdpr_export, GdprDocumentHint, GdprError,
-    GdprExport, GDPR_EXPORT_FILENAME,
+    build_gdpr_export, gdpr_export_path, write_gdpr_export, GdprDocument, GdprError, GdprException,
+    GdprExport, GdprInvoice, GdprParty, GdprRetentionSummary, GDPR_EXPORT_FILENAME,
 };
 pub use purge::{run_retention_purge, PurgeError, PurgeOptions, PurgeReport};
 pub use retention::{

@@ -33,6 +33,8 @@ impl RulesPlugin for RulesDkPlugin {
             Err(msg) => errors.push(msg),
         }
 
+        let has_receipt = has_receipt_signal(&entry.memo);
+
         for leg in &entry.legs {
             if let Err(msg) = validate_account(&leg.account) {
                 errors.push(msg);
@@ -43,8 +45,18 @@ impl RulesPlugin for RulesDkPlugin {
                     leg.account
                 ));
             }
-            if is_expense_debit(leg) && leg.party_id.is_none() {
-                applied.push("dk.expense.receipt_hint".into());
+            if is_expense_debit(leg) {
+                let has_party = leg.party_id.is_some();
+                if !has_party && !has_receipt {
+                    // Fail-closed: expense debit needs party_id or memo receipt signal.
+                    errors.push(format!(
+                        "expense debit on {} requires party_id or receipt signal (#receipt / document_id:) (dk.expense.receipt_required)",
+                        leg.account
+                    ));
+                } else if has_party && !has_receipt {
+                    // Softer: party known but no receipt tag yet.
+                    applied.push("dk.expense.receipt_hint".into());
+                }
             }
         }
 
@@ -79,6 +91,31 @@ fn is_expense_account(account: &str) -> bool {
 
 fn is_expense_debit(leg: &Leg) -> bool {
     leg.direction == Direction::Debit && leg.amount.minor() > 0 && is_expense_account(&leg.account)
+}
+
+/// Receipt / linked-document signal in memo (whitespace-separated tokens).
+///
+/// Accepted forms (case-insensitive):
+/// - `#receipt` (exact token, or `#receipt:...`)
+/// - `document_id:<id>` or `document_id=<id>`
+fn has_receipt_signal(memo: &str) -> bool {
+    let lower = memo.to_lowercase();
+    for word in lower.split_whitespace() {
+        if word == "#receipt" || word.starts_with("#receipt:") {
+            return true;
+        }
+        if let Some(rest) = word.strip_prefix("document_id:") {
+            if !rest.is_empty() {
+                return true;
+            }
+        }
+        if let Some(rest) = word.strip_prefix("document_id=") {
+            if !rest.is_empty() {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Parse optional VAT rate hints from memo/tags text (25 or 0 only; no money math).
@@ -183,7 +220,7 @@ mod tests {
 
     #[test]
     fn rejects_invalid_account() {
-        let mut e = entry("ok", 100);
+        let mut e = entry("ok #receipt", 100);
         e.legs[0].account = "6abc".into();
         let err = RULES_DK.validate_entry(&e).unwrap_err();
         assert!(err.to_string().contains("account_range"));
@@ -191,7 +228,7 @@ mod tests {
 
     #[test]
     fn rejects_empty_account() {
-        let mut e = entry("ok", 100);
+        let mut e = entry("ok #receipt", 100);
         e.legs[0].account = "   ".into();
         let err = RULES_DK.validate_entry(&e).unwrap_err();
         assert!(err.to_string().contains("account_range"));
@@ -200,7 +237,7 @@ mod tests {
     #[test]
     fn rejects_unsupported_vat_rate() {
         let err = RULES_DK
-            .validate_entry(&entry("office vat:12", 100))
+            .validate_entry(&entry("office vat:12 #receipt", 100))
             .unwrap_err();
         assert!(err.to_string().contains("dk.vat.rate"));
     }
@@ -208,30 +245,55 @@ mod tests {
     #[test]
     fn flags_vat_rate_hint() {
         let applied = RULES_DK
-            .validate_entry(&entry("supplies moms:25", 500))
+            .validate_entry(&entry("supplies moms:25 #receipt", 500))
             .unwrap();
         assert!(applied.contains(&"dk.vat.rate".to_string()));
     }
 
     #[test]
-    fn flags_expense_receipt_hint_without_party() {
-        let applied = RULES_DK
+    fn blocks_expense_without_party_or_receipt() {
+        let err = RULES_DK
             .validate_entry(&entry("office supplies", 500))
-            .unwrap();
-        assert_eq!(applied, vec!["dk.expense.receipt_hint"]);
+            .unwrap_err();
+        assert!(err.to_string().contains("dk.expense.receipt_required"));
     }
 
     #[test]
-    fn no_receipt_hint_with_party_id() {
-        let party = PartyId::new("vendor-1");
+    fn allows_expense_with_receipt_tag() {
         let applied = RULES_DK
-            .validate_entry(&entry_with_party("office supplies", 500, Some(party)))
+            .validate_entry(&entry("office supplies #receipt", 500))
             .unwrap();
         assert!(!applied.contains(&"dk.expense.receipt_hint".to_string()));
     }
 
     #[test]
-    fn no_receipt_hint_without_expense_debit() {
+    fn allows_expense_with_document_id_signal() {
+        let applied = RULES_DK
+            .validate_entry(&entry("office document_id:doc-9", 500))
+            .unwrap();
+        assert!(applied.is_empty());
+    }
+
+    #[test]
+    fn hints_when_party_without_receipt() {
+        let party = PartyId::new("vendor-1");
+        let applied = RULES_DK
+            .validate_entry(&entry_with_party("office supplies", 500, Some(party)))
+            .unwrap();
+        assert_eq!(applied, vec!["dk.expense.receipt_hint"]);
+    }
+
+    #[test]
+    fn allows_party_plus_receipt_tag() {
+        let party = PartyId::new("vendor-1");
+        let applied = RULES_DK
+            .validate_entry(&entry_with_party("office #receipt", 500, Some(party)))
+            .unwrap();
+        assert!(!applied.contains(&"dk.expense.receipt_hint".to_string()));
+    }
+
+    #[test]
+    fn no_receipt_rule_without_expense_debit() {
         let amount = MinorAmount::from_minor(100);
         let currency = Currency::new("DKK").unwrap();
         let e = JournalEntry {

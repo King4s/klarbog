@@ -19,6 +19,8 @@ description: >-
 - **Money is i64 minor units** (`MinorAmount`); never use `f32`/`f64`.
 - **Actor binding**: host overwrites `entry.actor` from authenticated actor — do not spoof in body.
 - **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.expense.receipt_hint`, …).
+- **Expense receipt (fail-closed):** debit on accounts `4000`–`6999` without `party_id` **and** without a memo receipt signal → `dk.expense.receipt_required` **error** (blocks preview/commit). Soft hint `dk.expense.receipt_hint` only when `party_id` is set but receipt signal is missing.
+- **Receipt signals** (whitespace tokens in `memo`, case-insensitive): `#receipt` / `#receipt:…`, or `document_id:<id>` / `document_id=<id>`.
 
 ## HTTP (DEV, loopback)
 
@@ -40,7 +42,7 @@ Actor must appear in company `policy.json`.
   "company": "/var/lib/klarbog/companies/demo",
   "entry": {
     "as_of": "2026-01-15T12:00:00Z",
-    "memo": "office supplies",
+    "memo": "office supplies #receipt",
     "legs": [
       {"account": "6000", "direction": "debit", "amount_minor": 12500, "currency": "DKK"},
       {"account": "5800", "direction": "credit", "amount_minor": 12500, "currency": "DKK"}
@@ -80,7 +82,7 @@ On failure: `ok: false`, `errors: ["..."]`.
 |-------|---------|
 | `actor not in policy` | Add actor to `policy.json` or use allowed id |
 | `confirm token required` | Missing/wrong/expired token on commit |
-| `rules validation failed` | Entry failed rules-dk |
+| `rules validation failed` | Entry failed rules-dk (incl. `dk.expense.receipt_required`) |
 | `unbalanced journal entry` | Fix leg amounts/directions |
 
 ## Agent checklist

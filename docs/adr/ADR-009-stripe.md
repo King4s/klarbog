@@ -19,8 +19,13 @@ Klarbog integrates **Stripe** via the **Stripe API** as a first-class payments r
 - `BankProfile::Stripe` CSV remains a **manual fallback** only.
 - Product AI prompt: Stripe = API; CSV = nød/offline.
 
+### Webhooks (implemented)
+- Ingress: `POST /api/v1/webhooks/stripe` — HMAC verify (`KLARBOG_STRIPE_WEBHOOK_SECRET`), append to `{company}/stripe_webhooks/queue.jsonl`, draft rows for `payout.paid` / `charge.succeeded`.
+- Consume: `POST /api/v1/bank/stripe/consume` — actor AuthZ + allowlist; default dry-run / `confirm:true` fail-closed (like retention purge); idempotent via `queue.consumed` sidecar (event id); returns count + row preview. **No journal post** — rows may later feed reconcile suggest.
+
 ### Out of scope here
-- Connect / OAuth onboarding UI; webhooks (later ADR). Initial DEV uses server-side secret key from env.
+- Connect / OAuth onboarding UI. Initial DEV uses server-side secret key from env.
 
 ## Consequences
 HTTP/MCP bank import gains `source: "api"` + `provider: "stripe"`.
+Webhook queue + consume path is Read/draft only; posting remains two-phase journal confirm.

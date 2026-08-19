@@ -41,7 +41,7 @@ fn default_raise_exceptions() -> bool {
     true
 }
 
-fn parse_row_input(input: &ParsedBankRowInput) -> Result<BankRow, String> {
+pub fn parse_row_input(input: &ParsedBankRowInput) -> Result<BankRow, String> {
     let date = NaiveDate::parse_from_str(&input.date, "%Y-%m-%d")
         .map_err(|e| format!("invalid date {}: {e}", input.date))?;
     let dt: DateTime<Utc> = date.and_hms_opt(0, 0, 0).unwrap().and_utc();

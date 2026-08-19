@@ -51,7 +51,7 @@ enum Cmd {
         #[arg(long)]
         company: PathBuf,
     },
-    /// Write GDPR export stub (`gdpr_export.json`)
+    /// Write company-scoped GDPR export v1 metadata (`gdpr_export.json`)
     GdprExport {
         #[arg(long)]
         company: PathBuf,

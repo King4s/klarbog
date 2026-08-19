@@ -100,3 +100,30 @@ CSV fallback adds `"source": "csv"` and `"csv": "..."`. Legacy field `profile` a
 2. Fetch/parse → validate row count and currencies.
 3. Map to drafts; skip zero amounts (error).
 4. For each draft: journal preview → commit with human/agent confirm.
+
+## Bank reconcile (suggest + apply)
+
+Capability: **Read only**. Never posts journal entries from the bank plugin.
+
+### Suggest
+
+`POST /api/v1/bank/reconcile/suggest` with `company` + `rows` (or CSV/provider). Scores open invoice drafts vs bank lines (`amount_minor` + text tokens). Safe bar: `SAFE_THRESHOLD_BPS` (5000 = 50%). Below that → no suggestion; may raise `unmatched_bank_transaction`.
+
+### Apply → preview suggestion only
+
+`apply_match(company, bank_row, invoice_id, actor, force, row_index)` builds a **payment** `JournalEntry` (invoice kind + `party_id` on legs; memo `bank:{text}:invoice:{id}`). Does **not** post and does **not** mark the invoice paid — host feeds the entry into `/api/v1/journal/preview` then commit (two-phase).
+
+`POST /api/v1/bank/reconcile/apply`:
+
+```json
+{
+  "company": "/path/to/company",
+  "invoice_id": "inv_…",
+  "row": { "date": "2026-05-20", "text": "…", "amount_minor": 50000 },
+  "force": false
+}
+```
+
+Or `row_index` + `rows` / CSV provider fields. Response `data.entry` is the journal JSON for preview.
+
+**Unsafe matches** (confidence &lt; `SAFE_THRESHOLD_BPS`): rejected unless `force: true` **and** actor is `user` (agents/system cannot force). When applied, any open `unmatched_bank_transaction` for that bank row related-id is closed.

@@ -21,6 +21,11 @@ impl InvoiceStatus {
     pub fn allows_mark_paid(self) -> bool {
         matches!(self, InvoiceStatus::Sent | InvoiceStatus::PartPaid)
     }
+
+    /// Same gate as mark-paid: partial payments only from sent or already part_paid.
+    pub fn allows_mark_part_paid(self) -> bool {
+        matches!(self, InvoiceStatus::Sent | InvoiceStatus::PartPaid)
+    }
 }
 
 #[cfg(test)]
@@ -43,5 +48,13 @@ mod tests {
         assert!(!InvoiceStatus::Draft.allows_mark_paid());
         assert!(!InvoiceStatus::Paid.allows_mark_paid());
         assert!(!InvoiceStatus::Void.allows_mark_paid());
+    }
+
+    #[test]
+    fn mark_part_paid_same_gate() {
+        assert!(InvoiceStatus::Sent.allows_mark_part_paid());
+        assert!(InvoiceStatus::PartPaid.allows_mark_part_paid());
+        assert!(!InvoiceStatus::Draft.allows_mark_part_paid());
+        assert!(!InvoiceStatus::Paid.allows_mark_part_paid());
     }
 }

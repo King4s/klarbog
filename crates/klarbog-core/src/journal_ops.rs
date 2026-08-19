@@ -144,7 +144,7 @@ mod tests {
         init_company(&company_path, "Demo", &owner).await.unwrap();
         let store = ConfirmStore::default();
         let registry = default_registry();
-        let entry = balanced_entry(owner.clone(), 500, "ops test");
+        let entry = balanced_entry(owner.clone(), 500, "ops test #receipt");
         let preview = journal_preview(
             root.path(),
             &company_path,
@@ -155,7 +155,7 @@ mod tests {
         )
         .await
         .unwrap();
-        assert!(preview
+        assert!(!preview
             .applied_rules
             .contains(&"dk.expense.receipt_hint".to_string()));
         let result = journal_commit(
@@ -170,9 +170,36 @@ mod tests {
         .await
         .unwrap();
         assert!(!result.posted.digest.is_empty());
-        assert!(result
+        assert!(!result
             .applied_rules
             .contains(&"dk.expense.receipt_hint".to_string()));
+    }
+
+    #[tokio::test]
+    async fn rules_block_expense_without_receipt() {
+        let root = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company_path = root.path().join("co");
+        init_company(&company_path, "Demo", &owner).await.unwrap();
+        let store = ConfirmStore::default();
+        let registry = default_registry();
+        let entry = balanced_entry(owner.clone(), 100, "ops test");
+        let err = journal_preview(
+            root.path(),
+            &company_path,
+            &entry,
+            &owner,
+            &store,
+            &registry,
+        )
+        .await
+        .unwrap_err();
+        match err {
+            CoreError::RulesViolation(msg) => {
+                assert!(msg.contains("dk.expense.receipt_required"));
+            }
+            other => panic!("expected RulesViolation, got {other:?}"),
+        }
     }
 
     #[tokio::test]
@@ -227,7 +254,7 @@ mod tests {
         init_company(&company_path, "Demo", &owner).await.unwrap();
         let store = ConfirmStore::default();
         let registry = default_registry();
-        let entry = balanced_entry(owner.clone(), 100, "ops test");
+        let entry = balanced_entry(owner.clone(), 100, "ops test #receipt");
         journal_preview(
             root.path(),
             &company_path,

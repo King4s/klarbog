@@ -101,7 +101,14 @@ async fn retention_backup_gdpr_flow() {
         .await
         .unwrap();
     let gdpr_env: Envelope<Value> = serde_json::from_slice(&gdpr_bytes).unwrap();
-    assert!(gdpr_env.data.unwrap()["exported_unix_ms"].is_number());
+    let gdpr = gdpr_env.data.unwrap();
+    assert!(gdpr["exported_unix_ms"].is_number());
+    assert!(gdpr["parties"].is_array());
+    assert!(gdpr["invoices"].is_array());
+    assert!(gdpr["documents"].is_array());
+    assert!(gdpr["exceptions"].is_array());
+    assert!(gdpr["retention"]["retain_days"].is_number());
+    assert!(company_path.join("gdpr_export.json").exists());
 }
 
 #[tokio::test]

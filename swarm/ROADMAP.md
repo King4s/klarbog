@@ -19,4 +19,14 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 13. R2 DeleteObject + retention purge enforce
 14. Install/release packaging docs
 
+## Wave 2 — harden + wire (after 0–14 scaffolds)
+
+15. Revolut OAuth **refresh_token** rotate + fail-closed expiry
+16. Stripe webhook **queue consumer** → bank drafts / reconcile input (still no auto journal post) ✅
+17. Bank reconcile **apply** → journal preview suggestion (host two-phase commit)
+18. GDPR export expand (parties/invoices/exceptions metadata — still company-scoped stub→v1)
+19. rules-dk: expense without receipt **blocks commit** (fail-closed option) ✅
+20. Invoice **part_paid** payment suggestion + amount_minor partial
+21. Soft linegate hygiene: split webhook/reconcile/documents/invoice under soft 300
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

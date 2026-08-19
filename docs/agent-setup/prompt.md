@@ -113,7 +113,7 @@ x-klarbog-actor-id: owner
 | POST/GET/PATCH | `/api/v1/exceptions` | Undtagelser |
 | GET | `/api/v1/retention` | Retention |
 | POST | `/api/v1/backup` | Backup-manifest |
-| POST | `/api/v1/gdpr-export` | GDPR-eksport-stub |
+| POST | `/api/v1/gdpr-export` | GDPR-eksport v1 (firma-scope metadata, DEV) |
 
 Svar er typisk et **Envelope**: `{ "ok": true|false, "data": …, "errors": [], "applied_rules": [] }`.
 
@@ -195,7 +195,7 @@ klarbog gdpr-export --company "$KLARBOG_COMPANY"
 - **Faktura:** kladder + foreslået journal med `party_id` på ben; post via journal to-fase.
 - **Dokumenter:** metadata + `path_hint` (relativ, ingen `..`); binære filer via object store.
 - **Lagring:** default lokal disk under firmaet; valgfrit **Cloudflare R2 (EU)** via `KLARBOG_STORAGE=r2` og `KLARBOG_R2_*` (fail-closed uden for EU).
-- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.expense.receipt_hint` ved udgiftsdebet uden `party_id`.
+- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.
 
 ---
 

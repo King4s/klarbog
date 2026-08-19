@@ -6,8 +6,11 @@ mod lifecycle;
 mod status;
 mod store;
 
-pub use draft::{journal_suggestion, payment_journal_suggestion, InvoiceConfig};
-pub use lifecycle::{mark_paid_preview, patch_status};
+pub use draft::{
+    journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
+    InvoiceConfig,
+};
+pub use lifecycle::{mark_paid_preview, mark_part_paid_preview, patch_status};
 pub use status::InvoiceStatus;
 pub use store::{
     create_draft, create_draft_from_new, get_invoice, list_invoices, NewLine, INVOICES_FILENAME,
@@ -111,6 +114,8 @@ pub enum InvoiceError {
     EmptyDescription,
     #[error("line amount must be positive")]
     NonPositiveAmount,
+    #[error("partial amount {amount_minor} must be > 0 and < total {total_minor}")]
+    InvalidPartialAmount { amount_minor: i64, total_minor: i64 },
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]
@@ -244,5 +249,37 @@ mod tests {
             .legs
             .iter()
             .all(|l| l.party_id.as_ref() == Some(&invoice.party_id)));
+    }
+
+    #[test]
+    fn lifecycle_mark_part_paid() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let plugin = InvoicePlugin;
+        let invoice = plugin
+            .create(
+                &co,
+                party.id.clone(),
+                InvoiceKind::Sale,
+                vec![NewLine {
+                    description: "Item".into(),
+                    amount_minor: 8000,
+                    currency: "DKK".into(),
+                }],
+            )
+            .unwrap();
+        patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
+        let actor = klarbog_types::Actor::user("t");
+        let (part, entry) =
+            mark_part_paid_preview(&co, &invoice.id, 2500, &actor, &InvoiceConfig::default())
+                .unwrap();
+        assert_eq!(part.status, InvoiceStatus::PartPaid);
+        assert_eq!(entry.legs[0].amount.minor(), 2500);
+        assert!(entry
+            .legs
+            .iter()
+            .all(|l| l.party_id.as_ref() == Some(&party.id)));
     }
 }

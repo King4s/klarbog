@@ -107,7 +107,7 @@ mod tests {
         let currency = Currency::new("DKK").unwrap();
         JournalEntry {
             as_of: Utc::now(),
-            memo: "mcp test".into(),
+            memo: "mcp test #receipt".into(),
             actor: actor.clone(),
             legs: vec![
                 Leg {

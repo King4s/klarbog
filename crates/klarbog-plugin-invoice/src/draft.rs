@@ -85,10 +85,23 @@ pub fn payment_journal_suggestion(
     actor: &Actor,
     cfg: &InvoiceConfig,
 ) -> Result<JournalEntry, InvoiceError> {
-    invoice.validate_lines()?;
     let total = invoice.total_minor()?;
+    payment_journal_suggestion_amount(invoice, total, actor, cfg)
+}
+
+/// Payment legs for an explicit `amount_minor` (partial or full). Same account mapping as full payment.
+pub fn payment_journal_suggestion_amount(
+    invoice: &Invoice,
+    amount_minor: i64,
+    actor: &Actor,
+    cfg: &InvoiceConfig,
+) -> Result<JournalEntry, InvoiceError> {
+    invoice.validate_lines()?;
+    if amount_minor <= 0 {
+        return Err(InvoiceError::NonPositiveAmount);
+    }
     let currency = invoice.lines[0].currency.clone();
-    let amount = MinorAmount::from_minor(total);
+    let amount = MinorAmount::from_minor(amount_minor);
     let memo = format!("invoice:{}:payment", invoice.id);
     let legs = match invoice.kind {
         InvoiceKind::Sale => vec![
@@ -195,5 +208,19 @@ mod tests {
         assert!(entry.legs.iter().all(|l| l.party_id.is_some()));
         assert_eq!(entry.legs[0].account, "1000");
         assert_eq!(entry.legs[1].account, "1500");
+    }
+
+    #[test]
+    fn payment_suggestion_partial_amount() {
+        let inv = sample_invoice(InvoiceKind::Sale);
+        let entry = payment_journal_suggestion_amount(
+            &inv,
+            7_500,
+            &Actor::user("t"),
+            &InvoiceConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(entry.legs[0].amount.minor(), 7_500);
+        assert!(entry.legs.iter().all(|l| l.party_id.is_some()));
     }
 }

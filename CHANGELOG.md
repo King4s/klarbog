@@ -38,6 +38,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - Developer bootstrap split: [`docs/agent-setup/DEVELOPER.md`](docs/agent-setup/DEVELOPER.md).
 - Install and run guide: [`docs/INSTALL.md`](docs/INSTALL.md).
 
+### Added — Wave 2 (harden + wire)
+
+- **Slice 18:** GDPR export v1 — company-scoped metadata (`parties`, `invoices`, `documents`, `exceptions`, retention summary); still `gdpr_export.json`, no binary blobs.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
