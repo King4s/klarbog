@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 7 landed** — contract_smoke soft-split (<300); moms-suggest docs polish in INSTALL/prompt
-- Tip: VERIFY_OK; continue polish/E2E/UI on request
-- Skip unreadable status/slice scratch; no sister-product names in public tree
+- **Wave 8 landed** — contract_smoke moms-suggest + multi-currency 400
+- VERIFY_OK / CONTRACT_SMOKE_OK; continue polish/E2E/UI on request
+- No sister-product names; skip scratch status/wave*.md markers

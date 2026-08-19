@@ -86,6 +86,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 43:** Optional moms post **suggestion** — `moms_post_suggestion(gross, memo)` via `split_vat25_inclusive` when memo has `#vat25`; `POST /api/v1/journal/moms-suggest` + MCP `journal_moms_post_suggestion`; returns net+vat i64 legs; never auto-posts.
 - **Slice 44:** Multi-currency fail-closed regression — Revolut/Stripe CSV + API fixtures reject mixed batch and EUR-only vs company DKK; `import_preview` + HTTP `POST /api/v1/bank/import/preview` return 400 (i64 minor only).
+- **Slice 46:** Stripe apply-preview closes prior `unmatched_bank_transaction` on unique safe apply (`unique_safe_apply_closes_prior_unmatched_exception`).
+- **Wave 8 / slice 48:** Offline `contract_smoke` covers `POST /api/v1/journal/moms-suggest` (i64 net+vat legs) and multi-currency `import/preview` → **400**.
 
 ### Added — tooling
 

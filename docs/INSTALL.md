@@ -52,7 +52,8 @@ install -m 755 target/release/klarbog{,-api,-mcp} ~/.local/bin/
 
 Expect the last line: `VERIFY_OK` (fmt, clippy, tests, line gates).
 
-Offline HTTP contract smoke (axum oneshot, no bind/network):
+Offline HTTP contract smoke (axum oneshot, no bind/network) — includes moms-suggest
+and multi-currency import preview **400**:
 
 ```bash
 ./scripts/contract-smoke.sh

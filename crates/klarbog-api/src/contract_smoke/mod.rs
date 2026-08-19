@@ -1,8 +1,9 @@
-//! Offline HTTP contract smoke (slice 35 + 39).
+//! Offline HTTP contract smoke (slice 35 + 39 + wave8).
 //!
 //! Uses axum `oneshot` against a temp company — no TCP bind, no network.
 
 mod flow;
+mod moms_currency;
 mod oauth;
 
 use axum::body::Body;
@@ -27,14 +28,14 @@ fn actor_headers(actor: &Actor) -> (&'static str, String) {
     (kind, actor.id.clone())
 }
 
-async fn json_req(
+async fn json_envelope(
     app: axum::Router,
     method: &str,
     uri: &str,
     kind: &str,
     id: &str,
     body: Value,
-) -> (StatusCode, Value) {
+) -> (StatusCode, Envelope<Value>) {
     let res = app
         .oneshot(
             Request::builder()
@@ -53,6 +54,18 @@ async fn json_req(
         .await
         .unwrap();
     let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
+    (status, env)
+}
+
+async fn json_req(
+    app: axum::Router,
+    method: &str,
+    uri: &str,
+    kind: &str,
+    id: &str,
+    body: Value,
+) -> (StatusCode, Value) {
+    let (status, env) = json_envelope(app, method, uri, kind, id, body).await;
     (status, env.data.unwrap_or(Value::Null))
 }
 
