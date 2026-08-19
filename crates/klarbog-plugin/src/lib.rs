@@ -56,3 +56,15 @@ impl Plugin for MetaPlugin {
 }
 
 pub static META: MetaPlugin = MetaPlugin;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn meta_has_no_journal_write() {
+        assert!(!META.has_journal_write());
+        let reg = Registry::new(vec![&META]).unwrap();
+        assert_eq!(reg.list().count(), 1);
+    }
+}

@@ -12,3 +12,4 @@ max_slices_per_night: 4
 night_window: "22:00-06:00"
 # HARD allowlist root
 allowlist_root: /opt/pellucid-software/klarbog
+# Kill switch: create swarm/STOP to halt dispatch. STOP is NOT present by default.

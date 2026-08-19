@@ -43,7 +43,12 @@ for p in root.rglob("*"):
         continue
     if any(x in p.parts for x in ("target", "reference", ".git", "node_modules")):
         continue
-    lines = [ln for ln in p.read_text(encoding="utf-8", errors="replace").splitlines() if ln.strip()]
+    try:
+        text = p.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        print(f"WARN skip unreadable {p}: {e}")
+        continue
+    lines = [ln for ln in text.splitlines() if ln.strip()]
     n = len(lines)
     if n > hard:
         failed.append((n, str(p)))
@@ -57,6 +62,15 @@ if failed:
     raise SystemExit(13)
 print("linegate ok")
 PY
+
+# Money invariant: no IEEE floats in Rust crates (ignore comments/docs)
+if grep -R -n --include='*.rs' -E '\bf(32|64)\b' crates \
+  | grep -vE ':[0-9]+:\s*(//!|///|//)' >/dev/null; then
+  echo "FAIL: f32/f64 found under crates/" >&2
+  grep -R -n --include='*.rs' -E '\bf(32|64)\b' crates \
+    | grep -vE ':[0-9]+:\s*(//!|///|//)' >&2 || true
+  exit 14
+fi
 
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings

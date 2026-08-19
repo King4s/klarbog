@@ -42,3 +42,16 @@ impl<T> Envelope<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn envelope_ok_and_err() {
+        let ok = Envelope::ok(1);
+        assert!(ok.ok && ok.errors.is_empty());
+        let err: Envelope<()> = Envelope::err(["no"]);
+        assert!(!err.ok && err.data.is_none());
+    }
+}

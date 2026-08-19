@@ -5,3 +5,17 @@
 *.sqlite-*
 /tmp/
 .env
+node_modules/
+.DS_Store
+*.log
+**/config/imap.json
+**/config/digisense.json
+**/*.key
+**/*.pem
+**/.backup-*.key
+**/config/policy.yaml
+companies/
+imports/
+graphify-out/
+.claude/*
+!.claude/settings.json

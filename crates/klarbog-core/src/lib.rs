@@ -96,3 +96,60 @@ impl Company {
         Ok(posted)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use klarbog_journal::{Direction, JournalEntry, Leg};
+    use klarbog_types::{Currency, MinorAmount};
+    use tempfile::tempdir;
+
+    fn expense(actor: Actor, minor: i64) -> JournalEntry {
+        let amount = MinorAmount::from_minor(minor);
+        let currency = Currency::new("DKK").unwrap();
+        JournalEntry {
+            as_of: Utc::now(),
+            memo: "core test".into(),
+            actor,
+            legs: vec![
+                Leg {
+                    account: "6000".into(),
+                    direction: Direction::Debit,
+                    amount,
+                    currency: currency.clone(),
+                    party_id: None,
+                },
+                Leg {
+                    account: "5800".into(),
+                    direction: Direction::Credit,
+                    amount,
+                    currency,
+                    party_id: None,
+                },
+            ],
+        }
+    }
+
+    #[tokio::test]
+    async fn init_posts_for_policy_actor() {
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company = init_company(dir.path(), "Demo ApS", &owner).await.unwrap();
+        let posted = company.post(expense(owner, 250)).await.unwrap();
+        assert!(!posted.digest.is_empty());
+    }
+
+    #[tokio::test]
+    async fn unknown_actor_denied() {
+        let dir = tempdir().unwrap();
+        let company = init_company(dir.path(), "Demo ApS", &Actor::user("owner"))
+            .await
+            .unwrap();
+        let err = company
+            .post(expense(Actor::user("intruder"), 10))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, CoreError::ActorDenied(_)));
+    }
+}

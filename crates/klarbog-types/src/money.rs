@@ -124,6 +124,19 @@ impl Money {
             currency: self.currency.clone(),
         })
     }
+
+    pub fn checked_sub(&self, other: &Self) -> Result<Self, MoneyError> {
+        if self.currency != other.currency {
+            return Err(MoneyError::CurrencyMismatch(
+                self.currency.as_str().into(),
+                other.currency.as_str().into(),
+            ));
+        }
+        Ok(Self {
+            amount: self.amount.checked_sub(other.amount)?,
+            currency: self.currency.clone(),
+        })
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,3 @@
-use klarbog_types::Actor;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -15,11 +14,12 @@ pub fn entry_digest(id: &Uuid, entry: &JournalEntry, prev: Option<&str>) -> Stri
         h.update(format!("{:?}", leg.direction).as_bytes());
         h.update(leg.amount.minor().to_le_bytes());
         h.update(leg.currency.as_str().as_bytes());
+        if let Some(party) = &leg.party_id {
+            h.update(party.as_str().as_bytes());
+        }
     }
     if let Some(p) = prev {
         h.update(p.as_bytes());
     }
-    // silence unused import warning pattern for Actor in signature docs
-    let _: &Actor = &entry.actor;
     hex::encode(h.finalize())
 }

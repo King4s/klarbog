@@ -95,3 +95,18 @@ fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tools_list_names() {
+        let listed = tools_list();
+        let tools = listed["result"]["tools"].as_array().unwrap();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"klarbog_health"));
+        assert!(names.contains(&"journal_post_preview"));
+        assert!(names.contains(&"journal_post_commit"));
+    }
+}

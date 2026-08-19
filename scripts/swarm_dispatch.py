@@ -36,13 +36,11 @@ def main() -> int:
     cap = load_capacity()
     allow = Path(cap.get("allowlist_root", str(ROOT))).resolve()
     here = ROOT.resolve()
-    if here != allow and allow not in here.parents and here != allow:
-        # must be inside allowlist root
-        try:
-            here.relative_to(allow)
-        except ValueError:
-            print(f"refuse: repo {here} outside allowlist {allow}", file=sys.stderr)
-            return 3
+    try:
+        here.relative_to(allow)
+    except ValueError:
+        print(f"refuse: repo {here} outside allowlist {allow}", file=sys.stderr)
+        return 3
     print(
         "ok",
         f"parallel={cap.get('max_parallel_worktrees')}",

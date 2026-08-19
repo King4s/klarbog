@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfirmToken {
@@ -41,7 +42,7 @@ impl ConfirmStore {
     pub fn issue(&self, payload_digest: &str) -> ConfirmToken {
         let mut h = Sha256::new();
         h.update(payload_digest.as_bytes());
-        h.update(uuid_like());
+        h.update(Uuid::new_v4().as_bytes());
         let token = hex::encode(h.finalize());
         let expires = Instant::now() + self.ttl;
         self.inner.lock().expect("confirm lock").insert(
@@ -73,18 +74,6 @@ impl ConfirmStore {
         }
         Ok(())
     }
-}
-
-fn uuid_like() -> [u8; 16] {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    let mut out = [0u8; 16];
-    out[..8].copy_from_slice(&(nanos as u64).to_le_bytes());
-    out[8..].copy_from_slice(&(nanos.rotate_left(17) as u64).to_le_bytes());
-    out
 }
 
 #[cfg(test)]
