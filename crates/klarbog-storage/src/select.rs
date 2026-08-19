@@ -115,20 +115,22 @@ mod tests {
 
     #[tokio::test]
     async fn local_delete_roundtrip() {
-        let dir = {
+        let (dir, backend) = {
             let _g = ENV_LOCK.lock().unwrap();
             clear_r2_env();
-            tempdir().unwrap()
+            let dir = tempdir().unwrap();
+            let company = dir.path().join("co");
+            std::fs::create_dir_all(&company).unwrap();
+            let backend = klarbog_storage(&company).unwrap();
+            (dir, backend)
         };
-        let company = dir.path().join("co");
-        std::fs::create_dir_all(&company).unwrap();
-        let backend = klarbog_storage(&company).unwrap();
         backend.put("a/x.bin", b"data").await.unwrap();
         backend.delete("a/x.bin").await.unwrap();
         assert!(matches!(
             backend.delete("a/x.bin").await,
             Err(StorageError::NotFound(_))
         ));
+        drop(dir);
     }
 
     #[test]

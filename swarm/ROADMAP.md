@@ -60,7 +60,7 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
-## Wave 6 — next product gaps (in flight)
+## Wave 6 — next product gaps (landed)
 
 42. Soft-split `klarbog-mcp/src/tools/mod.rs` under 300
 43. Invoice/journal: moms post **suggestion** from `split_vat25_inclusive` (preview only) ✅

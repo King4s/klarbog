@@ -1,6 +1,6 @@
 # Active swarm status
 
-- **Wave 5 landed** (`afaad31` / `20c69e6`)
-- **Wave 6 in flight** — slice 44 multi-currency fail-closed ✅; slice 45 package/INSTALL done; next: MCP mod linegate, moms suggestion, stripe exception close
-- Do not stop unless `swarm/STOP` or owner redirect
+- **Wave 6 landed** (`b6f44ae`+) — MCP mod split, moms suggest, multi-currency tests, package polish, stripe exception close
+- Continue: live E2E optional; stronger posting; UI later — or next polish wave on request
 - Verify: `./scripts/verify.sh` / `./scripts/contract-smoke.sh`
+- Tip: no sister-product names; skip unreadable status/slice scratch files
