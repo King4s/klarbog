@@ -1,7 +1,6 @@
-//! Offline HTTP contract smoke (slice 35 + 39).
-//!
-//! Uses axum `oneshot` against a temp company — no TCP bind, no network.
+//! Full offline contract smoke flow (slice 35 + 39 remaining-minor).
 
+use super::{actor_headers, json_req, PAYOUT_FIXTURE, TEST_SECRET};
 use crate::{router, AppState};
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -11,100 +10,10 @@ use klarbog_plugin_bank::{
 };
 use klarbog_plugin_crm::upsert_party;
 use klarbog_plugin_invoice::{create_draft_from_new, InvoiceKind, NewLine};
-use klarbog_types::{Actor, ActorKind, Envelope};
-use serde_json::Value;
+use klarbog_types::Actor;
 use std::sync::Arc;
 use tempfile::tempdir;
-use tokio::sync::Mutex;
 use tower::ServiceExt;
-
-/// Serializes env mutation across oauth fail-closed smoke (slice 39).
-static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
-
-const PAYOUT_FIXTURE: &str =
-    include_str!("../../klarbog-plugin-bank/tests/fixtures/stripe_webhook_payout_paid.json");
-const TEST_SECRET: &str = "whsec_test_fixture_secret";
-
-fn actor_headers(actor: &Actor) -> (&'static str, String) {
-    let kind = match actor.kind {
-        ActorKind::User => "user",
-        ActorKind::Agent => "agent",
-        ActorKind::System => "system",
-    };
-    (kind, actor.id.clone())
-}
-
-async fn json_req(
-    app: axum::Router,
-    method: &str,
-    uri: &str,
-    kind: &str,
-    id: &str,
-    body: Value,
-) -> (StatusCode, Value) {
-    let res = app
-        .oneshot(
-            Request::builder()
-                .method(method)
-                .uri(uri)
-                .header("content-type", "application/json")
-                .header("x-klarbog-actor-kind", kind)
-                .header("x-klarbog-actor-id", id)
-                .body(Body::from(body.to_string()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    let status = res.status();
-    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
-    (status, env.data.unwrap_or(Value::Null))
-}
-
-/// Revolut oauth refresh fail-closed (503) when client env tokens are absent.
-#[tokio::test]
-async fn contract_smoke_oauth_refresh_fail_closed() {
-    let _lock = ENV_TEST_LOCK.lock().await;
-    let _guards = [
-        EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN"),
-        EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_ID"),
-        EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_SECRET"),
-    ];
-    let dir = tempdir().unwrap();
-    let owner = Actor::user("owner");
-    let company_path = dir.path().join("co");
-    init_company(&company_path, "Demo", &owner).await.unwrap();
-    let (kind, id) = actor_headers(&owner);
-    let state = AppState {
-        confirm: Arc::new(ConfirmStore::default()),
-        allowlist_root: dir.path().to_path_buf(),
-        registry: Arc::new(default_registry()),
-    };
-    let app = router(state);
-    let body = serde_json::json!({ "company": company_path.to_string_lossy() });
-    let res = app
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/api/v1/revolut/oauth/refresh")
-                .header("content-type", "application/json")
-                .header("x-klarbog-actor-kind", kind)
-                .header("x-klarbog-actor-id", &id)
-                .body(Body::from(body.to_string()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
-    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    let body_str = std::str::from_utf8(bytes.as_ref()).unwrap();
-    assert!(!body_str.contains("\"access_token\""));
-    assert!(!body_str.contains("\"refresh_token\""));
-}
 
 /// Full offline contract smoke: health → CRM → invoice → part-paid → mark-paid
 /// remaining → reconcile → GDPR export → erase dry-run → stripe consume dry-run.
@@ -305,26 +214,4 @@ async fn contract_smoke() {
     assert_eq!(consume["dry_run"], true);
     assert!(consume["consumed_count"].as_u64().unwrap() >= 1);
     assert!(!company_path.join(STRIPE_WEBHOOKS_CONSUMED).exists());
-}
-
-struct EnvGuard {
-    key: &'static str,
-    prev: Option<String>,
-}
-
-impl EnvGuard {
-    fn unset(key: &'static str) -> Self {
-        let prev = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, prev }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.prev {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
 }

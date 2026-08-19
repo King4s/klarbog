@@ -108,7 +108,8 @@ Optional client env:
 | `KLARBOG_API_BASE` | `http://127.0.0.1:3195` |
 | `KLARBOG_COMPANY` | absolute path to active company dir |
 
-REST surface (v1): journal preview/commit; CRM parties; invoice drafts / status /
+REST surface (v1): journal preview/commit + optional `moms-suggest` (`#vat25`
+net+vat i64 legs, never posts); CRM parties; invoice drafts / status /
 mark-paid / mark-part-paid (payment ledger remaining); bank import preview;
 reconcile suggest/apply (`preview` → confirm-token); Stripe webhook + consume +
 reconcile-suggest; reconcile-apply-preview; Revolut OAuth start/callback/refresh; documents (+ delete);
@@ -126,8 +127,9 @@ export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$(pwd)}"
 
 Wire it in your AI client (Cursor, Claude Desktop, etc.) as a **stdio MCP server**
 pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
-(preview token → commit). Wave4-relevant tools include `gdpr_erase_party` and
-`bank_reconcile_apply` (`force` only for `user` below safe threshold — see
+(preview token → commit). Useful tools include `journal_moms_post_suggestion`
+(preview-only VAT split hint), `gdpr_erase_party`, and `bank_reconcile_apply`
+(`force` only for `user` below safe threshold — see
 [`docs/skills/bank-import.md`](skills/bank-import.md)).
 
 **End-user AI instructions:** give your assistant

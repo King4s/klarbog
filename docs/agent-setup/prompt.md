@@ -62,6 +62,7 @@ Kald `tools/list`. Forvent mindst:
 | `klarbog_health` | Livstegn |
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
+| `journal_moms_post_suggestion` | Valgfrit moms-forslag fra `gross_minor` når memo har `#vat25` (net+vat i64; **poster aldrig**) |
 | `bank_import_preview` | Bank/betalingsrails → **udkast** (API for Revolut/Stripe; CSV for GenericDk / offline) |
 | `bank_stripe_consume` | Forbrug Stripe webhook-kø → bank-udkast (`confirm`; ingen journal-post) |
 | `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold) |
@@ -77,9 +78,10 @@ Typiske argumenter: `company` (absolut sti), `actor_kind`, `actor_id`, plus tool
 **Journal-flow med MCP**
 
 1. Byg en balanceret `entry` (øre som heltal, ≥2 legs, samme valuta).
-2. `journal_post_preview` → gem `confirm_token` + evt. `applied_rules`.
-3. `journal_post_commit` med **samme** `entry` + token.
-4. Ved fejl: ret entry, ny preview (gammelt token er brugt/ugyldigt).
+2. Valgfrit: `journal_moms_post_suggestion` (`gross_minor` + memo med `#vat25` / `moms:25` / `#moms25`) → net+vat i64-legs til at fylde entry; uden tag → `suggested: false`. **Ingen** auto-post.
+3. `journal_post_preview` → gem `confirm_token` + evt. `applied_rules`.
+4. `journal_post_commit` med **samme** `entry` + token.
+5. Ved fejl: ret entry, ny preview (gammelt token er brugt/ugyldigt).
 
 **Bank**
 
@@ -112,6 +114,7 @@ x-klarbog-actor-id: owner
 | GET | `/api/v1/status` | Status / allowlist |
 | POST | `/api/v1/journal/preview` | Fase 1 |
 | POST | `/api/v1/journal/commit` | Fase 2 |
+| POST | `/api/v1/journal/moms-suggest` | Valgfrit moms-forslag (`gross_minor` + memo `#vat25`; preview only) |
 | POST/GET | `/api/v1/crm/parties` | Parter |
 | POST/GET | `/api/v1/invoices/drafts` | Fakturakladder |
 | PATCH | `/api/v1/invoices/status` | Faktura-status (`draft\|sent\|part_paid\|paid\|void`) |
