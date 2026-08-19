@@ -2,7 +2,7 @@
 # Klarbog verifier gate (Claude CRITICAL + plan)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ALLOW="${ALLOWLIST_ROOT:-/opt/pellucid-software/klarbog}"
+ALLOW="${ALLOWLIST_ROOT:-$ROOT}"
 cd "$ROOT"
 
 if [[ "$ROOT" != "$ALLOW" ]]; then

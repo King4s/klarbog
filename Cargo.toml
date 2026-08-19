@@ -22,7 +22,7 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-authors = ["Pellucid Software"]
+authors = ["Klarbog contributors"]
 
 [workspace.dependencies]
 klarbog-types = { path = "crates/klarbog-types" }

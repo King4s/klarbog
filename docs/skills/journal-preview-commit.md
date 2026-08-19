@@ -37,7 +37,7 @@ Actor must appear in company `policy.json`.
 
 ```json
 {
-  "company": "/opt/pellucid-software/klarbog/companies/demo",
+  "company": "/var/lib/klarbog/companies/demo",
   "entry": {
     "as_of": "2026-01-15T12:00:00Z",
     "memo": "office supplies",

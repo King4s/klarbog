@@ -65,8 +65,8 @@ mod tests {
 
     #[test]
     fn rejects_dotdot() {
-        let root = PathBuf::from("/opt/pellucid-software/klarbog");
-        let bad = PathBuf::from("/opt/pellucid-software/klarbog/../seaconnect");
+        let root = PathBuf::from("/tmp/klarbog-allow");
+        let bad = PathBuf::from("/tmp/klarbog-allow/../outside");
         assert_eq!(
             assert_company_path(&root, &bad),
             Err(PathGuardError::ParentDir)
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn rejects_relative() {
-        let root = PathBuf::from("/opt/pellucid-software/klarbog");
+        let root = PathBuf::from("/tmp/klarbog-allow");
         assert_eq!(
             assert_company_path(&root, Path::new("data/co")),
             Err(PathGuardError::NotAbsolute)

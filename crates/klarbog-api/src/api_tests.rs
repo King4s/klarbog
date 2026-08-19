@@ -255,7 +255,7 @@ async fn path_outside_allowlist_fails() {
 async fn missing_actor_headers_rejected() {
     let app = router(default_state());
     let body = serde_json::json!({
-        "company": "/opt/pellucid-software/klarbog/x",
+            "company": "/tmp/klarbog-outside-x",
         "entry": sample_entry(Actor::user("x"), 1),
     });
     let res = app

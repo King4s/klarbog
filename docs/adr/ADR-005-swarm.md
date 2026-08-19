@@ -1,7 +1,7 @@
 # ADR-005: Klarbog Swarm
 
 ## Status
-Accepted (replaces Hermes Kanban for this project)
+Accepted
 
 ## Decision
 - In-repo swarm under `swarm/` with `capacity.yaml`, `queue.jsonl`, canonical `ROADMAP.md`.
@@ -10,4 +10,4 @@ Accepted (replaces Hermes Kanban for this project)
 - Rollback: `git revert` of the slice merge commit on `rust-dev`.
 
 ## Consequences
-Bounded autonomy on Thor without Odin/Hermes dependency.
+Bounded autonomy for overnight slices without an external task board.

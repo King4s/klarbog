@@ -209,4 +209,4 @@ Denne fil shippes med Klarbog-installationen som:
 
 (eller tilsvarende sti i jeres pakke). Mønster inspireret af Cloudflare’s agent-setup-prompt (`https://developers.cloudflare.com/agent-setup/prompt.md`), men **formålet her er produkt-snak**, ikke Cloudflare-udviklermiljø.
 
-Internt udvikler-bootstrap (repo, verify, Thor) hører **ikke** hjemme i denne fil.
+Internt udvikler-bootstrap (repo, verify-gate) hører **ikke** hjemme i denne fil — se `DEVELOPER.md`.

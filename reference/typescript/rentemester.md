@@ -191,7 +191,7 @@ Ingen lock-in.
 
 ```text
                    ┌──────────────────────┐
-                   │ Hermes / OpenClaw     │
+                   │ AI agent runtime     │
                    │ Bogholder-agent       │
                    └──────────┬───────────┘
                               │ MCP / CLI tool calls
@@ -243,7 +243,7 @@ Ingen lock-in.
 
 ### 7.1 Runtime-bogholderen
 
-Dette er Hermes eller OpenClaw i produktion.
+Dette er en AI-agent i produktion.
 
 Den gør det daglige arbejde:
 
@@ -300,14 +300,14 @@ Den må ikke deploye regler uden review.
 
 ---
 
-## 8. Hermes / OpenClaw som bogholder
+## 8. AI agent runtime som bogholder
 
-Bogholderen er Hermes eller OpenClaw.
+Bogholderen er en AI-agent.
 
 Rentemester er ikke agenten. Rentemester er systemet, agenten bruger.
 
 ```text
-Hermes/OpenClaw
+AI-agent
 = den autonome bogholder-agent
 
 Rentemester
@@ -2324,7 +2324,7 @@ AI acts. Rules decide. Ledger enforces.
 - SQLite append-only ledger
 - Danish rule library
 - Document and email evidence
-- Autonomous bookkeeping via Hermes/OpenClaw
+- Autonomous bookkeeping via AI-agent
 - Hard validation in the ledger
 - Exception queue for uncertainty
 - Open source rule governance
