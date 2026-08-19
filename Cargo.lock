@@ -879,11 +879,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
- "klarbog-core",
  "klarbog-types",
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
 ]
@@ -908,11 +908,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "hex",
  "klarbog-journal",
  "klarbog-store-sqlite",
  "klarbog-types",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "tokio",
 ]
@@ -945,6 +947,16 @@ name = "klarbog-plugin"
 version = "0.1.0"
 dependencies = [
  "klarbog-types",
+]
+
+[[package]]
+name = "klarbog-plugin-crm"
+version = "0.1.0"
+dependencies = [
+ "klarbog-plugin",
+ "klarbog-types",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

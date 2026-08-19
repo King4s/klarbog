@@ -9,7 +9,6 @@ name = "klarbog-api"
 path = "src/main.rs"
 
 [dependencies]
-klarbog-core = { workspace = true }
 klarbog-types = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
@@ -18,3 +17,7 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+tokio = { workspace = true }

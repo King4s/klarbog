@@ -1,6 +1,6 @@
 # Active swarm status
 
-- slice: 0 complete (scaffold + CRITICAL ADRs); slice 1 smoke green via CLI
-- stop_file: absent
+- slice: 0–1 done; slice 2 partial (ConfirmStore + pathguard + CRM plugin stub)
 - verify: VERIFY_OK
-- updated: 2026-08-19T21:27Z
+- tip: see git log on rust-dev
+- stop_file: absent

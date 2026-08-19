@@ -9,6 +9,7 @@ members = [
     "crates/klarbog-api",
     "crates/klarbog-mcp",
     "crates/klarbog-cli",
+    "crates/klarbog-plugin-crm",
 ]
 
 [workspace.package]

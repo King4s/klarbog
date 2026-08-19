@@ -1,9 +1,8 @@
 use anyhow::Context;
-use klarbog_journal::{JournalError, PostedEntry};
+use klarbog_journal::JournalError;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 use std::path::Path;
-use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -11,26 +10,29 @@ pub enum StoreError {
     #[error(transparent)]
     Sql(#[from] sqlx::Error),
     #[error(transparent)]
+    Migrate(#[from] sqlx::migrate::MigrateError),
+    #[error(transparent)]
     Journal(#[from] JournalError),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
 pub struct CompanyStore {
-    pool: SqlitePool,
+    pub(crate) pool: SqlitePool,
 }
 
 pub async fn open_company(dir: &Path) -> Result<CompanyStore, StoreError> {
     std::fs::create_dir_all(dir).context("create company dir")?;
     let db = dir.join("ledger.sqlite");
-    let opts = SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", db.display()))?
+    let opts = SqliteConnectOptions::new()
+        .filename(&db)
         .create_if_missing(true)
         .foreign_keys(true)
         .journal_mode(SqliteJournalMode::Wal)
         .synchronous(SqliteSynchronous::Normal)
         .busy_timeout(std::time::Duration::from_secs(5));
     let pool = SqlitePoolOptions::new()
-        .max_connections(1) // single-writer serialization
+        .max_connections(1)
         .connect_with(opts)
         .await?;
     let store = CompanyStore { pool };
@@ -40,76 +42,8 @@ pub async fn open_company(dir: &Path) -> Result<CompanyStore, StoreError> {
 
 impl CompanyStore {
     async fn migrate(&self) -> Result<(), StoreError> {
-        sqlx::query(
-            r#"
-            CREATE TABLE IF NOT EXISTS schema_version (
-              version INTEGER NOT NULL PRIMARY KEY
-            );
-            "#,
-        )
-        .execute(&self.pool)
-        .await?;
-        let row = sqlx::query("SELECT MAX(version) as v FROM schema_version")
-            .fetch_one(&self.pool)
-            .await?;
-        let current: Option<i64> = row.try_get("v")?;
-        if current.unwrap_or(0) < 1 {
-            sqlx::query(
-                r#"
-                CREATE TABLE journal_entries (
-                  id TEXT PRIMARY KEY NOT NULL,
-                  as_of TEXT NOT NULL,
-                  memo TEXT NOT NULL,
-                  actor TEXT NOT NULL,
-                  payload_json TEXT NOT NULL,
-                  digest TEXT NOT NULL,
-                  prev_digest TEXT
-                );
-                "#,
-            )
-            .execute(&self.pool)
-            .await?;
-            sqlx::query("INSERT INTO schema_version(version) VALUES (1)")
-                .execute(&self.pool)
-                .await?;
-        }
+        sqlx::migrate!("./migrations").run(&self.pool).await?;
         Ok(())
-    }
-
-    pub async fn append(&self, posted: &PostedEntry) -> Result<(), StoreError> {
-        // Re-validate at store boundary (ADR-004)
-        posted.entry.validate()?;
-        let payload = serde_json::to_string(posted).context("serialize")?;
-        sqlx::query(
-            r#"
-            INSERT INTO journal_entries(id, as_of, memo, actor, payload_json, digest, prev_digest)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-            "#,
-        )
-        .bind(posted.id.to_string())
-        .bind(posted.entry.as_of.to_rfc3339())
-        .bind(&posted.entry.memo)
-        .bind(posted.entry.actor.as_tag())
-        .bind(payload)
-        .bind(&posted.digest)
-        .bind(&posted.prev_digest)
-        .execute(&self.pool)
-        .await?;
-        Ok(())
-    }
-
-    pub async fn last_digest(&self) -> Result<Option<String>, StoreError> {
-        let row = sqlx::query("SELECT digest FROM journal_entries ORDER BY rowid DESC LIMIT 1")
-            .fetch_optional(&self.pool)
-            .await?;
-        Ok(row.map(|r| r.get::<String, _>("digest")))
-    }
-
-    pub async fn schema_version(&self) -> Result<i64, StoreError> {
-        let row = sqlx::query("SELECT MAX(version) as v FROM schema_version")
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(row.get::<Option<i64>, _>("v").unwrap_or(0))
     }
 }
 
@@ -121,13 +55,10 @@ mod tests {
     use klarbog_types::{Actor, Currency, MinorAmount};
     use tempfile::tempdir;
 
-    #[tokio::test]
-    async fn wal_and_balanced_append() {
-        let dir = tempdir().unwrap();
-        let store = open_company(dir.path()).await.unwrap();
-        assert_eq!(store.schema_version().await.unwrap(), 1);
-        let (a, c) = (MinorAmount::from_minor(100), Currency::new("DKK").unwrap());
-        let entry = JournalEntry {
+    fn balanced(minor: i64) -> JournalEntry {
+        let a = MinorAmount::from_minor(minor);
+        let c = Currency::new("DKK").unwrap();
+        JournalEntry {
             as_of: Utc::now(),
             memo: "t".into(),
             actor: Actor::user("u"),
@@ -147,12 +78,40 @@ mod tests {
                     party_id: None,
                 },
             ],
-        };
-        let posted = entry.post(None).unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn wal_fk_and_balanced_append() {
+        let dir = tempdir().unwrap();
+        let store = open_company(dir.path()).await.unwrap();
+        assert_eq!(store.schema_version().await.unwrap(), 1);
+        let (mode, fk, busy) = store.pragmas().await.unwrap();
+        assert_eq!(mode.to_lowercase(), "wal");
+        assert_eq!(fk, 1);
+        assert!(busy >= 5000);
+        let posted = balanced(100).post(None).unwrap();
         store.append(&posted).await.unwrap();
         assert_eq!(
             store.last_digest().await.unwrap().as_deref(),
             Some(posted.digest.as_str())
         );
+    }
+
+    #[tokio::test]
+    async fn store_rejects_unbalanced() {
+        let dir = tempdir().unwrap();
+        let store = open_company(dir.path()).await.unwrap();
+        let mut entry = balanced(100);
+        entry.legs[1].amount = MinorAmount::from_minor(1);
+        let posted = {
+            // bypass JournalEntry::post (which also validates) by constructing via post on
+            // a clone that we force-validate skip — store must still refuse.
+            let ok = balanced(40).post(None).unwrap();
+            let mut bad = ok;
+            bad.entry = entry;
+            bad
+        };
+        assert!(store.append(&posted).await.is_err());
     }
 }

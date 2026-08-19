@@ -1,5 +1,11 @@
 //! Company lifecycle and posting orchestration.
 
+mod confirm;
+mod pathguard;
+
+pub use confirm::{ConfirmStore, ConfirmToken};
+pub use pathguard::{assert_company_path, PathGuardError};
+
 use anyhow::Context;
 use klarbog_journal::{JournalEntry, PostedEntry};
 use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
