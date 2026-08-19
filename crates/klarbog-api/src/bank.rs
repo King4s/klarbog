@@ -1,4 +1,4 @@
-//! Bank CSV import preview (ADR-006). Read-only — no journal post.
+//! Bank import preview (ADR-006/008/009). Read-only — no journal post.
 
 use crate::actor::parse_actor;
 use crate::AppState;
@@ -7,8 +7,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use klarbog_core::{assert_company_path, open_existing, CoreError};
 use klarbog_plugin_bank::{
-    draft_entries_from_rows, parse_bank_csv_with_profile, BankCsvError, BankImportConfig,
-    BankMapError, BankProfile,
+    default_source_for_rail, import_preview, BankImportConfig, BankImportError, BankImportSource,
+    BankProfile,
 };
 use klarbog_types::{Actor, Currency, Envelope};
 use serde::Deserialize;
@@ -18,8 +18,10 @@ use std::path::{Path, PathBuf};
 #[derive(Deserialize)]
 pub struct PreviewBody {
     pub company: String,
-    pub profile: BankProfile,
-    pub csv: String,
+    #[serde(alias = "profile")]
+    pub provider: BankProfile,
+    pub source: Option<BankImportSource>,
+    pub csv: Option<String>,
     pub currency: Option<String>,
 }
 
@@ -61,12 +63,22 @@ fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     }
 }
 
-fn map_csv(err: BankCsvError) -> (StatusCode, Envelope<Value>) {
-    (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
-}
-
-fn map_map(err: BankMapError) -> (StatusCode, Envelope<Value>) {
-    (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
+fn map_import(err: BankImportError) -> (StatusCode, Envelope<Value>) {
+    let status = match &err {
+        BankImportError::Config(_) => StatusCode::SERVICE_UNAVAILABLE,
+        BankImportError::MissingCsv | BankImportError::ApiNotSupported { .. } => {
+            StatusCode::BAD_REQUEST
+        }
+        BankImportError::Csv(_) | BankImportError::Map(_) => StatusCode::BAD_REQUEST,
+        BankImportError::Api(e) => match e {
+            klarbog_plugin_bank::BankApiError::Http { status, .. } if *status == 401 => {
+                StatusCode::BAD_GATEWAY
+            }
+            klarbog_plugin_bank::BankApiError::Http { .. } => StatusCode::BAD_GATEWAY,
+            _ => StatusCode::BAD_GATEWAY,
+        },
+    };
+    (status, Envelope::err([err.to_string()]))
 }
 
 fn resolve_currency(body: &PreviewBody) -> Result<Currency, (StatusCode, Envelope<Value>)> {
@@ -92,19 +104,21 @@ pub async fn preview(
         currency: currency.clone(),
         ..BankImportConfig::default()
     };
-    let required = match body.profile {
-        BankProfile::Revolut => Some(currency),
-        BankProfile::GenericDk => None,
-    };
-    let rows =
-        parse_bank_csv_with_profile(body.profile, &body.csv, required.as_ref()).map_err(|e| {
-            let (s, env) = map_csv(e);
+    let source = body
+        .source
+        .unwrap_or_else(|| default_source_for_rail(body.provider));
+    if matches!(source, BankImportSource::Csv) && body.csv.as_deref().unwrap_or("").is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(Envelope::err(["missing csv"])),
+        ));
+    }
+    let (rows, drafts) = import_preview(source, body.provider, body.csv.as_deref(), &cfg, &actor)
+        .await
+        .map_err(|e| {
+            let (s, env) = map_import(e);
             (s, Json(env))
         })?;
-    let drafts = draft_entries_from_rows(&rows, &cfg, &actor).map_err(|e| {
-        let (s, env) = map_map(e);
-        (s, Json(env))
-    })?;
     let summaries: Vec<DraftSummary> = rows
         .iter()
         .zip(drafts.iter())
@@ -115,6 +129,8 @@ pub async fn preview(
         .collect();
     Ok(Json(Envelope::ok(serde_json::json!({
         "count": summaries.len(),
+        "source": source,
+        "provider": body.provider,
         "drafts": summaries,
     }))))
 }
@@ -143,7 +159,7 @@ mod http_tests {
     }
 
     #[tokio::test]
-    async fn bank_preview_generic_dk() {
+    async fn bank_preview_generic_dk_csv() {
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");
@@ -157,7 +173,8 @@ mod http_tests {
         let (kind, id) = actor_headers(&owner);
         let body = serde_json::json!({
             "company": company_path.to_string_lossy(),
-            "profile": "generic_dk",
+            "provider": "generic_dk",
+            "source": "csv",
             "csv": FIXTURE,
         });
         let res = app
@@ -180,11 +197,48 @@ mod http_tests {
         let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
         let data = env.data.unwrap();
         assert_eq!(data["count"], 2);
+        assert_eq!(data["source"], "csv");
         assert_eq!(data["drafts"][0]["amount_minor"], -12550);
         assert!(data["drafts"][0]["memo"]
             .as_str()
             .unwrap()
             .contains("Office supplies"));
+    }
+
+    #[tokio::test]
+    async fn bank_preview_revolut_api_missing_env() {
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company_path = dir.path().join("co");
+        init_company(&company_path, "Demo", &owner).await.unwrap();
+        let state = AppState {
+            confirm: Arc::new(ConfirmStore::default()),
+            allowlist_root: dir.path().to_path_buf(),
+            registry: Arc::new(default_registry()),
+        };
+        let app = router(state);
+        let (kind, id) = actor_headers(&owner);
+        let _guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
+        let body = serde_json::json!({
+            "company": company_path.to_string_lossy(),
+            "provider": "revolut",
+            "source": "api",
+            "currency": "DKK",
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/bank/import/preview")
+                    .header("content-type", "application/json")
+                    .header("x-klarbog-actor-kind", kind)
+                    .header("x-klarbog-actor-id", &id)
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 
     #[tokio::test]
@@ -203,7 +257,8 @@ mod http_tests {
         let (kind, id) = actor_headers(&intruder);
         let body = serde_json::json!({
             "company": company_path.to_string_lossy(),
-            "profile": "generic_dk",
+            "provider": "generic_dk",
+            "source": "csv",
             "csv": FIXTURE,
         });
         let res = app
@@ -220,5 +275,27 @@ mod http_tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    }
+
+    struct EnvGuard {
+        key: &'static str,
+        prev: Option<String>,
+    }
+
+    impl EnvGuard {
+        fn unset(key: &'static str) -> Self {
+            let prev = std::env::var(key).ok();
+            unsafe { std::env::remove_var(key) };
+            Self { key, prev }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            match &self.prev {
+                Some(v) => unsafe { std::env::set_var(self.key, v) },
+                None => unsafe { std::env::remove_var(self.key) },
+            }
+        }
     }
 }

@@ -1,16 +1,26 @@
-//! Bank CSV import plugin — parse Danish-ish exports into draft journal entries.
-//! Read-only: never posts to the ledger (ADR-006).
+//! Bank import plugin — API-primary for Revolut/Stripe; CSV fallback (ADR-006/008/009).
+//! Read-only: never posts to the ledger.
 
 mod amount;
+mod api;
+mod config;
 mod csv;
+mod import;
 mod map;
 mod revolut;
+mod stripe;
 
 pub use amount::{parse_amount_minor, BankAmountError};
-pub use csv::{
-    parse_bank_csv, parse_bank_csv_with_profile, parse_revolut_csv, BankCsvError, BankProfile,
-    BankRow,
+pub use api::{
+    fetch_revolut_transactions, fetch_stripe_balance_transactions, parse_revolut_api_json,
+    parse_stripe_api_json, BankApiError, HttpClient, ReqwestHttpClient,
 };
+pub use config::{BankApiConfigError, RevolutApiConfig, StripeApiConfig};
+pub use csv::{
+    parse_bank_csv, parse_bank_csv_with_profile, parse_revolut_csv, parse_stripe_csv, BankCsvError,
+    BankProfile, BankRow,
+};
+pub use import::{default_source_for_rail, import_preview, BankImportError, BankImportSource};
 pub use map::{draft_entries_from_rows, BankImportConfig, BankMapError};
 
 use klarbog_plugin::{Capability, Plugin};
@@ -39,6 +49,7 @@ mod tests {
 
     const FIXTURE: &str = include_str!("../tests/fixtures/danish_bank.csv");
     const REVOLUT_FIXTURE: &str = include_str!("../tests/fixtures/revolut_statement.csv");
+    const STRIPE_FIXTURE: &str = include_str!("../tests/fixtures/stripe_balance.csv");
 
     #[test]
     fn plugin_is_read_only() {
@@ -117,6 +128,41 @@ mod tests {
     }
 
     #[test]
+    fn stripe_fixture_parses_and_maps() {
+        let cfg = BankImportConfig::default();
+        let rows = parse_stripe_csv(STRIPE_FIXTURE, Some(&cfg.currency)).expect("stripe csv");
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0].text, "Stripe payout");
+        assert_eq!(rows[0].amount_minor.minor(), -100000);
+        assert_eq!(rows[1].amount_minor.minor(), 24275);
+
+        let drafts =
+            draft_entries_from_rows(&rows, &cfg, &Actor::agent("stripe-import")).expect("map");
+        assert_eq!(drafts.len(), 3);
+        for entry in &drafts {
+            entry.validate().expect("balanced draft");
+            assert!(entry.memo.contains("bank:"));
+        }
+    }
+
+    #[test]
+    fn stripe_rejects_mixed_currency() {
+        let csv = "Created,Description,Net,Currency\n\
+2026-01-01,A,-10.00,DKK\n2026-01-02,B,5.00,EUR\n";
+        let err = parse_stripe_csv(csv, None).unwrap_err();
+        assert!(matches!(err, BankCsvError::MixedCurrency { .. }));
+    }
+
+    #[test]
+    fn profile_dispatch_stripe() {
+        let cfg = BankImportConfig::default();
+        let rows =
+            parse_bank_csv_with_profile(BankProfile::Stripe, STRIPE_FIXTURE, Some(&cfg.currency))
+                .expect("stripe profile");
+        assert_eq!(rows.len(), 3);
+    }
+
+    #[test]
     fn profile_dispatch_keeps_generic_dk() {
         let rows =
             parse_bank_csv_with_profile(BankProfile::GenericDk, FIXTURE, None).expect("generic");
@@ -133,5 +179,11 @@ mod tests {
         let err = draft_entries_from_rows(&[row], &BankImportConfig::default(), &Actor::agent("t"))
             .unwrap_err();
         assert!(matches!(err, BankMapError::ZeroAmount(_)));
+    }
+
+    #[test]
+    fn bank_import_source_snake_case() {
+        let v = serde_json::to_value(BankImportSource::Api).unwrap();
+        assert_eq!(v, "api");
     }
 }

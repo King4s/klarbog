@@ -1,16 +1,26 @@
-# ADR-008: Revolut bank import profile
+# ADR-008: Revolut Business API (bank rail)
 
 ## Status
-Accepted (owner 2026-08-19; spelling: **Revolut**, not “ReVolt”)
+Accepted (corrected 2026-08-20 — **API is primary**, not CSV)
 
 ## Decision
-Extend `klarbog-plugin-bank` with an explicit **`BankProfile::Revolut`** CSV/statement parser alongside the existing Danish generic profile.
+Klarbog integrates **Revolut** via the **Revolut Business API** as a first-class payment/bank rail.
 
-- Revolut export columns (common): `Completed Date` / `Date`, `Description` / `Reference`, `Amount`, optional `Currency`, `Type`, `State`.
-- Delimiter: comma (RFC-ish) with quoted fields; amounts still → `MinorAmount` (i64 øre / half-even). No `f64`.
-- Currency mismatch vs company default → reject row or require matching currency (fail closed on mixed currency in one import batch unless all rows share one ISO code).
-- Profile remains **Capability::Read** — drafts only; posting via host preview/commit.
-- Future: Revolut Business API (OAuth) is out of scope until a separate ADR; CSV-first.
+### Primary: API
+- Live fetch of account transactions (and related balances as needed) using env credentials:
+  - `KLARBOG_REVOLUT_API_TOKEN` (secret — never commit/print)
+  - optional `KLARBOG_REVOLUT_API_BASE` (default Revolut Business API base URL)
+- Map API amounts to `MinorAmount` (i64). No `f64`.
+- Currency fail-closed vs company default when configured.
+- Capability **Read** — API sync produces **draft** `JournalEntry` suggestions only; ledger write remains host preview/commit.
+- DEV/tests: fixture JSON / mocked HTTP — no network required for `./scripts/verify.sh`.
+
+### Secondary: CSV (optional offline)
+- Keep `BankProfile::Revolut` CSV parser only as **manual fallback** when the user has an export file and no API key.
+- Product messaging and AI prompt must say: Revolut = API; CSV = nød/offline.
+
+### Out of scope here
+- Full OAuth app install UX (may follow); initial DEV may use personal/business API token from env.
 
 ## Consequences
-`parse_bank_csv` gains a profile parameter (or `parse_revolut_csv`). Fixtures live under `klarbog-plugin-bank/tests/fixtures/`.
+HTTP/MCP bank import gains `source: "api"` + `provider: "revolut"` (in addition to CSV profile).

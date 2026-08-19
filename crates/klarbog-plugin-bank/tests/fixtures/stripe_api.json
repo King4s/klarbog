@@ -1,0 +1,39 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "txn_payout",
+      "object": "balance_transaction",
+      "amount": -100000,
+      "fee": 0,
+      "net": -100000,
+      "currency": "dkk",
+      "created": 1736512200,
+      "description": "Stripe payout",
+      "type": "payout"
+    },
+    {
+      "id": "txn_charge",
+      "object": "balance_transaction",
+      "amount": 25000,
+      "fee": 725,
+      "net": 24275,
+      "currency": "dkk",
+      "created": 1736928000,
+      "description": "Customer payment",
+      "type": "charge"
+    },
+    {
+      "id": "txn_refund",
+      "object": "balance_transaction",
+      "amount": -5000,
+      "fee": 0,
+      "net": -5000,
+      "currency": "dkk",
+      "created": 1737015600,
+      "description": "Refund",
+      "type": "refund"
+    }
+  ],
+  "has_more": false
+}

@@ -1,4 +1,4 @@
-//! Bank CSV parsers — GenericDk (semicolon) and Revolut (comma, RFC-ish quotes).
+//! Bank CSV parsers — GenericDk (semicolon), Revolut, and Stripe (comma, RFC-ish quotes).
 
 use crate::amount::{parse_amount_minor, BankAmountError};
 use chrono::{DateTime, NaiveDate, Utc};
@@ -11,6 +11,7 @@ use thiserror::Error;
 pub enum BankProfile {
     GenericDk,
     Revolut,
+    Stripe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +46,13 @@ pub fn parse_revolut_csv(
     parse_bank_csv_with_profile(BankProfile::Revolut, input, required_currency)
 }
 
+pub fn parse_stripe_csv(
+    input: &str,
+    required_currency: Option<&Currency>,
+) -> Result<Vec<BankRow>, BankCsvError> {
+    parse_bank_csv_with_profile(BankProfile::Stripe, input, required_currency)
+}
+
 pub fn parse_bank_csv_with_profile(
     profile: BankProfile,
     input: &str,
@@ -53,7 +61,36 @@ pub fn parse_bank_csv_with_profile(
     match profile {
         BankProfile::GenericDk => parse_generic_dk_csv(input),
         BankProfile::Revolut => crate::revolut::parse_revolut_csv(input, required_currency),
+        BankProfile::Stripe => crate::stripe::parse_stripe_csv(input, required_currency),
     }
+}
+
+pub(crate) fn validate_currencies(
+    currencies: &[String],
+    required: Option<&Currency>,
+) -> Result<(), BankCsvError> {
+    if currencies.is_empty() {
+        return Ok(());
+    }
+    let first = &currencies[0];
+    if currencies.iter().any(|c| c != first) {
+        let found: Vec<&str> = currencies.iter().map(String::as_str).collect();
+        let mut uniq = found.clone();
+        uniq.sort_unstable();
+        uniq.dedup();
+        return Err(BankCsvError::MixedCurrency {
+            found: uniq.join(", "),
+        });
+    }
+    if let Some(exp) = required {
+        if first != exp.as_str() {
+            return Err(BankCsvError::CurrencyMismatch {
+                expected: exp.as_str().into(),
+                found: first.clone(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn parse_generic_dk_csv(input: &str) -> Result<Vec<BankRow>, BankCsvError> {
@@ -174,6 +211,9 @@ fn parse_date(raw: &str) -> Result<DateTime<Utc>, String> {
     if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
         return Ok(dt.with_timezone(&Utc));
     }
+    if let Ok(ndt) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+        return Ok(ndt.and_utc());
+    }
     let nd = if let Ok(d) = NaiveDate::parse_from_str(s, "%Y-%m-%d") {
         d
     } else if let Ok(d) = NaiveDate::parse_from_str(s, "%d-%m-%Y") {
@@ -196,5 +236,7 @@ mod tests {
     fn bank_profile_snake_case() {
         let v = serde_json::to_value(BankProfile::Revolut).unwrap();
         assert_eq!(v, "revolut");
+        let v = serde_json::to_value(BankProfile::Stripe).unwrap();
+        assert_eq!(v, "stripe");
     }
 }

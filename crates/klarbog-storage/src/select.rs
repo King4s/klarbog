@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::{LocalFsStore, R2Config, StorageError};
+use crate::{LocalFsStore, R2Config, R2Store, StorageError};
 
 pub const ENV_KLARBOG_STORAGE: &str = "KLARBOG_STORAGE";
 pub const COMPANY_OBJECTS_DIR: &str = "objects";
@@ -11,7 +11,17 @@ pub const COMPANY_OBJECTS_DIR: &str = "objects";
 #[derive(Debug, Clone)]
 pub enum KlarbogStorage {
     Local(LocalFsStore),
-    R2(R2Config),
+    R2(R2Store),
+}
+
+impl KlarbogStorage {
+    /// Put bytes at `key` using the active backend (local `objects/` or R2).
+    pub async fn put(&self, key: &str, bytes: &[u8]) -> Result<(), StorageError> {
+        match self {
+            Self::Local(store) => store.put(key, bytes).await,
+            Self::R2(store) => store.put(key, bytes).await,
+        }
+    }
 }
 
 /// Select storage from `KLARBOG_STORAGE` (default `local`).
@@ -24,7 +34,7 @@ pub fn klarbog_storage(company: &Path) -> Result<KlarbogStorage, StorageError> {
             let root = ensure_company_objects_root(company)?;
             Ok(KlarbogStorage::Local(LocalFsStore::new(company, &root)?))
         }
-        StorageBackend::R2 => Ok(KlarbogStorage::R2(R2Config::from_env()?)),
+        StorageBackend::R2 => Ok(KlarbogStorage::R2(R2Store::new(R2Config::from_env()?))),
     }
 }
 
@@ -76,5 +86,24 @@ mod tests {
         let err = klarbog_storage(&company).unwrap_err();
         std::env::remove_var(ENV_KLARBOG_STORAGE);
         assert!(matches!(err, StorageError::MissingEnv(_)));
+    }
+
+    #[test]
+    fn r2_mode_selects_r2_store_when_env_present() {
+        let dir = tempdir().unwrap();
+        let company = dir.path().join("co");
+        std::fs::create_dir_all(&company).unwrap();
+        std::env::set_var(ENV_KLARBOG_STORAGE, "r2");
+        std::env::set_var("KLARBOG_R2_ACCOUNT_ID", "acct");
+        std::env::set_var("KLARBOG_R2_ACCESS_KEY_ID", "key");
+        std::env::set_var("KLARBOG_R2_SECRET_ACCESS_KEY", "secret");
+        std::env::set_var("KLARBOG_R2_BUCKET", "bucket");
+        let sel = klarbog_storage(&company).unwrap();
+        std::env::remove_var(ENV_KLARBOG_STORAGE);
+        std::env::remove_var("KLARBOG_R2_ACCOUNT_ID");
+        std::env::remove_var("KLARBOG_R2_ACCESS_KEY_ID");
+        std::env::remove_var("KLARBOG_R2_SECRET_ACCESS_KEY");
+        std::env::remove_var("KLARBOG_R2_BUCKET");
+        assert!(matches!(sel, KlarbogStorage::R2(_)));
     }
 }

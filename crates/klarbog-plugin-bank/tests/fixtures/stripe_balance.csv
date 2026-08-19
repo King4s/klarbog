@@ -1,0 +1,4 @@
+Created,Available On,Description,Type,Reporting Category,Amount,Fee,Net,Currency
+2026-01-10 14:30:00,2026-01-12,Stripe payout,Payout,payout,-1000.00,0.00,-1000.00,DKK
+2026-01-15 09:00:00,2026-01-17,Customer payment,Charge,charge,250.00,7.25,242.75,DKK
+2026-01-16 11:00:00,2026-01-18,Refund,Refund,refund,-50.00,0.00,-50.00,DKK

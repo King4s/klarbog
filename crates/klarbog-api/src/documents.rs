@@ -24,6 +24,7 @@ pub struct AttachBody {
     pub party_id: Option<String>,
     pub invoice_id: Option<String>,
     pub notes: Option<String>,
+    pub content_base64: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -155,6 +156,21 @@ pub async fn attach(
         })?;
     let party_id = body.party_id.map(PartyId::new);
     let invoice_id = body.invoice_id.map(InvoiceId::new);
+    let content = if let Some(b64) = body.content_base64 {
+        Some(
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, b64.trim())
+                .map_err(|_| {
+                    (
+                        StatusCode::BAD_REQUEST,
+                        Json(Envelope::err([
+                            "content_base64 must be valid base64".to_string()
+                        ])),
+                    )
+                })?,
+        )
+    } else {
+        None
+    };
     let doc = attach_document(
         &path,
         body.kind,
@@ -162,7 +178,9 @@ pub async fn attach(
         party_id,
         invoice_id,
         body.notes,
+        content.as_deref(),
     )
+    .await
     .map_err(|e| {
         let (s, env) = map_doc(e);
         (s, Json(env))

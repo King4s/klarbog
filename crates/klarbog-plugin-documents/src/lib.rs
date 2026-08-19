@@ -1,5 +1,5 @@
 //! Documents plugin — metadata in `documents.json`, exceptions in `exceptions.json`.
-//! No journal-write capability (ADR-004). Binary upload out of scope (slice 7).
+//! No journal-write capability (ADR-004). Optional binary upload via ObjectStore (ADR-007).
 
 mod store;
 
@@ -135,7 +135,8 @@ impl Default for DocumentsPlugin {
 }
 
 impl DocumentsPlugin {
-    pub fn attach(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn attach(
         &self,
         company: &Path,
         kind: DocumentKind,
@@ -143,8 +144,12 @@ impl DocumentsPlugin {
         party_id: Option<PartyId>,
         invoice_id: Option<InvoiceId>,
         notes: Option<String>,
+        content: Option<&[u8]>,
     ) -> Result<Document, DocumentError> {
-        attach_document(company, kind, path_hint, party_id, invoice_id, notes)
+        attach_document(
+            company, kind, path_hint, party_id, invoice_id, notes, content,
+        )
+        .await
     }
 
     pub fn list(&self, company: &Path) -> Result<Vec<Document>, DocumentError> {
@@ -199,8 +204,8 @@ mod tests {
         assert!(!p.has_journal_write());
     }
 
-    #[test]
-    fn plugin_attach_list() {
+    #[tokio::test]
+    async fn plugin_attach_list() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
@@ -213,7 +218,9 @@ mod tests {
                 None,
                 None,
                 None,
+                None,
             )
+            .await
             .unwrap();
         assert_eq!(plugin.list(&co).unwrap().len(), 1);
     }

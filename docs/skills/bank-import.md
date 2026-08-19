@@ -1,32 +1,39 @@
 ---
 name: klarbog-bank-import
 description: >-
-  Parse bank CSV into draft journal entries (no posting). Covers GenericDk and
-  Revolut profiles. Use before preview/commit for bank reconciliation.
+  Import bank transactions into draft journal entries (no posting). GenericDk uses CSV;
+  Revolut and Stripe use live API with CSV offline fallback. Use before preview/commit.
 ---
 
-# Bank CSV import
+# Bank import
 
 ## When to use
 
-- Turn a bank export CSV into **draft** `JournalEntry` suggestions.
+- Turn bank transactions into **draft** `JournalEntry` suggestions.
 - Bank plugin is **read-only** (ADR-006) — drafts only; posting via journal-preview-commit.
 
-## Profiles
+## Sources and providers
 
-| Profile | Format | Parser |
-|---------|--------|--------|
-| `GenericDk` | Semicolon, Danish amounts | `parse_bank_csv` |
-| `Revolut` | Comma, quoted RFC-ish (ADR-008) | `parse_revolut_csv` |
+| Provider | Primary source | Fallback |
+|----------|----------------|----------|
+| `generic_dk` | `csv` (semicolon Danish export) | — |
+| `revolut` | `api` (Revolut Business API, ADR-008) | `csv` offline export |
+| `stripe` | `api` (Stripe balance transactions, ADR-009) | `csv` offline export |
 
-Dispatch: `parse_bank_csv_with_profile(BankProfile::Revolut, csv, currency)`.
+Dispatch: `import_preview(source, provider, csv?, cfg, actor)`.
 
-Revolut columns: `Completed Date`, `Description`, `Amount`, `Currency`.
+Env (never commit/print):
+
+- `KLARBOG_REVOLUT_API_TOKEN`, optional `KLARBOG_REVOLUT_API_BASE`
+- `KLARBOG_STRIPE_SECRET_KEY`, optional `KLARBOG_STRIPE_API_BASE`
+
+Missing token when `source=api` → fail closed.
 
 ## Amount rules
 
 - All amounts → `MinorAmount` (i64 øre). Half-even rounding from decimal strings.
-- Integer-only column values treated as already-minor.
+- Stripe API amounts are already minor units; prefer **net** over gross when fee present.
+- Integer-only column values treated as already-minor (CSV).
 - Mixed currencies in one batch → reject (fail closed).
 - Currency mismatch vs `BankImportConfig.currency` → reject.
 
@@ -34,24 +41,52 @@ Revolut columns: `Completed Date`, `Description`, `Amount`, `Currency`.
 
 ```rust
 use klarbog_plugin_bank::{
-    parse_bank_csv, parse_revolut_csv, draft_entries_from_rows,
-    BankImportConfig, BankProfile,
+    import_preview, default_source_for_rail, BankImportConfig, BankImportSource, BankProfile,
 };
 use klarbog_types::Actor;
 
 let cfg = BankImportConfig::default(); // DKK, accounts 5800/6000/6100
-let rows = parse_bank_csv(csv_text)?;
-// Revolut: parse_revolut_csv(csv, Some(&cfg.currency))?
-
 let actor = Actor::agent("bank-import");
-let drafts = draft_entries_from_rows(&rows, &cfg, &actor)?;
+
+// Revolut API (default source for revolut)
+let (rows, drafts) = import_preview(
+    BankImportSource::Api,
+    BankProfile::Revolut,
+    None,
+    &cfg,
+    &actor,
+).await?;
+
+// GenericDk CSV
+let (rows, drafts) = import_preview(
+    BankImportSource::Csv,
+    BankProfile::GenericDk,
+    Some(csv_text),
+    &cfg,
+    &actor,
+).await?;
+
 for entry in &drafts {
     entry.validate()?; // balanced
 }
-// Each draft: preview → commit per entry
 ```
 
-Fixtures: `crates/klarbog-plugin-bank/tests/fixtures/danish_bank.csv`, `revolut_statement.csv`.
+Offline tests: `parse_revolut_api_json` / `parse_stripe_api_json` with fixture JSON (no network).
+
+Fixtures: `tests/fixtures/danish_bank.csv`, `revolut_statement.csv`, `stripe_balance.csv`, `revolut_api.json`, `stripe_api.json`.
+
+## HTTP / MCP
+
+```json
+{
+  "company": "/path/to/company",
+  "source": "api",
+  "provider": "revolut",
+  "currency": "DKK"
+}
+```
+
+CSV fallback adds `"source": "csv"` and `"csv": "..."`. Legacy field `profile` aliases `provider`.
 
 ## Mapping defaults
 
@@ -59,17 +94,9 @@ Fixtures: `crates/klarbog-plugin-bank/tests/fixtures/danish_bank.csv`, `revolut_
 - Inflow: debit bank, credit revenue `6100`.
 - Memo prefix: `bank:<original text>`.
 
-## Agent demo
-
-`klarbog demo` prints `bank_draft_count_generic_dk` and `bank_draft_count_revolut` from embedded fixtures (no network).
-
-## TODO (future)
-
-- Revolut Business OAuth API — out of scope until separate ADR; CSV-first today.
-
 ## Checklist
 
-1. Detect profile from CSV header (semicolon vs Revolut columns).
-2. Parse → validate row count and currencies.
+1. Pick provider + source (`default_source_for_rail` when omitted).
+2. Fetch/parse → validate row count and currencies.
 3. Map to drafts; skip zero amounts (error).
 4. For each draft: journal preview → commit with human/agent confirm.

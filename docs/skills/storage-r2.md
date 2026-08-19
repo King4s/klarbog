@@ -25,12 +25,10 @@ Env `KLARBOG_STORAGE` (default `local`):
 use klarbog_storage::{klarbog_storage, KlarbogStorage};
 
 let backend = klarbog_storage(company_path)?;
+backend.put("attachments/scan.pdf", &bytes).await?;
 match backend {
-    KlarbogStorage::Local(store) => { /* path_hint under objects/ */ }
-    KlarbogStorage::R2(cfg) => {
-        let store = klarbog_storage::R2Store::new(cfg);
-        store.put("attachments/scan.pdf", &bytes).await?;
-    }
+    KlarbogStorage::Local(_) => { /* under <company>/objects/ */ }
+    KlarbogStorage::R2(_) => { /* same key in R2 bucket */ }
 }
 ```
 
@@ -55,7 +53,7 @@ Stage smoke (owner creds, not CI): `KLARBOG_STORAGE=r2` + env vars, then put/get
 
 ## Document attach
 
-`attach_document` calls `klarbog_storage(company)` first. Metadata stays in `documents.json`; `path_hint` is relative (e.g. `attachments/scan.pdf`).
+`attach_document` selects storage via `klarbog_storage(company)`, optionally `put`s bytes at `path_hint`, then writes `documents.json` metadata. HTTP clients may send `content_base64` instead of in-process `content`.
 
 ## Related
 

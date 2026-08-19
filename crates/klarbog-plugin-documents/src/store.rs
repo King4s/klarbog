@@ -91,22 +91,26 @@ pub fn get_document(company: &Path, id: &DocumentId) -> Result<Option<Document>,
         .find(|d| d.id == *id))
 }
 
-pub fn attach_document(
+pub async fn attach_document(
     company: &Path,
     kind: DocumentKind,
     path_hint: String,
     party_id: Option<PartyId>,
     invoice_id: Option<InvoiceId>,
     notes: Option<String>,
+    content: Option<&[u8]>,
 ) -> Result<Document, DocumentError> {
     validate_path_hint(&path_hint)?;
-    klarbog_storage(company)?;
+    let storage = klarbog_storage(company)?;
     if let Some(ref pid) = party_id {
         get_party(company, pid)?.ok_or_else(|| DocumentError::PartyNotFound(pid.to_string()))?;
     }
     if let Some(ref iid) = invoice_id {
         get_invoice(company, iid)?
             .ok_or_else(|| DocumentError::InvoiceNotFound(iid.to_string()))?;
+    }
+    if let Some(bytes) = content {
+        storage.put(&path_hint, bytes).await?;
     }
     let doc = Document {
         id: DocumentId::generate(),
@@ -191,8 +195,8 @@ mod tests {
     use klarbog_plugin_invoice::{create_draft_from_new, InvoiceKind, NewLine};
     use tempfile::tempdir;
 
-    #[test]
-    fn document_roundtrip() {
+    #[tokio::test]
+    async fn document_roundtrip() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
@@ -203,15 +207,39 @@ mod tests {
             None,
             None,
             Some("note".into()),
+            None,
         )
+        .await
         .unwrap();
         assert!(co.join(DOCUMENTS_FILENAME).exists());
         assert_eq!(list_documents(&co).unwrap().len(), 1);
         assert!(get_document(&co, &doc.id).unwrap().is_some());
     }
 
-    #[test]
-    fn rejects_bad_path_hint() {
+    #[tokio::test]
+    async fn attach_puts_bytes_under_objects() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let bytes = b"pdf-bytes";
+        attach_document(
+            &co,
+            DocumentKind::Receipt,
+            "attachments/r.pdf".into(),
+            None,
+            None,
+            None,
+            Some(bytes),
+        )
+        .await
+        .unwrap();
+        let stored = co.join("objects").join("attachments/r.pdf");
+        assert!(stored.is_file());
+        assert_eq!(fs::read(stored).unwrap(), bytes);
+    }
+
+    #[tokio::test]
+    async fn rejects_bad_path_hint() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
@@ -222,7 +250,9 @@ mod tests {
             None,
             None,
             None,
+            None,
         )
+        .await
         .unwrap_err();
         assert!(matches!(err, DocumentError::InvalidPathHint(_)));
     }
@@ -247,8 +277,8 @@ mod tests {
         assert_eq!(list_exceptions(&co, false).unwrap().len(), 1);
     }
 
-    #[test]
-    fn validates_party_and_invoice() {
+    #[tokio::test]
+    async fn validates_party_and_invoice() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
@@ -271,7 +301,9 @@ mod tests {
             Some(party.id),
             Some(inv.id),
             None,
+            None,
         )
+        .await
         .unwrap();
     }
 }

@@ -62,7 +62,7 @@ Kald `tools/list`. Forvent mindst:
 | `klarbog_health` | Livstegn |
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
-| `bank_import_preview` | CSV → **udkast** til journal (skriver ikke) |
+| `bank_import_preview` | Bank/betalingsrails → **udkast** (API for Revolut/Stripe; CSV for GenericDk / offline) |
 | `retention_get` | Læs retention-politik |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
 
@@ -77,8 +77,14 @@ Typiske argumenter: `company` (absolut sti), `actor_kind`, `actor_id`, plus tool
 
 **Bank**
 
-- `profile`: `generic_dk` (semikolon CSV) eller `revolut` (komma CSV).
+**Bank / betalinger**
+
+- `generic_dk`: semikolon-CSV.
+- `revolut` / `stripe`: **fuld API** (`source: "api"` + env-nøgler). CSV kun som nød/offline (`source: "csv"`).
 - Resultatet er **udkast** — post kun via journal preview/commit hvis brugeren beder om det.
+
+Env: `KLARBOG_REVOLUT_API_TOKEN`, `KLARBOG_STRIPE_SECRET_KEY` (print aldrig).
+
 
 ### B) HTTP API
 
@@ -102,7 +108,7 @@ x-klarbog-actor-id: owner
 | POST | `/api/v1/journal/commit` | Fase 2 |
 | POST/GET | `/api/v1/crm/parties` | Parter |
 | POST/GET | `/api/v1/invoices/drafts` | Fakturakladder |
-| POST | `/api/v1/bank/import/preview` | Bank-CSV → udkast |
+| POST | `/api/v1/bank/import/preview` | Bank/API → udkast (`source` + `provider`) |
 | POST/GET | `/api/v1/documents` | Bilags-metadata |
 | POST/GET/PATCH | `/api/v1/exceptions` | Undtagelser |
 | GET | `/api/v1/retention` | Retention |
@@ -134,7 +140,7 @@ curl -sS -X POST "$KLARBOG_API_BASE/api/v1/journal/preview" \
 
 Beløb `12500` = 125,00 DKK i øre. Brug samme JSON + `confirm_token` mod `/api/v1/journal/commit`.
 
-**Eksempel — bank preview (Revolut)**
+**Eksempel — bank preview (Revolut API)**
 
 ```bash
 curl -sS -X POST "$KLARBOG_API_BASE/api/v1/bank/import/preview" \
@@ -143,11 +149,30 @@ curl -sS -X POST "$KLARBOG_API_BASE/api/v1/bank/import/preview" \
   -H "x-klarbog-actor-id: owner" \
   -d "{
     \"company\": \"$KLARBOG_COMPANY\",
-    \"profile\": \"revolut\",
-    \"currency\": \"DKK\",
-    \"csv\": \"Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance\\n...\"
+    \"source\": \"api\",
+    \"provider\": \"revolut\",
+    \"currency\": \"DKK\"
   }"
 ```
+
+(Kræver `KLARBOG_REVOLUT_API_TOKEN` i API-processens miljø. CSV-nød: `"source": "csv"` + `"csv": "..."`.)
+
+**Eksempel — bank preview (Stripe API)**
+
+```bash
+curl -sS -X POST "$KLARBOG_API_BASE/api/v1/bank/import/preview" \
+  -H "Content-Type: application/json" \
+  -H "x-klarbog-actor-kind: user" \
+  -H "x-klarbog-actor-id: owner" \
+  -d "{
+    \"company\": \"$KLARBOG_COMPANY\",
+    \"source\": \"api\",
+    \"provider\": \"stripe\",
+    \"currency\": \"DKK\"
+  }"
+```
+
+(Kræver `KLARBOG_STRIPE_SECRET_KEY` i API-processens miljø.)
 
 ### C) CLI
 

@@ -1,9 +1,10 @@
-//! Revolut bank CSV profile (comma-separated, RFC-ish quotes, ADR-008).
+//! Stripe balance / payout CSV profile (comma-separated, RFC-ish quotes, ADR-009).
 
 use crate::csv::{get_field, parse_row, validate_currencies, BankCsvError, BankRow};
+use crate::revolut::split_csv_row;
 use klarbog_types::Currency;
 
-pub(crate) fn parse_revolut_csv(
+pub(crate) fn parse_stripe_csv(
     input: &str,
     required_currency: Option<&Currency>,
 ) -> Result<Vec<BankRow>, BankCsvError> {
@@ -11,7 +12,7 @@ pub(crate) fn parse_revolut_csv(
     let header = lines.next().ok_or(BankCsvError::Empty)?;
     let cols: Vec<String> = split_csv_row(header);
     let col_refs: Vec<&str> = cols.iter().map(String::as_str).collect();
-    let idx = revolut_column_map(&col_refs)?;
+    let idx = stripe_column_map(&col_refs)?;
     let has_currency = idx.contains_key("currency");
 
     let mut out = Vec::new();
@@ -39,39 +40,12 @@ pub(crate) fn parse_revolut_csv(
     Ok(out)
 }
 
-pub(crate) fn split_csv_row(line: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut field = String::new();
-    let mut in_quotes = false;
-    let mut chars = line.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '"' if !in_quotes => in_quotes = true,
-            '"' if in_quotes => {
-                if chars.peek() == Some(&'"') {
-                    chars.next();
-                    field.push('"');
-                } else {
-                    in_quotes = false;
-                }
-            }
-            ',' if !in_quotes => {
-                out.push(field.trim().to_string());
-                field.clear();
-            }
-            _ => field.push(c),
-        }
-    }
-    out.push(field.trim().to_string());
-    out
-}
-
-fn revolut_column_map(
+fn stripe_column_map(
     header: &[&str],
 ) -> Result<std::collections::HashMap<&'static str, usize>, BankCsvError> {
     let mut map = std::collections::HashMap::new();
     for (i, cell) in header.iter().enumerate() {
-        if let Some((key, pri)) = revolut_header_key(cell) {
+        if let Some((key, pri)) = stripe_header_key(cell) {
             map.entry(key)
                 .and_modify(|(ix, p)| {
                     if pri < *p {
@@ -95,15 +69,16 @@ fn revolut_column_map(
     Ok(flat)
 }
 
-fn revolut_header_key(cell: &str) -> Option<(&'static str, u8)> {
+fn stripe_header_key(cell: &str) -> Option<(&'static str, u8)> {
     match cell.trim().to_ascii_lowercase().as_str() {
-        "completed date" => Some(("date", 0)),
-        "date" => Some(("date", 1)),
-        "started date" => Some(("date_alt", 2)),
+        "created" => Some(("date", 0)),
+        "available on" => Some(("date", 1)),
+        "date" => Some(("date", 2)),
         "description" => Some(("text", 0)),
-        "reference" => Some(("text_alt", 1)),
-        "payment reference" => Some(("text_alt2", 2)),
-        "amount" => Some(("amount", 0)),
+        "type" => Some(("text", 1)),
+        "reporting category" => Some(("text", 2)),
+        "net" => Some(("amount", 0)),
+        "amount" => Some(("amount", 1)),
         "currency" => Some(("currency", 0)),
         _ => None,
     }
@@ -113,9 +88,30 @@ fn revolut_header_key(cell: &str) -> Option<(&'static str, u8)> {
 mod tests {
     use super::*;
 
+    const FIXTURE: &str = include_str!("../tests/fixtures/stripe_balance.csv");
+
     #[test]
-    fn split_csv_quoted_comma() {
-        let fields = split_csv_row(r#""Transfer, internal",-200.00"#);
-        assert_eq!(fields[0], "Transfer, internal");
+    fn stripe_fixture_prefers_net_over_amount() {
+        let rows = parse_stripe_csv(FIXTURE, Some(&Currency::new("DKK").unwrap())).unwrap();
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0].amount_minor.minor(), -100000);
+        assert_eq!(rows[0].text, "Stripe payout");
+        assert_eq!(rows[1].amount_minor.minor(), 24275);
+        assert_eq!(rows[2].amount_minor.minor(), -5000);
+    }
+
+    #[test]
+    fn stripe_rejects_mixed_currency() {
+        let csv = "Created,Description,Net,Currency\n\
+2026-01-01,A,-10.00,DKK\n2026-01-02,B,5.00,EUR\n";
+        let err = parse_stripe_csv(csv, None).unwrap_err();
+        assert!(matches!(err, BankCsvError::MixedCurrency { .. }));
+    }
+
+    #[test]
+    fn stripe_amount_only_when_no_net_column() {
+        let csv = "Date,Description,Amount,Currency\n2026-01-01,Charge,99.50,DKK\n";
+        let rows = parse_stripe_csv(csv, None).unwrap();
+        assert_eq!(rows[0].amount_minor.minor(), 9950);
     }
 }

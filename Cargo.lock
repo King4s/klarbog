@@ -941,6 +941,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64",
  "chrono",
  "klarbog-core",
  "klarbog-journal",
@@ -1053,9 +1054,11 @@ dependencies = [
  "klarbog-journal",
  "klarbog-plugin",
  "klarbog-types",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -1084,6 +1087,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "tokio",
  "uuid",
 ]
 

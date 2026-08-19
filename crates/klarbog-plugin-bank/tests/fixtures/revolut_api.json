@@ -1,0 +1,23 @@
+[
+  {
+    "id": "tx1",
+    "state": "completed",
+    "completed_at": "2026-01-15T12:00:00Z",
+    "description": "Coffee shop",
+    "legs": [{ "amount": "-45.50", "currency": "DKK" }]
+  },
+  {
+    "id": "tx2",
+    "state": "completed",
+    "completed_at": "2026-01-16T12:00:00Z",
+    "description": "Refund from vendor",
+    "legs": [{ "amount": "120.00", "currency": "DKK" }]
+  },
+  {
+    "id": "tx3",
+    "state": "completed",
+    "completed_at": "2026-01-17T12:00:00Z",
+    "description": "Transfer, internal",
+    "legs": [{ "amount": "-200.00", "currency": "DKK" }]
+  }
+]

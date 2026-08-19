@@ -11,7 +11,7 @@ description: >-
 
 - Register receipt/scan metadata linked to `party_id` or `invoice_id`.
 - Raise workflow exceptions (missing receipt, amount mismatch) and close when resolved.
-- Slice 7: JSON metadata only in company dir; binary upload uses `path_hint` + future ObjectStore (ADR-007).
+- Slice 7: JSON metadata in company dir; optional binary via `content` / HTTP `content_base64` (ADR-007).
 
 ## Plugin facts
 
@@ -33,7 +33,8 @@ description: >-
   "path_hint": "2026/01/receipt-001.pdf",
   "party_id": "pty_...",
   "invoice_id": null,
-  "notes": "Fuel station"
+  "notes": "Fuel station",
+  "content_base64": "<optional base64 bytes>"
 }
 ```
 
@@ -74,14 +75,24 @@ use klarbog_plugin_documents::{
     DocumentKind, ExceptionSeverity,
 };
 
-let doc = attach_document(company, DocumentKind::Receipt, "scans/x.pdf", Some(party_id), None, "")?;
+let doc = attach_document(
+    company,
+    DocumentKind::Receipt,
+    "scans/x.pdf",
+    Some(party_id),
+    None,
+    None,
+    Some(pdf_bytes),
+)
+.await?;
 let exc = raise_exception(company, ExceptionSeverity::Warn, "missing_receipt", "...", None, Some(party_id))?;
 set_exception_open(company, &exc.id, false)?;
 ```
 
 ## ObjectStore (ADR-007)
 
-- `klarbog-storage`: `LocalFsStore` for DEV; `R2Store` scaffold (EU, fail-closed without creds).
+- `klarbog-storage`: `LocalFsStore` for DEV; `R2Store` for stage/prod (EU, fail-closed without creds).
+- When `content` is provided, bytes are stored at `path_hint` under `<company>/objects/` (local) or R2 bucket key.
 - Agents should use relative `path_hint`; host resolves against company storage root.
 
 ## Agent checklist

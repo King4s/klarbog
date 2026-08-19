@@ -71,8 +71,8 @@ mod tests {
     use klarbog_plugin_documents::{attach_document, DocumentKind};
     use tempfile::tempdir;
 
-    #[test]
-    fn stub_has_ids_and_hints_only() {
+    #[tokio::test]
+    async fn stub_has_ids_and_hints_only() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
@@ -84,7 +84,9 @@ mod tests {
             Some(party.id),
             None,
             None,
+            None,
         )
+        .await
         .unwrap();
         let export = write_gdpr_export(&co).unwrap();
         assert_eq!(export.party_ids.len(), 1);

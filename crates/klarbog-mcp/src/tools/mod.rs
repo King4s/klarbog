@@ -29,18 +29,19 @@ pub fn tools_list() -> Value {
                 },
                 {
                     "name": "bank_import_preview",
-                    "description": "Parse bank CSV and return draft journal entries (read-only, no post)",
+                    "description": "Import bank transactions (API or CSV fallback) and return draft journal entries (read-only, no post)",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
                             "company": {"type": "string"},
-                            "profile": {"type": "string", "enum": ["generic_dk", "revolut"]},
+                            "provider": {"type": "string", "enum": ["generic_dk", "revolut", "stripe"]},
+                            "source": {"type": "string", "enum": ["api", "csv"]},
                             "csv": {"type": "string"},
                             "currency": {"type": "string"},
                             "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                             "actor_id": {"type": "string"}
                         },
-                        "required": ["company", "profile", "csv", "actor_kind", "actor_id"]
+                        "required": ["company", "provider", "actor_kind", "actor_id"]
                     }
                 },
                 {

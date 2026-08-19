@@ -140,3 +140,44 @@ async fn documents_and_exceptions_flow() {
         .unwrap();
     assert_eq!(bad_res.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn attach_with_content_base64_puts_object() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let (kind, id) = actor_headers(&owner);
+    let payload = b"receipt-bytes";
+    let attach_body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "kind": "receipt",
+        "path_hint": "attachments/receipt.bin",
+        "content_base64": base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            payload,
+        ),
+    });
+    let attach_res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/documents")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(attach_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(attach_res.status(), StatusCode::OK);
+    let stored = company_path.join("objects").join("attachments/receipt.bin");
+    assert_eq!(std::fs::read(stored).unwrap(), payload);
+}

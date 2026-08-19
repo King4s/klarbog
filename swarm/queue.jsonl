@@ -21,3 +21,8 @@
 {"event":"agent_setup_prompt","note":"docs/agent-setup/prompt.md Cloudflare-style Klarbog bootstrap","ts":"2026-08-20T00:25:00Z"}
 {"event":"r2_sigv4","slice":7,"status":"done","note":"R2Store SigV4 put/get via reqwest+sigv4.rs; EU fail-closed; offline tests; delete deferred","ts":"2026-08-20T22:30:00Z"}
 {"event":"agent_prompt_product","note":"prompt.md rewritten as end-user AI product talk guide; DEVELOPER.md split","ts":"2026-08-20T00:30:00Z"}
+{"event":"owner_addon_stripe","note":"ADR-009 Stripe bank/payout CSV profile","ts":"2026-08-20T00:35:00Z"}
+{"event":"stripe_profile","slice":11,"status":"done","note":"ADR-009 BankProfile::Stripe; parse_stripe_csv + parse_bank_csv_with_profile; Net preferred over Amount; comma RFC CSV; currency batch validation; fixture stripe_balance.csv; VERIFY_OK","ts":"2026-08-20T22:40:00Z"}
+{"event":"stripe_revolut_api","slice":12,"status":"done","note":"ADR-008/009 API-primary: Revolut+Stripe clients, import_preview source=api|csv, HTTP/MCP provider+source, fixture JSON tests, CSV fallback kept; VERIFY_OK","ts":"2026-08-20T22:45:00Z"}
+{"event":"parallel_continue","note":"README product rails+R2; docs_r2_put worker while stripe/revolut API lands","ts":"2026-08-20T00:40:00Z"}
+{"event":"docs_r2_put","slice":7,"status":"done","note":"KlarbogStorage::put; attach_document async+content; HTTP content_base64; local roundtrip test; R2 selection unit test; VERIFY_OK","ts":"2026-08-20T22:50:00Z"}

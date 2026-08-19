@@ -9,10 +9,14 @@ klarbog-plugin = { workspace = true }
 klarbog-journal = { workspace = true }
 klarbog-types = { workspace = true }
 chrono = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+tokio = { workspace = true }
 
 # INTENTIONAL: no journal-write / store dependency (ADR-006)
