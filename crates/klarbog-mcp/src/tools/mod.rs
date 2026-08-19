@@ -75,9 +75,10 @@ pub fn handle_tool_call(
             store,
             registry,
         )),
-        "journal_moms_post_suggestion" => {
-            rt.block_on(moms_suggest::journal_moms_post_suggestion(args, allowlist_root))
-        }
+        "journal_moms_post_suggestion" => rt.block_on(moms_suggest::journal_moms_post_suggestion(
+            args,
+            allowlist_root,
+        )),
         other => Envelope::err([format!("unknown tool: {other}")]),
     }
 }

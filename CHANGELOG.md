@@ -86,6 +86,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 44:** Multi-currency fail-closed regression — Revolut/Stripe CSV + API fixtures reject mixed batch and EUR-only vs company DKK; `import_preview` + HTTP `POST /api/v1/bank/import/preview` return 400 (i64 minor only).
 
+### Added — Wave 6 (in flight)
+
+- **Slice 43:** Optional moms post **suggestion** — `moms_post_suggestion(gross, memo)` via `split_vat25_inclusive` when memo has `#vat25`; `POST /api/v1/journal/moms-suggest` + MCP `journal_moms_post_suggestion`; returns net+vat i64 legs; never auto-posts.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

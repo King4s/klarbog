@@ -92,3 +92,4 @@
 {"event": "package_install_polish", "slice": 45, "status": "done", "note": "package-dev.sh optional sha256 of dist binaries (PACKAGE_DEV_NO_SHA256=1); INSTALL package: contract-smoke.sh + checksums; no /opt paths; VERIFY_OK", "ts": "2026-08-19T23:48:53Z"}
 {"event":"multi_currency_tests","slice":44,"status":"running","note":"Revolut/Stripe CSV+API mixed/EUR vs company DKK fail-closed; HTTP bank import preview 400; i64; VERIFY pending","ts":"2026-08-20T01:50:00Z"}
 {"event":"moms_post_suggestion","slice":43,"status":"done","note":"moms_post_suggestion via split_vat25_inclusive; POST /journal/moms-suggest + MCP journal_moms_post_suggestion; skill; preview only; VERIFY pending","ts":"2026-08-19T23:50:45Z"}
+{"event":"multi_currency_tests","slice":44,"status":"done","note":"Revolut/Stripe CSV+API mixed/EUR vs company DKK fail-closed; import_preview+HTTP bank import preview 400; i64; VERIFY_OK","ts":"2026-08-20T01:52:00Z"}

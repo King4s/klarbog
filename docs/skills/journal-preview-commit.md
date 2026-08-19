@@ -85,11 +85,10 @@ Response Envelope `data`: `confirm_token`, `payload_digest`, plus top-level `app
 
 Token is single-use and bound to `payload_digest` (company path + canonical entry JSON).
 
-## MCP tools
-
+- MCP tools
 - `journal_post_preview` — same fields as HTTP preview (`actor_kind`, `actor_id`, `company`, `entry`).
 - `journal_post_commit` — adds `confirm_token`.
-
+- `journal_moms_post_suggestion` — optional `#vat25` net+vat i64 legs (`gross_minor`, `memo`); **no** post.
 ## CLI smoke (no confirm)
 
 `klarbog smoke-post --company <path> --minor 100` posts directly for DEV smoke only.
