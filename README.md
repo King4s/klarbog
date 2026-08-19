@@ -1,9 +1,26 @@
 # Klarbog
 
-**Agent-first bogføring til Danmark** — Rust-ledger med MCP, HTTP API og CLI.  
-Forket fra [Rentemester](https://github.com/mikkelkrogsholm/rentemester) (MIT — se `LICENSE` + `NOTICE`).
+**Agent-first bogføring til Danmark** — Rust-ledger med MCP, HTTP API og CLI.
 
 Status: **DEV** (loopback API, lokal data). Ikke produktion endnu.
+
+## Oprindelse og credits
+
+Klarbog er en **Rust-port** af det originale open source-projekt
+**[Rentemester](https://github.com/mikkelkrogsholm/rentemester)** (TypeScript),
+udgivet under MIT-licens.
+
+Stor tak til **Mikkel Krogsholm** og alle bidragsydere til Rentemester for
+domænemodellen, det agent-venlige design og det arbejde, Klarbog bygger videre på.
+Uden det projekt fandtes denne port ikke.
+
+- Upstream: https://github.com/mikkelkrogsholm/rentemester  
+- Licens: [`LICENSE`](LICENSE) (MIT, copyright Mikkel Krogsholm)  
+- Attribution: [`NOTICE`](NOTICE)  
+- Upstream TypeScript-kilder til reference: [`reference/typescript/`](reference/typescript/)
+
+Klarbogs Rust-workspace er ny kode; domainregler og fixtures fra upstream er
+bevaret til sammenligning og læring.
 
 ## Produktpunkter
 
@@ -51,4 +68,3 @@ cargo run -p klarbog-cli -- demo
 - ADR: [`docs/adr/`](docs/adr/)
 - Roadmap: [`swarm/ROADMAP.md`](swarm/ROADMAP.md)
 - Udvikler-bootstrap: [`docs/agent-setup/DEVELOPER.md`](docs/agent-setup/DEVELOPER.md)
-- Upstream TS-reference: `reference/typescript/` (ikke produktdok)

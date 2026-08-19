@@ -1,7 +1,13 @@
 Klarbog
 Copyright (c) 2026 Klarbog contributors
 
-This product is a MIT-licensed fork and Rust rewrite of Rentemester
-(https://github.com/mikkelkrogsholm/rentemester), originally by Mikkel Krogsholm.
-Upstream LICENSE (MIT) is retained in LICENSE. Domain rules and fixtures under
-reference/typescript/ are retained for reference; the Rust workspace is new code.
+Klarbog is a MIT-licensed **Rust port** of Rentemester
+(https://github.com/mikkelkrogsholm/rentemester).
+
+Credits and gratitude to **Mikkel Krogsholm** and all Rentemester contributors
+for the original agent-friendly Danish bookkeeping design, domain model, and
+implementation that this project ports and extends.
+
+Upstream LICENSE (MIT), copyright Mikkel Krogsholm, is retained in LICENSE.
+Domain rules and fixtures under reference/typescript/ are retained for
+reference; the Rust workspace is new code.
