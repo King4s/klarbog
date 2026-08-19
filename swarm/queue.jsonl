@@ -64,3 +64,4 @@
 {"event":"reconcile_apply_preview","slice":27,"status":"done","note":"POST reconcile/apply preview:true → ConfirmStore confirm_token; default false entry-only; AuthZ reused; tests both modes; VERIFY_OK","ts":"2026-08-20T01:35:00Z"}
 {"event": "wave3_docs", "slice": 29, "status": "done", "note": "VERIFY_OK; CHANGELOG wave2+wave3; prompt HTTP+MCP (oauth refresh, stripe consume, reconcile apply, mark-part-paid, gdpr/erase-party, stripe/reconcile-suggest); INSTALL CLI erase; soft linegate warn only on non-docs", "ts": "2026-08-19T23:35:28Z"}
 {"event":"gdpr_party_erase","slice":25,"status":"done","note":"erase_party dry-run/confirm; display_name erased; strip or delete docs; journal_refs_retained; POST /api/v1/gdpr/erase-party; CLI gdpr-erase-party; export note; VERIFY_OK","ts":"2026-08-20T01:36:00Z"}
+{"event":"wave4_dispatch","note":"deepen: mcp erase, stripe→apply preview, chart stub, backup audit, linegate, contract smoke","ts":"2026-08-19T23:37:00Z"}

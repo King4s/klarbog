@@ -1,8 +1,8 @@
 # Active swarm status
 
-- **Wave 3 (productize) landed** — slices 22–29 queued done; tip VERIFY_OK when merged
-- **Wave 4** next: live-fixture hardening, webhook→apply one-shot, retention bogføring notes, MCP erase-party, soft-linegate keep-under-300
+- **Wave 3 landed** on `rust-dev` (`30d0021`)
+- **Wave 4 (deepen) in flight** — MCP erase, stripe→apply preview, chart stub, backup/erase audit, linegate, contract smoke
 - Do not stop between slices unless `swarm/STOP` or real blocker
 - Verify gate: `./scripts/verify.sh` (`VERIFY_OK`)
-- Tip: no sister-product / internal host names in the public tree
+- Tip: no sister-product / internal host names in the public tree; ignore `slice-*.md` scratch notes
 - Tip: serialize env-mutating tests with tokio Mutex

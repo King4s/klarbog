@@ -29,7 +29,7 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 20. Invoice **part_paid** payment suggestion
 21. Soft linegate hygiene
 
-## Wave 3 — productize (in flight)
+## Wave 3 — productize (landed)
 
 22. MCP parity for wave2 HTTP (consume, reconcile apply, mark-part-paid, oauth refresh) ✅
 23. Invoice **payment ledger** — remaining balance for part_paid / mark-paid
