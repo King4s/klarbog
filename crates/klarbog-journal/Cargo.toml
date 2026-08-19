@@ -1,0 +1,16 @@
+[package]
+name = "klarbog-journal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klarbog-types = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]

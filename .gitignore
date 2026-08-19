@@ -1,43 +1,7 @@
-node_modules/
-.env
-.DS_Store
-*.log
-
-# SEC-12 (Audit 2026-06-11): never commit per-company secrets. `.gitignore`
-# previously covered only `.env`, so an IMAP config (plaintext password), a
-# private signing key, or an actor-policy file could be staged by accident.
-**/config/imap.json
-**/config/digisense.json
-**/*.key
-**/*.pem
-**/.backup-*.key
-**/config/policy.yaml
-companies/
-imports/
+/target
+**/*.rs.bk
+.swarm-worktrees/
 *.sqlite
-*.sqlite-wal
-*.sqlite-shm
+*.sqlite-*
 /tmp/
-graphify-out/cache/
-graphify-out/.graphify_root
-graphify-out/.rebuild.lock
-graphify-out/manifest.json
-graphify-out/cost.json
-graphify-out/GRAPH_REPORT.md
-graphify-out/.graphify_labels.json
-# graphify run rooted at the app/ subproject — generated artifact, never committed
-app/graphify-out/
-
-# Cockpit SPA (#171) — build output + installed deps
-app/node_modules/
-app/dist/
-
-# Claude Code: track shared settings.json, ignore local state and agent worktrees
-.claude/*
-!.claude/settings.json
-
-# Local scratch — private migration data, kept out of git
-helheim/
-
-# Private noter (møder, samtaler, research) — ikke i git
-notes/
+.env

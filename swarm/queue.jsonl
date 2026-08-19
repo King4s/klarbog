@@ -1,0 +1,3 @@
+{"event":"bootstrap","slice":0,"status":"running","ts":"2026-08-19T21:12:00Z"}
+{"event":"slice0_done","slice":0,"status":"done","ts":"2026-08-19T21:27:00Z"}
+{"event":"slice1_smoke","slice":1,"status":"done","note":"money+journal+sqlite smoke-post","ts":"2026-08-19T21:27:00Z"}

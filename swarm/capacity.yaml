@@ -1,0 +1,14 @@
+# max_parallel_worktrees: simultaneous git worktrees
+max_parallel_worktrees: 3
+# max_in_flight: ready + running cards
+max_in_flight: 6
+failure_limit: 2
+dispatch_interval_s: 60
+# disk budget for all worktree target/ dirs combined (MB)
+disk_mb: 8192
+# stop after this many completed slices in one night window
+max_slices_per_night: 4
+# night window (local) — informational for orchestrator
+night_window: "22:00-06:00"
+# HARD allowlist root
+allowlist_root: /opt/pellucid-software/klarbog

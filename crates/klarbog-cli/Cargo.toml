@@ -1,0 +1,19 @@
+[package]
+name = "klarbog-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "klarbog"
+path = "src/main.rs"
+
+[dependencies]
+klarbog-core = { workspace = true }
+klarbog-types = { workspace = true }
+klarbog-journal = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
