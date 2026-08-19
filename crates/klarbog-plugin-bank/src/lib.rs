@@ -14,6 +14,9 @@ mod reconcile_apply;
 mod reconcile_tests;
 mod revolut;
 mod stripe;
+mod stripe_reconcile;
+#[cfg(test)]
+mod stripe_reconcile_tests;
 mod webhook;
 mod webhook_consume;
 #[cfg(test)]
@@ -46,6 +49,10 @@ pub use reconcile::{
     MatchKind, MatchSuggestion, ReconcileError, EXCEPTION_UNMATCHED_BANK, SAFE_THRESHOLD_BPS,
 };
 pub use reconcile_apply::{apply_match, ApplyMatchResult};
+pub use stripe_reconcile::{
+    suggest_from_stripe_consume, suggest_from_stripe_consume_with, StripeReconcilePipelineError,
+    StripeReconcileSuggestReport,
+};
 pub use webhook::{
     draft_from_event, draft_to_bank_row, ingest_stripe_webhook, parse_webhook_event,
     queue_stripe_webhook, sign_test_payload, verify_stripe_signature, QueuedStripeWebhook,

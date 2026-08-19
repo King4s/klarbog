@@ -1,5 +1,12 @@
 //! Danish bookkeeping rules (DEV). Full SKAT/Moms later.
 
+mod vat_split;
+
+pub use vat_split::{
+    split_vat25_inclusive, split_vat_from_net, split_vat_inclusive, VatSplitError,
+    VatSplitSuggestion, BPS_PER_UNIT, DK_VAT25_INCLUSIVE_BPS, DK_VAT_STANDARD_BPS,
+};
+
 use klarbog_journal::{Direction, JournalEntry, Leg};
 use klarbog_plugin::{Capability, Plugin, RulesPlugin};
 use klarbog_types::KlarbogError;
@@ -28,7 +35,13 @@ impl RulesPlugin for RulesDkPlugin {
         }
 
         match parse_vat_rate_from_memo(&entry.memo) {
-            Ok(Some(_)) => applied.push("dk.vat.rate".into()),
+            Ok(Some(rate)) => {
+                applied.push("dk.vat.rate".into());
+                // Hint only: agents may call split_vat*_inclusive for leg amounts.
+                if rate == 25 {
+                    applied.push("dk.vat.split_hint".into());
+                }
+            }
             Ok(None) => {}
             Err(msg) => errors.push(msg),
         }
@@ -248,6 +261,16 @@ mod tests {
             .validate_entry(&entry("supplies moms:25 #receipt", 500))
             .unwrap();
         assert!(applied.contains(&"dk.vat.rate".to_string()));
+        assert!(applied.contains(&"dk.vat.split_hint".to_string()));
+    }
+
+    #[test]
+    fn vat0_rate_without_split_hint() {
+        let applied = RULES_DK
+            .validate_entry(&entry("zero-rated #vat0 #receipt", 500))
+            .unwrap();
+        assert!(applied.contains(&"dk.vat.rate".to_string()));
+        assert!(!applied.contains(&"dk.vat.split_hint".to_string()));
     }
 
     #[test]

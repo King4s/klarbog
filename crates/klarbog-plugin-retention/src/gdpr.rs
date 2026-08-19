@@ -11,6 +11,9 @@ use thiserror::Error;
 
 pub const GDPR_EXPORT_FILENAME: &str = "gdpr_export.json";
 
+/// Fixed note on every export: journal is immutable; use party erasure for CRM/docs.
+pub const GDPR_EXPORT_NOTE: &str = "Company-scoped metadata only (no binary blobs). Confirmed journal entries are immutable — party_id on posted legs is retained after GDPR party erasure; anonymize CRM display_name and strip or delete document metadata via erase-party.";
+
 #[derive(Debug, Error)]
 pub enum GdprError {
     #[error("io: {0}")]
@@ -25,6 +28,10 @@ pub enum GdprError {
     Invoice(#[from] klarbog_plugin_invoice::InvoiceError),
     #[error("retention: {0}")]
     Retention(#[from] RetentionError),
+    #[error("store: {0}")]
+    Store(#[from] klarbog_store_sqlite::StoreError),
+    #[error("party not found: {0}")]
+    PartyNotFound(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,6 +88,7 @@ impl From<&RetentionPolicy> for GdprRetentionSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GdprExport {
     pub exported_unix_ms: i64,
+    pub note: String,
     pub parties: Vec<GdprParty>,
     pub invoices: Vec<GdprInvoice>,
     pub documents: Vec<GdprDocument>,
@@ -142,6 +150,7 @@ pub fn build_gdpr_export(company: &Path) -> Result<GdprExport, GdprError> {
     let retention = GdprRetentionSummary::from(&load_retention(company)?);
     Ok(GdprExport {
         exported_unix_ms: chrono::Utc::now().timestamp_millis(),
+        note: GDPR_EXPORT_NOTE.into(),
         parties,
         invoices,
         documents,
@@ -229,6 +238,8 @@ mod tests {
         assert_eq!(export.exceptions[0].code, "missing_vat");
         assert!(export.exceptions[0].open);
         assert!(export.retention.retain_days > 0);
+        assert_eq!(export.note, GDPR_EXPORT_NOTE);
+        assert!(export.note.contains("immutable"));
         assert!(gdpr_export_path(&co).exists());
         let raw = fs::read_to_string(gdpr_export_path(&co)).unwrap();
         assert!(!raw.contains("content_base64"));

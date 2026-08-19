@@ -152,11 +152,29 @@ mod tests {
         assert!(env.ok);
         let data = env.data.unwrap();
         assert_eq!(data["invoice"]["status"], "part_paid");
+        assert_eq!(data["invoice"]["payments"].as_array().unwrap().len(), 1);
         assert!(data["journal_entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
         let amount = &data["journal_entry"]["legs"][0]["amount"];
         let units = amount
             .as_i64()
             .or_else(|| amount.get("units").and_then(|u| u.as_i64()));
         assert_eq!(units, Some(3_000));
+
+        let paid_args = json!({
+            "company": co.to_string_lossy(),
+            "invoice_id": invoice.id.to_string(),
+            "actor_kind": "user",
+            "actor_id": "owner",
+        });
+        let paid_env = invoice_mark_paid_preview(&paid_args, dir.path()).await;
+        assert!(paid_env.ok);
+        let paid = paid_env.data.unwrap();
+        assert_eq!(paid["invoice"]["status"], "paid");
+        assert_eq!(paid["invoice"]["payments"].as_array().unwrap().len(), 2);
+        let rem = &paid["journal_entry"]["legs"][0]["amount"];
+        let rem_units = rem
+            .as_i64()
+            .or_else(|| rem.get("units").and_then(|u| u.as_i64()));
+        assert_eq!(rem_units, Some(7_000));
     }
 }

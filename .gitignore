@@ -20,3 +20,4 @@ imports/
 graphify-out/
 .claude/*
 !.claude/settings.json
+slice-*.md

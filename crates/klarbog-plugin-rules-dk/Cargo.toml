@@ -8,6 +8,7 @@ license.workspace = true
 klarbog-plugin = { workspace = true }
 klarbog-journal = { workspace = true }
 klarbog-types = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 chrono = { workspace = true }

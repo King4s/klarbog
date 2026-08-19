@@ -109,6 +109,10 @@ Capability: **Read only**. Never posts journal entries from the bank plugin.
 
 `POST /api/v1/bank/reconcile/suggest` with `company` + `rows` (or CSV/provider). Scores open invoice drafts vs bank lines (`amount_minor` + text tokens). Safe bar: `SAFE_THRESHOLD_BPS` (5000 = 50%). Below that → no suggestion; may raise `unmatched_bank_transaction`.
 
+### Stripe consume → suggest (one-shot)
+
+`POST /api/v1/bank/stripe/reconcile-suggest` with `{company, confirm_consume?, limit?}`. Runs queue consume then reconcile suggest. Default dry-run consume; `confirm_consume:true` persists `queue.consumed` then suggests. Helper: `suggest_from_stripe_consume`. **No** auto journal post.
+
 ### Apply → preview suggestion only
 
 `apply_match(company, bank_row, invoice_id, actor, force, row_index)` builds a **payment** `JournalEntry` (invoice kind + `party_id` on legs; memo `bank:{text}:invoice:{id}`). Does **not** post and does **not** mark the invoice paid — host feeds the entry into `/api/v1/journal/preview` then commit (two-phase).
@@ -124,6 +128,8 @@ Capability: **Read only**. Never posts journal entries from the bank plugin.
 }
 ```
 
-Or `row_index` + `rows` / CSV provider fields. Response `data.entry` is the journal JSON for preview.
+Or `row_index` + `rows` / CSV provider fields. Response `data.entry` is the journal JSON.
+
+Optional `preview: true` (default `false`): after building the entry, runs the same ConfirmStore path as `POST /api/v1/journal/preview` and adds `confirm_token`, `expires_unix_ms`, and `payload_digest` so the client can commit without a separate preview call. Still does **not** post.
 
 **Unsafe matches** (confidence &lt; `SAFE_THRESHOLD_BPS`): rejected unless `force: true` **and** actor is `user` (agents/system cannot force). When applied, any open `unmatched_bank_transaction` for that bank row related-id is closed.

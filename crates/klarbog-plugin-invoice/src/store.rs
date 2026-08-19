@@ -61,6 +61,7 @@ pub fn create_draft(
         kind,
         lines,
         status: InvoiceStatus::Draft,
+        payments: Vec::new(),
     };
     invoice.validate_lines()?;
     let mut file = load(company)?;

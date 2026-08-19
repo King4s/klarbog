@@ -75,6 +75,8 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::EmptyDescription
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
+        | InvoiceError::Overpay { .. }
+        | InvoiceError::NothingRemaining
         | InvoiceError::MixedCurrency => {
             (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
         }

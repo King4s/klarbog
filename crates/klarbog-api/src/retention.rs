@@ -34,7 +34,7 @@ pub struct PurgeBody {
     pub gc_orphan_documents: bool,
 }
 
-async fn authorize_company(
+pub(crate) async fn authorize_company(
     allowlist_root: &Path,
     company: &Path,
     actor: &Actor,
@@ -44,7 +44,7 @@ async fn authorize_company(
     Ok(path)
 }
 
-fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
+pub(crate) fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     match err {
         CoreError::ActorDenied(tag) => (
             StatusCode::FORBIDDEN,
@@ -89,11 +89,17 @@ fn map_backup(err: BackupError) -> (StatusCode, Envelope<Value>) {
     )
 }
 
-fn map_gdpr(err: GdprError) -> (StatusCode, Envelope<Value>) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Envelope::err([err.to_string()]),
-    )
+pub(crate) fn map_gdpr(err: GdprError) -> (StatusCode, Envelope<Value>) {
+    match err {
+        GdprError::PartyNotFound(id) => (
+            StatusCode::NOT_FOUND,
+            Envelope::err([format!("party not found: {id}")]),
+        ),
+        other => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Envelope::err([other.to_string()]),
+        ),
+    }
 }
 
 fn map_purge(err: PurgeError) -> (StatusCode, Envelope<Value>) {

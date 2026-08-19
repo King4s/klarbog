@@ -1,19 +1,18 @@
 //! Status transitions and payment journal suggestions (no posting).
 //!
-//! # DEV model (no payment ledger)
+//! # Payment ledger
 //!
-//! Cumulative paid amounts are not tracked. Simplification:
-//! - [`mark_part_paid_preview`]: requires `sent|part_paid`; `amount_minor` must be
-//!   `> 0` and `< invoice.total_minor()`; sets status `part_paid`; journal suggestion
-//!   for that partial amount only.
-//! - [`mark_paid_preview`]: requires `sent|part_paid`; journal suggestion always for
-//!   the **full invoice total** (not a computed remaining); sets status `paid`.
-//!
-//! A later payment ledger can introduce true remaining / multi-partial accounting.
+//! Payments persist on the invoice as `payments: [{unix_ms, amount_minor, currency}]`.
+//! Remaining balance = `total_minor − sum(payments.amount_minor)` (i64 only).
+//! - [`mark_part_paid_preview`]: records a partial (`> 0` and `< remaining`); status
+//!   `part_paid`; journal suggestion for that amount. Overpay rejected.
+//! - [`mark_paid_preview`]: records and suggests the **remaining** balance; rejects
+//!   when remaining is 0; status `paid`.
 
-use crate::draft::{payment_journal_suggestion, payment_journal_suggestion_amount, InvoiceConfig};
+use crate::draft::{payment_journal_suggestion_amount, InvoiceConfig};
 use crate::status::InvoiceStatus;
-use crate::{Invoice, InvoiceError, InvoiceId};
+use crate::{Invoice, InvoiceError, InvoiceId, InvoicePayment};
+use chrono::Utc;
 use klarbog_journal::JournalEntry;
 use klarbog_types::Actor;
 use std::path::Path;
@@ -41,6 +40,17 @@ pub fn patch_status(
     Ok(updated)
 }
 
+fn push_payment(invoice: &mut Invoice, amount_minor: i64) -> Result<(), InvoiceError> {
+    invoice.validate_lines()?;
+    let currency = invoice.lines[0].currency.clone();
+    invoice.payments.push(InvoicePayment {
+        unix_ms: Utc::now().timestamp_millis(),
+        amount_minor,
+        currency,
+    });
+    Ok(())
+}
+
 pub fn mark_paid_preview(
     company: &Path,
     id: &InvoiceId,
@@ -59,15 +69,25 @@ pub fn mark_paid_preview(
             to: InvoiceStatus::Paid,
         });
     }
-    // DEV: always full total — no remaining without a payment ledger.
-    let entry = payment_journal_suggestion(invoice, actor, cfg)?;
+    let remaining = invoice.remaining_minor()?;
+    if remaining == 0 {
+        return Err(InvoiceError::NothingRemaining);
+    }
+    if remaining < 0 {
+        return Err(InvoiceError::Overpay {
+            amount_minor: 0,
+            remaining_minor: remaining,
+        });
+    }
+    let entry = payment_journal_suggestion_amount(invoice, remaining, actor, cfg)?;
+    push_payment(invoice, remaining)?;
     invoice.status = InvoiceStatus::Paid;
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
     Ok((updated, entry))
 }
 
-/// Partial payment preview: status → `part_paid`, journal suggestion for `amount_minor`.
+/// Partial payment preview: append ledger row, status → `part_paid`.
 pub fn mark_part_paid_preview(
     company: &Path,
     id: &InvoiceId,
@@ -87,15 +107,21 @@ pub fn mark_part_paid_preview(
             to: InvoiceStatus::PartPaid,
         });
     }
-    let total = invoice.total_minor()?;
-    // DEV: no remaining ledger — validate against invoice total only.
-    if amount_minor <= 0 || amount_minor >= total {
+    let remaining = invoice.remaining_minor()?;
+    if amount_minor > remaining {
+        return Err(InvoiceError::Overpay {
+            amount_minor,
+            remaining_minor: remaining,
+        });
+    }
+    if amount_minor <= 0 || amount_minor >= remaining {
         return Err(InvoiceError::InvalidPartialAmount {
             amount_minor,
-            total_minor: total,
+            remaining_minor: remaining,
         });
     }
     let entry = payment_journal_suggestion_amount(invoice, amount_minor, actor, cfg)?;
+    push_payment(invoice, amount_minor)?;
     invoice.status = InvoiceStatus::PartPaid;
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
@@ -111,7 +137,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn part_paid_then_mark_paid_full_total() {
+    fn part_paid_then_mark_paid_suggests_remaining() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
@@ -132,19 +158,25 @@ mod tests {
         let cfg = InvoiceConfig::default();
         let (partial, entry) = mark_part_paid_preview(&co, &inv.id, 4_000, &actor, &cfg).unwrap();
         assert_eq!(partial.status, InvoiceStatus::PartPaid);
+        assert_eq!(partial.payments.len(), 1);
+        assert_eq!(partial.payments[0].amount_minor, 4_000);
+        assert_eq!(partial.remaining_minor().unwrap(), 6_000);
         assert_eq!(entry.legs[0].amount.minor(), 4_000);
         assert!(entry
             .legs
             .iter()
             .all(|l| l.party_id.as_ref() == Some(&party.id)));
 
-        let (paid, full) = mark_paid_preview(&co, &inv.id, &actor, &cfg).unwrap();
+        let (paid, rest) = mark_paid_preview(&co, &inv.id, &actor, &cfg).unwrap();
         assert_eq!(paid.status, InvoiceStatus::Paid);
-        assert_eq!(full.legs[0].amount.minor(), 10_000);
+        assert_eq!(paid.payments.len(), 2);
+        assert_eq!(paid.payments[1].amount_minor, 6_000);
+        assert_eq!(paid.remaining_minor().unwrap(), 0);
+        assert_eq!(rest.legs[0].amount.minor(), 6_000);
     }
 
     #[test]
-    fn part_paid_rejects_non_positive_and_full_or_over() {
+    fn part_paid_rejects_non_positive_full_and_overpay() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
@@ -173,8 +205,48 @@ mod tests {
         ));
         assert!(matches!(
             mark_part_paid_preview(&co, &inv.id, 5_001, &actor, &cfg),
-            Err(InvoiceError::InvalidPartialAmount { .. })
+            Err(InvoiceError::Overpay { .. })
         ));
+        mark_part_paid_preview(&co, &inv.id, 3_000, &actor, &cfg).unwrap();
+        assert!(matches!(
+            mark_part_paid_preview(&co, &inv.id, 2_500, &actor, &cfg),
+            Err(InvoiceError::Overpay {
+                amount_minor: 2_500,
+                remaining_minor: 2_000,
+            })
+        ));
+    }
+
+    #[test]
+    fn mark_paid_rejects_when_remaining_zero() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let inv = create_draft_from_new(
+            &co,
+            party.id,
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Work".into(),
+                amount_minor: 1_000,
+                currency: "DKK".into(),
+            }],
+        )
+        .unwrap();
+        patch_status(&co, &inv.id, InvoiceStatus::Sent).unwrap();
+        let mut file = crate::store::load(&co).unwrap();
+        let stored = file.invoices.iter_mut().find(|i| i.id == inv.id).unwrap();
+        stored.payments.push(InvoicePayment {
+            unix_ms: 1,
+            amount_minor: 1_000,
+            currency: stored.lines[0].currency.clone(),
+        });
+        stored.status = InvoiceStatus::PartPaid;
+        crate::store::save(&co, &file).unwrap();
+        let err = mark_paid_preview(&co, &inv.id, &Actor::user("t"), &InvoiceConfig::default())
+            .unwrap_err();
+        assert!(matches!(err, InvoiceError::NothingRemaining));
     }
 
     #[test]

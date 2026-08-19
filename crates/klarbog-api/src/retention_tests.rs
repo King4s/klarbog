@@ -103,12 +103,113 @@ async fn retention_backup_gdpr_flow() {
     let gdpr_env: Envelope<Value> = serde_json::from_slice(&gdpr_bytes).unwrap();
     let gdpr = gdpr_env.data.unwrap();
     assert!(gdpr["exported_unix_ms"].is_number());
+    assert!(gdpr["note"].as_str().unwrap().contains("immutable"));
     assert!(gdpr["parties"].is_array());
     assert!(gdpr["invoices"].is_array());
     assert!(gdpr["documents"].is_array());
     assert!(gdpr["exceptions"].is_array());
     assert!(gdpr["retention"]["retain_days"].is_number());
     assert!(company_path.join("gdpr_export.json").exists());
+}
+
+#[tokio::test]
+async fn gdpr_erase_party_dry_run_then_confirm() {
+    use klarbog_plugin_crm::{get_party, upsert_party};
+    use klarbog_plugin_documents::{attach_document, list_documents, DocumentKind};
+
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&company_path, None, "Erase Me".into()).unwrap();
+    attach_document(
+        &company_path,
+        DocumentKind::Receipt,
+        "r.pdf".into(),
+        Some(party.id.clone()),
+        None,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let (kind, id) = actor_headers(&owner);
+    let preview_body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "party_id": party.id.to_string(),
+    });
+    let preview_res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/gdpr/erase-party")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(preview_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(preview_res.status(), StatusCode::OK);
+    let preview_bytes = axum::body::to_bytes(preview_res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let preview_env: Envelope<Value> = serde_json::from_slice(&preview_bytes).unwrap();
+    let preview = preview_env.data.unwrap();
+    assert_eq!(preview["dry_run"], true);
+    assert_eq!(preview["documents_stripped"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        get_party(&company_path, &party.id)
+            .unwrap()
+            .unwrap()
+            .display_name,
+        "Erase Me"
+    );
+
+    let apply_body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "party_id": party.id.to_string(),
+        "confirm": true,
+    });
+    let apply_res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/gdpr/erase-party")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(apply_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(apply_res.status(), StatusCode::OK);
+    let apply_bytes = axum::body::to_bytes(apply_res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let apply_env: Envelope<Value> = serde_json::from_slice(&apply_bytes).unwrap();
+    let apply = apply_env.data.unwrap();
+    assert_eq!(apply["dry_run"], false);
+    assert_eq!(apply["display_name_after"], "erased");
+    assert!(apply["journal_refs_retained"].is_array());
+    assert_eq!(
+        get_party(&company_path, &party.id)
+            .unwrap()
+            .unwrap()
+            .display_name,
+        "erased"
+    );
+    assert!(list_documents(&company_path).unwrap()[0].party_id.is_none());
 }
 
 #[tokio::test]

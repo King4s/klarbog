@@ -8,7 +8,8 @@ Build from the `rust-dev` branch unless release tags say otherwise.
 - **Rust** 1.75+ (2021 edition workspace)
 - **Linux or macOS** recommended (Windows may work; not CI-tested)
 - **curl** (health checks)
-- Optional: Revolut Business API token, Stripe secret key, Cloudflare R2 credentials
+- Optional: Revolut Business API token and/or OAuth client, Stripe secret key +
+  webhook secret, Cloudflare R2 credentials
 
 ## Clone and build
 
@@ -100,9 +101,12 @@ Optional client env:
 | `KLARBOG_API_BASE` | `http://127.0.0.1:3195` |
 | `KLARBOG_COMPANY` | absolute path to active company dir |
 
-REST surface (v1): journal preview/commit, bank import preview, CRM parties,
-invoice drafts, documents, retention, backup, GDPR export. See
-[`docs/skills/`](skills/) for tool semantics.
+REST surface (v1): journal preview/commit; CRM parties; invoice drafts / status /
+mark-paid / mark-part-paid (payment ledger remaining); bank import preview;
+reconcile suggest/apply (`preview` → confirm-token); Stripe webhook + consume +
+reconcile-suggest; Revolut OAuth start/callback/refresh; documents (+ delete);
+exceptions; retention / purge / backup; GDPR export + party erase. See
+[`docs/skills/`](skills/) and [`docs/agent-setup/prompt.md`](agent-setup/prompt.md).
 
 ## Run MCP (AI tools)
 
@@ -135,6 +139,10 @@ cargo run -p klarbog-cli -- demo
 klarbog retention --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
 klarbog backup   --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
 klarbog gdpr-export --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
+# dry-run party erasure (add --confirm to apply; optional --delete-documents)
+klarbog gdpr-erase-party \
+  --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps" \
+  --party-id party_example
 ```
 
 ## Payment rails (optional)
@@ -147,10 +155,14 @@ fallback. Tokens belong in the **API process environment** (or shell that starts
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `KLARBOG_REVOLUT_API_TOKEN` | yes (for `source=api`) | Secret — never commit or print |
+| `KLARBOG_REVOLUT_API_TOKEN` | yes (for `source=api` without OAuth secrets) | Secret — never commit or print |
 | `KLARBOG_REVOLUT_API_BASE` | no | Override API base URL |
+| `KLARBOG_REVOLUT_CLIENT_ID` | OAuth flow | Public client id |
+| `KLARBOG_REVOLUT_CLIENT_SECRET` | OAuth flow | Secret — never commit or print |
+| `KLARBOG_REVOLUT_REDIRECT_URI` | OAuth flow | Must match registered redirect |
 
 Import preview: `provider=revolut`, `source=api` (or `source=csv` with pasted export).
+OAuth: `/api/v1/revolut/oauth/start|callback|refresh` (tokens under company `secrets/`, mode `0600`).
 
 See [`docs/adr/ADR-008-revolut-bank.md`](adr/ADR-008-revolut-bank.md).
 
@@ -160,8 +172,11 @@ See [`docs/adr/ADR-008-revolut-bank.md`](adr/ADR-008-revolut-bank.md).
 |----------|----------|-------|
 | `KLARBOG_STRIPE_SECRET_KEY` | yes (for `source=api`) | Secret — never commit or print |
 | `KLARBOG_STRIPE_API_BASE` | no | Default `https://api.stripe.com` |
+| `KLARBOG_STRIPE_WEBHOOK_SECRET` | webhooks | HMAC verify on `/api/v1/webhooks/stripe` |
 
 Import preview: `provider=stripe`, `source=api` (or CSV balance export offline).
+Consume queued webhook drafts: `POST /api/v1/bank/stripe/consume` (dry-run default;
+`confirm:true` to mark consumed — still no journal post).
 
 See [`docs/adr/ADR-009-stripe.md`](adr/ADR-009-stripe.md).
 

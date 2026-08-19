@@ -11,8 +11,10 @@ mod invoice;
 mod invoice_lifecycle;
 mod journal;
 mod retention;
+mod retention_erase;
 mod revolut_oauth;
 mod stripe_consume;
+mod stripe_reconcile_suggest;
 mod stripe_webhook;
 
 #[cfg(test)]
@@ -25,6 +27,8 @@ mod invoice_lifecycle_http_tests;
 mod retention_tests;
 #[cfg(test)]
 mod revolut_oauth_http_tests;
+#[cfg(test)]
+mod stripe_reconcile_suggest_tests;
 
 use axum::extract::State;
 use axum::{routing::delete, routing::get, routing::patch, routing::post, Json, Router};
@@ -115,6 +119,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/retention", get(retention::get_retention))
         .route("/api/v1/backup", post(retention::post_backup))
         .route("/api/v1/gdpr-export", post(retention::post_gdpr_export))
+        .route(
+            "/api/v1/gdpr/erase-party",
+            post(retention_erase::post_erase_party),
+        )
         .route("/api/v1/retention/purge", post(retention::post_purge))
         .route("/api/v1/bank/import/preview", post(bank::preview))
         .route(
@@ -127,6 +135,10 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/v1/webhooks/stripe", post(stripe_webhook::handle))
         .route("/api/v1/bank/stripe/consume", post(stripe_consume::consume))
+        .route(
+            "/api/v1/bank/stripe/reconcile-suggest",
+            post(stripe_reconcile_suggest::reconcile_suggest),
+        )
         .route(
             "/api/v1/revolut/oauth/start",
             get(revolut_oauth::oauth_start_handler),

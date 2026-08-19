@@ -5,10 +5,11 @@ use clap::{Parser, Subcommand};
 use klarbog_core::{init_company, open_existing};
 use klarbog_journal::{Direction, JournalEntry, Leg};
 use klarbog_plugin_retention::{
-    load_retention, run_retention_purge, write_backup_manifest, write_gdpr_export, BackupManifest,
-    GdprExport, PurgeOptions, PurgeReport, RetentionPolicy,
+    erase_party, load_retention, run_retention_purge, write_backup_manifest, write_gdpr_export,
+    BackupManifest, ErasePartyOptions, ErasePartyReport, GdprExport, PurgeOptions, PurgeReport,
+    RetentionPolicy,
 };
-use klarbog_types::{Actor, Currency, Envelope, MinorAmount};
+use klarbog_types::{Actor, Currency, Envelope, MinorAmount, PartyId};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -55,6 +56,19 @@ enum Cmd {
     GdprExport {
         #[arg(long)]
         company: PathBuf,
+    },
+    /// Preview or apply GDPR party erasure (anonymize display_name; strip or delete docs)
+    GdprEraseParty {
+        #[arg(long)]
+        company: PathBuf,
+        #[arg(long)]
+        party_id: String,
+        /// Apply erasure; default is dry-run preview only
+        #[arg(long)]
+        confirm: bool,
+        /// Delete documents referencing the party (object delete); else strip party_id
+        #[arg(long)]
+        delete_documents: bool,
     },
     /// Preview or apply retention purge (closed exceptions; optional orphan doc GC)
     Purge {
@@ -155,6 +169,24 @@ async fn main() -> anyhow::Result<()> {
             open_existing(&company).await?;
             let export: GdprExport = write_gdpr_export(&company)?;
             println!("{}", serde_json::to_string(&Envelope::ok(export))?);
+        }
+        Cmd::GdprEraseParty {
+            company,
+            party_id,
+            confirm,
+            delete_documents,
+        } => {
+            open_existing(&company).await?;
+            let report: ErasePartyReport = erase_party(
+                &company,
+                &PartyId::new(party_id),
+                ErasePartyOptions {
+                    confirm,
+                    delete_documents,
+                },
+            )
+            .await?;
+            println!("{}", serde_json::to_string(&Envelope::ok(report))?);
         }
         Cmd::Purge {
             company,

@@ -25,12 +25,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - **Revolut Business API** (ADR-008): live import via `KLARBOG_REVOLUT_API_TOKEN`; CSV offline fallback; `BankProfile::Revolut`.
 - **Stripe API** (ADR-009): balance/payout import via `KLARBOG_STRIPE_SECRET_KEY`; CSV offline fallback; `BankProfile::Stripe`.
 - HTTP and MCP bank import preview: `source=api|csv`, `provider=revolut|stripe|generic_dk`; fail-closed when API tokens missing.
+- **Stripe webhooks:** `POST /api/v1/webhooks/stripe` (HMAC via `KLARBOG_STRIPE_WEBHOOK_SECRET`); queue drafts only — no auto journal post.
+- **Revolut OAuth scaffold:** `GET /api/v1/revolut/oauth/start`, `POST …/callback`; company secrets file mode `0600`.
 
 ### Added — Cloudflare R2 (EU)
 
-- `klarbog-storage`: `LocalFsStore` (DEV default) and `R2Store` with SigV4 put/get (ADR-007).
+- `klarbog-storage`: `LocalFsStore` (DEV default) and `R2Store` with SigV4 put/get/delete (ADR-007).
 - `KLARBOG_STORAGE=local|r2`; EU jurisdiction fail-closed; optional `KLARBOG_R2_ALLOW_NON_EU=1`.
-- Document attach stores bytes via selected backend; HTTP `content_base64` path.
+- Document attach stores bytes via selected backend; HTTP `content_base64` path; `DELETE /api/v1/documents` removes metadata + object.
+
+### Added — bank reconcile + invoice lifecycle
+
+- Reconcile **suggest:** `POST /api/v1/bank/reconcile/suggest` (amount + token scoring; unmatched → exception).
+- Invoice statuses `draft|sent|part_paid|paid|void`; `PATCH /api/v1/invoices/status`; `POST /api/v1/invoices/mark-paid` → payment journal **suggestion** (no JournalWrite).
+- Retention **purge:** `POST /api/v1/retention/purge` (dry-run default; `confirm:true` to apply).
 
 ### Added — agent product surface
 
@@ -40,7 +48,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ### Added — Wave 2 (harden + wire)
 
+- **Slice 15:** Revolut OAuth **refresh** — `refresh_token` + `expires_at`; `POST /api/v1/revolut/oauth/refresh`; fail-closed without refresh; response never echoes raw tokens.
+- **Slice 16:** Stripe webhook **consume** — `POST /api/v1/bank/stripe/consume`; idempotent `queue.consumed`; dry-run / `confirm:true` fail-closed; drafts only.
+- **Slice 17:** Bank reconcile **apply** — `POST /api/v1/bank/reconcile/apply` → journal entry **preview suggestion**; `force`+user below safe threshold; no auto post.
 - **Slice 18:** GDPR export v1 — company-scoped metadata (`parties`, `invoices`, `documents`, `exceptions`, retention summary); still `gdpr_export.json`, no binary blobs.
+- **Slice 19:** `rules-dk` `dk.expense.receipt_required` fail-closed on expense debit without receipt signal; hint when `party_id` present but `#receipt` / `document_id:` missing.
+- **Slice 20:** Invoice **part_paid** — `POST /api/v1/invoices/mark-part-paid` (`amount_minor`); MCP `invoice_mark_part_paid_preview`; DEV: amount > 0 and < total; no JournalWrite.
+- **Slice 21:** Soft linegate hygiene (split hot modules; soft ≥300 warn, hard >400 fail on non-blank lines).
+
+### Added — Wave 3 (productize)
+
+- **Slice 22:** MCP parity — `bank_stripe_consume`, `bank_reconcile_apply`, `revolut_oauth_refresh` (plus existing invoice mark-paid / mark-part-paid tools).
+- **Slice 23:** Invoice **payment ledger** — cumulative payments; remaining = total − sum; mark-paid suggests remaining; overpay rejected.
+- **Slice 24:** Stripe consume → reconcile helper — `suggest_from_stripe_consume`; `POST /api/v1/bank/stripe/reconcile-suggest` (still no auto journal post).
+- **Slice 25:** GDPR **party erasure** — `erase_party` dry-run/`confirm`; anonymize `display_name`→`erased`; strip doc `party_id` or `--delete-documents`; `journal_refs_retained`; export `note`; `POST /api/v1/gdpr/erase-party`; CLI `klarbog gdpr-erase-party`.
+- **Slice 26:** rules-dk VAT **split** — i64 minor + bps (`dk.vat.split_hint`); inclusive 25%/0 helpers.
+- **Slice 27:** Reconcile apply optional `preview: true` → ConfirmStore `confirm_token` (wire to journal commit).
+- **Slice 29:** CHANGELOG + [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) + INSTALL refreshed for wave2/wave3 HTTP+MCP surface.
+- Remaining: demo CLI coverage — see [`swarm/ROADMAP.md`](swarm/ROADMAP.md).
 
 ### Added — tooling
 
@@ -57,8 +82,7 @@ and contributors (MIT). Domain model and agent-friendly design originate there; 
 ### Known limitations (DEV)
 
 - Loopback API only; not hardened for internet exposure.
-- R2 delete / retention purge enforcement — in progress (roadmap slices 10–13).
-- Stripe webhooks and Revolut OAuth — planned hardening (slice 10+).
+- Demo CLI may not cover every wave3 surface yet.
 - No packaged `.deb`/container release yet — build from source.
 
 ## Upstream reference

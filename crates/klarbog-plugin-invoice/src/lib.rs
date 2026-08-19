@@ -59,6 +59,14 @@ pub struct InvoiceLine {
     pub currency: Currency,
 }
 
+/// One recorded payment against an invoice (company `invoices.json` ledger).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvoicePayment {
+    pub unix_ms: i64,
+    pub amount_minor: i64,
+    pub currency: Currency,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: InvoiceId,
@@ -67,6 +75,9 @@ pub struct Invoice {
     pub lines: Vec<InvoiceLine>,
     #[serde(default)]
     pub status: InvoiceStatus,
+    /// Cumulative payment ledger; remaining = total − sum(amount_minor).
+    #[serde(default)]
+    pub payments: Vec<InvoicePayment>,
 }
 
 impl Invoice {
@@ -96,6 +107,23 @@ impl Invoice {
                 .ok_or(InvoiceError::Overflow)
         })
     }
+
+    pub fn paid_minor(&self) -> Result<i64, InvoiceError> {
+        self.payments.iter().try_fold(0i64, |acc, p| {
+            if p.amount_minor <= 0 {
+                return Err(InvoiceError::NonPositiveAmount);
+            }
+            acc.checked_add(p.amount_minor)
+                .ok_or(InvoiceError::Overflow)
+        })
+    }
+
+    /// Open balance: `total_minor − paid_minor` (i64 only; fail-closed on overflow).
+    pub fn remaining_minor(&self) -> Result<i64, InvoiceError> {
+        let total = self.total_minor()?;
+        let paid = self.paid_minor()?;
+        total.checked_sub(paid).ok_or(InvoiceError::Overflow)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -114,8 +142,18 @@ pub enum InvoiceError {
     EmptyDescription,
     #[error("line amount must be positive")]
     NonPositiveAmount,
-    #[error("partial amount {amount_minor} must be > 0 and < total {total_minor}")]
-    InvalidPartialAmount { amount_minor: i64, total_minor: i64 },
+    #[error("partial amount {amount_minor} must be > 0 and < remaining {remaining_minor}")]
+    InvalidPartialAmount {
+        amount_minor: i64,
+        remaining_minor: i64,
+    },
+    #[error("payment {amount_minor} exceeds remaining {remaining_minor}")]
+    Overpay {
+        amount_minor: i64,
+        remaining_minor: i64,
+    },
+    #[error("cannot mark paid: remaining balance is 0")]
+    NothingRemaining,
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]
@@ -276,7 +314,9 @@ mod tests {
             mark_part_paid_preview(&co, &invoice.id, 2500, &actor, &InvoiceConfig::default())
                 .unwrap();
         assert_eq!(part.status, InvoiceStatus::PartPaid);
+        assert_eq!(part.payments.len(), 1);
         assert_eq!(entry.legs[0].amount.minor(), 2500);
+        assert_eq!(part.remaining_minor().unwrap(), 5500);
         assert!(entry
             .legs
             .iter()

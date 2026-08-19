@@ -18,9 +18,19 @@ description: >-
 - **Double-entry mandatory**: every entry has ≥2 legs; debits == credits per currency.
 - **Money is i64 minor units** (`MinorAmount`); never use `f32`/`f64`.
 - **Actor binding**: host overwrites `entry.actor` from authenticated actor — do not spoof in body.
-- **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.expense.receipt_hint`, …).
+- **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.vat.split_hint`, `dk.expense.receipt_hint`, …).
 - **Expense receipt (fail-closed):** debit on accounts `4000`–`6999` without `party_id` **and** without a memo receipt signal → `dk.expense.receipt_required` **error** (blocks preview/commit). Soft hint `dk.expense.receipt_hint` only when `party_id` is set but receipt signal is missing.
 - **Receipt signals** (whitespace tokens in `memo`, case-insensitive): `#receipt` / `#receipt:…`, or `document_id:<id>` / `document_id=<id>`.
+- **VAT split (hint only):** memo `#vat25` / `moms:25` / `#moms25` applies `dk.vat.rate` + `dk.vat.split_hint` (does **not** block). Split amounts with i64 bps only — never f32/f64:
+
+```rust
+use klarbog_plugin_rules_dk::split_vat25_inclusive;
+// Document convention: amount_minor is gross (moms-inkl.)
+let s = split_vat25_inclusive(12_500)?; // net 10_000, vat 2_500
+// vat = gross * 2500 / 12500 (integer); net = gross - vat; remainder stays in net
+```
+
+Zero-rated `#vat0` / `moms:0` → `dk.vat.rate` only (no split hint).
 
 ## HTTP (DEV, loopback)
 

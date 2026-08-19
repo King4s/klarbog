@@ -55,17 +55,47 @@ entry.validate()?;
 // Sale: DR 1500 AR / CR 6100 revenue — both legs carry party_id
 ```
 
+## Lifecycle / payment ledger
+
+Statuses: `draft` | `sent` | `part_paid` | `paid` | `void`.
+
+Payments persist on the invoice as `payments: [{unix_ms, amount_minor, currency}]`.
+Remaining = total − sum(payments) (i64 minor units only).
+
+- `POST /api/v1/invoices/mark-part-paid` — amount must be `> 0` and `< remaining`;
+  records the payment; overpay rejected.
+- `POST /api/v1/invoices/mark-paid` — journal suggestion for **remaining** (not always
+  full total); rejects when remaining is 0; records the settling payment.
+
+MCP: `invoice_mark_part_paid_preview`, `invoice_mark_paid_preview`. Still **no**
+`JournalWrite` — post suggestions via journal-preview-commit.
+
 ## Validation
 
 - At least one line; positive `amount_minor`; single currency per invoice.
 - Non-empty line descriptions.
 - Party must exist in `parties.json`.
 
+## VAT split helper (moms 25%)
+
+Invoice line totals are often **gross inclusive**. Before building multi-leg journal suggestions, split with i64 basis points (no floats) via rules-dk:
+
+```rust
+use klarbog_plugin_rules_dk::split_vat25_inclusive;
+
+let gross = inv.total_minor()?; // treat as moms-inkl.
+let s = split_vat25_inclusive(gross)?;
+// s.net_minor + s.vat_minor == gross; e.g. 12500 → 10000 + 2500
+```
+
+Formula: `vat = gross * 2500 / 12500` (integer); `net = gross - vat` (remainder in net).
+Memo tags `#vat25` / `moms:25` on a journal preview apply hint id `dk.vat.split_hint` (non-blocking).
+
 ## Envelope
 
 Create returns invoice + optional embedded suggestion metadata via API.
 
-Errors: `party not found`, `no lines`, `mixed currencies`.
+Errors: `party not found`, `no lines`, `mixed currencies`, overpay / nothing remaining.
 
 ## Agent checklist
 
@@ -73,3 +103,4 @@ Errors: `party not found`, `no lines`, `mixed currencies`.
 2. Create draft; note `invoice_id` and total.
 3. Call `journal_suggestion` or use API-side suggestion if exposed.
 4. Post suggestion through journal-preview-commit — never auto-commit without confirm token.
+5. For collections: use mark-part-paid / mark-paid against the payment ledger remaining.

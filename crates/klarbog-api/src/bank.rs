@@ -48,6 +48,13 @@ pub(crate) fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
             Envelope::err([format!("actor not in policy: {tag}")]),
         ),
         CoreError::Path(e) => (StatusCode::BAD_REQUEST, Envelope::err([e.to_string()])),
+        CoreError::Journal(e) => (StatusCode::BAD_REQUEST, Envelope::err([e.to_string()])),
+        CoreError::RulesViolation(msg) => (StatusCode::BAD_REQUEST, Envelope::err([msg])),
+        CoreError::Confirm(klarbog_types::KlarbogError::ConfirmRequired) => (
+            StatusCode::BAD_REQUEST,
+            Envelope::err(["confirm token required or already consumed"]),
+        ),
+        CoreError::Confirm(e) => (StatusCode::BAD_REQUEST, Envelope::err([e.to_string()])),
         CoreError::Store(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
@@ -55,10 +62,6 @@ pub(crate) fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
         CoreError::Other(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
-        ),
-        other => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Envelope::err([other.to_string()]),
         ),
     }
 }

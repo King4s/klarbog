@@ -82,6 +82,29 @@ impl CompanyStore {
             .collect())
     }
 
+    /// Confirmed journal entry ids that still reference `party_id` on a leg.
+    /// Immutable — GDPR erasure must retain these (report only).
+    pub async fn list_entry_ids_for_party(
+        &self,
+        party_id: &str,
+    ) -> Result<Vec<String>, StoreError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT DISTINCT entry_id
+            FROM journal_legs
+            WHERE party_id = ?1
+            ORDER BY entry_id ASC
+            "#,
+        )
+        .bind(party_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| r.get::<String, _>("entry_id"))
+            .collect())
+    }
+
     pub async fn schema_version(&self) -> Result<i64, StoreError> {
         let row = sqlx::query("SELECT MAX(version) AS v FROM schema_version")
             .fetch_one(&self.pool)

@@ -151,6 +151,40 @@ pub async fn remove_document(
     Ok(removed)
 }
 
+/// Clear `party_id` on documents that reference the party (dry-run lists only).
+pub fn strip_party_id_from_documents(
+    company: &Path,
+    party_id: &PartyId,
+    dry_run: bool,
+) -> Result<Vec<DocumentId>, DocumentError> {
+    let mut file = load_documents(company)?;
+    let mut affected = Vec::new();
+    for doc in &mut file.documents {
+        if doc.party_id.as_ref() == Some(party_id) {
+            affected.push(doc.id.clone());
+            if !dry_run {
+                doc.party_id = None;
+            }
+        }
+    }
+    if !dry_run && !affected.is_empty() {
+        save_documents(company, &file)?;
+    }
+    Ok(affected)
+}
+
+/// Document ids whose metadata currently references `party_id`.
+pub fn document_ids_for_party(
+    company: &Path,
+    party_id: &PartyId,
+) -> Result<Vec<DocumentId>, DocumentError> {
+    Ok(list_documents(company)?
+        .into_iter()
+        .filter(|d| d.party_id.as_ref() == Some(party_id))
+        .map(|d| d.id)
+        .collect())
+}
+
 pub fn list_exceptions(company: &Path, open_only: bool) -> Result<Vec<Exception>, DocumentError> {
     let items = load_exceptions(company)?.exceptions;
     Ok(if open_only {

@@ -180,6 +180,7 @@ mod tests {
                 currency: Currency::new("DKK").unwrap(),
             }],
             status: InvoiceStatus::Draft,
+            payments: Vec::new(),
         }
     }
 

@@ -2,6 +2,7 @@
 
 mod auth;
 mod bank;
+mod bank_wave2;
 mod invoice;
 mod journal;
 mod retention;
@@ -46,6 +47,59 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "bank_stripe_consume",
+                    "description": "Consume Stripe webhook queue into bank draft rows (dry-run unless confirm:true; no journal post)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "confirm": {"type": "boolean"},
+                            "limit": {"type": "integer"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
+                    "name": "bank_reconcile_apply",
+                    "description": "Apply bank row ↔ invoice match as journal preview suggestion (no post). force requires user actor below safe threshold.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "invoice_id": {"type": "string"},
+                            "row": {
+                                "type": "object",
+                                "properties": {
+                                    "date": {"type": "string"},
+                                    "text": {"type": "string"},
+                                    "amount_minor": {"type": "integer"}
+                                },
+                                "required": ["date", "text", "amount_minor"]
+                            },
+                            "row_index": {"type": "integer"},
+                            "force": {"type": "boolean"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "invoice_id", "row", "actor_kind", "actor_id"]
+                    }
+                },
+                {
+                    "name": "revolut_oauth_refresh",
+                    "description": "Refresh Revolut OAuth access token for company secrets (never returns tokens)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "retention_get",
                     "description": "Load company retention policy (read-only)",
                     "inputSchema": {
@@ -73,7 +127,7 @@ pub fn tools_list() -> Value {
                 },
                 {
                     "name": "invoice_mark_paid_preview",
-                    "description": "Mark invoice paid and return payment journal suggestion with party_id (no post)",
+                    "description": "Mark invoice paid for remaining balance (payment ledger) and return payment journal suggestion with party_id (no post). Rejects when remaining is 0.",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -87,7 +141,7 @@ pub fn tools_list() -> Value {
                 },
                 {
                     "name": "invoice_mark_part_paid_preview",
-                    "description": "Mark invoice part_paid for amount_minor and return partial payment journal suggestion with party_id (no post). DEV: amount must be >0 and < total; mark-paid later suggests full total.",
+                    "description": "Record partial payment on invoice ledger (amount_minor >0 and < remaining), set part_paid, return journal suggestion with party_id (no post). Overpay rejected.",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -149,6 +203,13 @@ pub fn handle_tool_call(
             "allowlist_root": allowlist_root,
         })),
         "bank_import_preview" => rt.block_on(bank::bank_import_preview(args, allowlist_root)),
+        "bank_stripe_consume" => rt.block_on(bank_wave2::bank_stripe_consume(args, allowlist_root)),
+        "bank_reconcile_apply" => {
+            rt.block_on(bank_wave2::bank_reconcile_apply(args, allowlist_root))
+        }
+        "revolut_oauth_refresh" => {
+            rt.block_on(bank_wave2::revolut_oauth_refresh(args, allowlist_root))
+        }
         "retention_get" => rt.block_on(retention::retention_get(args, allowlist_root)),
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
         "invoice_mark_paid_preview" => {
@@ -186,6 +247,9 @@ mod tests {
         let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
         assert!(names.contains(&"klarbog_health"));
         assert!(names.contains(&"bank_import_preview"));
+        assert!(names.contains(&"bank_stripe_consume"));
+        assert!(names.contains(&"bank_reconcile_apply"));
+        assert!(names.contains(&"revolut_oauth_refresh"));
         assert!(names.contains(&"retention_get"));
         assert!(names.contains(&"backup_manifest"));
         assert!(names.contains(&"invoice_mark_paid_preview"));

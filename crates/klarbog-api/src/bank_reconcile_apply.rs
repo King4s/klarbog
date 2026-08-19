@@ -1,4 +1,4 @@
-//! POST /api/v1/bank/reconcile/apply — journal preview suggestion only (no post).
+//! POST /api/v1/bank/reconcile/apply — journal suggestion; optional ConfirmStore preview.
 
 use crate::actor::parse_actor;
 use crate::bank::{authorize_company, map_core, map_import};
@@ -7,6 +7,7 @@ use crate::AppState;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
+use klarbog_core::journal_preview;
 use klarbog_plugin_bank::{
     apply_match, default_source_for_rail, import_preview, BankImportConfig, BankImportSource,
     BankProfile, BankRow, ReconcileError,
@@ -30,6 +31,9 @@ pub struct ReconcileApplyBody {
     pub rows: Option<Vec<ParsedBankRowInput>>,
     #[serde(default)]
     pub force: bool,
+    /// When true, issue a ConfirmStore token (same path as `/journal/preview`).
+    #[serde(default)]
+    pub preview: bool,
 }
 
 fn map_reconcile(err: ReconcileError) -> (StatusCode, Envelope<Value>) {
@@ -133,13 +137,33 @@ pub async fn reconcile_apply(
             let (s, env) = map_reconcile(e);
             (s, Json(env))
         })?;
-    Ok(Json(Envelope::ok(serde_json::json!({
+    let mut data = serde_json::json!({
         "entry": applied.entry,
         "confidence_bps": applied.confidence_bps,
         "forced": applied.forced,
         "exception_closed": applied.exception_closed.as_ref().map(|e| e.id.to_string()),
         "invoice_id": body.invoice_id,
-    }))))
+    });
+    if !body.preview {
+        return Ok(Json(Envelope::ok(data)));
+    }
+    let preview = journal_preview(
+        &state.allowlist_root,
+        &company,
+        &applied.entry,
+        &actor,
+        &state.confirm,
+        &state.registry,
+    )
+    .await
+    .map_err(|e| {
+        let (s, env) = map_core(e);
+        (s, Json(env))
+    })?;
+    data["confirm_token"] = Value::String(preview.confirm_token.token.clone());
+    data["expires_unix_ms"] = serde_json::json!(preview.confirm_token.expires_unix_ms);
+    data["payload_digest"] = Value::String(preview.payload_digest);
+    Ok(Json(Envelope::ok_with_rules(data, preview.applied_rules)))
 }
 
 #[cfg(test)]
@@ -165,8 +189,13 @@ mod http_tests {
         (kind, actor.id.clone())
     }
 
-    #[tokio::test]
-    async fn reconcile_apply_returns_entry_json() {
+    async fn seeded_apply_app() -> (
+        axum::Router,
+        tempfile::TempDir,
+        std::path::PathBuf,
+        String,
+        Actor,
+    ) {
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");
@@ -188,11 +217,16 @@ mod http_tests {
             allowlist_root: dir.path().to_path_buf(),
             registry: Arc::new(default_registry()),
         };
-        let app = router(state);
+        (router(state), dir, company_path, inv.id.to_string(), owner)
+    }
+
+    #[tokio::test]
+    async fn reconcile_apply_returns_entry_json() {
+        let (app, _dir, company_path, invoice_id, owner) = seeded_apply_app().await;
         let (kind, id) = actor_headers(&owner);
         let body = serde_json::json!({
             "company": company_path.to_string_lossy(),
-            "invoice_id": inv.id.to_string(),
+            "invoice_id": invoice_id,
             "row": {
                 "date": "2026-05-20",
                 "text": "Customer payment Nordic Supply consulting",
@@ -221,5 +255,46 @@ mod http_tests {
         assert!(data["entry"]["memo"].as_str().unwrap().contains("bank:"));
         assert!(data["entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
         assert_eq!(data["forced"], false);
+        assert!(data.get("confirm_token").is_none());
+    }
+
+    #[tokio::test]
+    async fn reconcile_apply_preview_issues_confirm_token() {
+        let (app, _dir, company_path, invoice_id, owner) = seeded_apply_app().await;
+        let (kind, id) = actor_headers(&owner);
+        let body = serde_json::json!({
+            "company": company_path.to_string_lossy(),
+            "invoice_id": invoice_id,
+            "preview": true,
+            "row": {
+                "date": "2026-05-20",
+                "text": "Customer payment Nordic Supply consulting",
+                "amount_minor": 50000
+            }
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/bank/reconcile/apply")
+                    .header("content-type", "application/json")
+                    .header("x-klarbog-actor-kind", kind)
+                    .header("x-klarbog-actor-id", &id)
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
+        let data = env.data.unwrap();
+        assert!(data["entry"]["memo"].as_str().unwrap().contains("bank:"));
+        let token = data["confirm_token"].as_str().unwrap();
+        assert!(!token.is_empty());
+        assert!(data["expires_unix_ms"].as_u64().unwrap() > 0);
+        assert!(data["payload_digest"].as_str().unwrap().len() == 64);
     }
 }

@@ -4,9 +4,9 @@
 mod store;
 
 pub use store::{
-    attach_document, find_orphan_documents, get_document, get_exception, list_documents,
-    list_exceptions, purge_closed_exceptions, raise_exception, remove_document, set_exception_open,
-    DOCUMENTS_FILENAME, EXCEPTIONS_FILENAME,
+    attach_document, document_ids_for_party, find_orphan_documents, get_document, get_exception,
+    list_documents, list_exceptions, purge_closed_exceptions, raise_exception, remove_document,
+    set_exception_open, strip_party_id_from_documents, DOCUMENTS_FILENAME, EXCEPTIONS_FILENAME,
 };
 
 use klarbog_plugin::{Capability, Plugin};

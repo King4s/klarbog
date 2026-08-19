@@ -63,6 +63,11 @@ Kald `tools/list`. Forvent mindst:
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
 | `bank_import_preview` | Bank/betalingsrails → **udkast** (API for Revolut/Stripe; CSV for GenericDk / offline) |
+| `bank_stripe_consume` | Forbrug Stripe webhook-kø → bank-udkast (`confirm`; ingen journal-post) |
+| `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold) |
+| `revolut_oauth_refresh` | Refresh Revolut access-token (returnerer aldrig tokens) |
+| `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |
+| `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag |
 | `retention_get` | Læs retention-politik |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
 
@@ -108,12 +113,25 @@ x-klarbog-actor-id: owner
 | POST | `/api/v1/journal/commit` | Fase 2 |
 | POST/GET | `/api/v1/crm/parties` | Parter |
 | POST/GET | `/api/v1/invoices/drafts` | Fakturakladder |
+| PATCH | `/api/v1/invoices/status` | Faktura-status (`draft\|sent\|part_paid\|paid\|void`) |
+| POST | `/api/v1/invoices/mark-paid` | Betalt → journalforslag (fuldt beløb) |
+| POST | `/api/v1/invoices/mark-part-paid` | Delbetaling (`amount_minor`) → forslag |
 | POST | `/api/v1/bank/import/preview` | Bank/API → udkast (`source` + `provider`) |
-| POST/GET | `/api/v1/documents` | Bilags-metadata |
+| POST | `/api/v1/bank/reconcile/suggest` | Match banklinjer ↔ åbne fakturaer |
+| POST | `/api/v1/bank/reconcile/apply` | Anvend match → journalforslag; valgfri `preview:true` → confirm-token |
+| POST | `/api/v1/webhooks/stripe` | Stripe webhook-ingress (HMAC; kø til drafts) |
+| POST | `/api/v1/bank/stripe/consume` | Forbrug webhook-kø → bank-udkast (`confirm` fail-closed) |
+| POST | `/api/v1/bank/stripe/reconcile-suggest` | Consume (+valgfri persist) → reconcile-forslag (ingen auto-post) |
+| GET | `/api/v1/revolut/oauth/start` | Revolut OAuth start (auth-URL) |
+| POST | `/api/v1/revolut/oauth/callback` | OAuth code → tokens (gemmes lokalt, returnerer ikke secrets) |
+| POST | `/api/v1/revolut/oauth/refresh` | Refresh access-token (fail-closed uden refresh) |
+| POST/GET/DELETE | `/api/v1/documents` | Bilags-metadata (+ slet objekt) |
 | POST/GET/PATCH | `/api/v1/exceptions` | Undtagelser |
 | GET | `/api/v1/retention` | Retention |
 | POST | `/api/v1/backup` | Backup-manifest |
-| POST | `/api/v1/gdpr-export` | GDPR-eksport v1 (firma-scope metadata, DEV) |
+| POST | `/api/v1/retention/purge` | Purge lukkede undtagelser (dry-run / `confirm`) |
+| POST | `/api/v1/gdpr-export` | GDPR-eksport v1 (firma-scope metadata + note, DEV) |
+| POST | `/api/v1/gdpr/erase-party` | GDPR partysletning (dry-run default; `confirm` anonymiserer; journal urørt) |
 
 Svar er typisk et **Envelope**: `{ "ok": true|false, "data": …, "errors": [], "applied_rules": [] }`.
 
@@ -185,6 +203,7 @@ klarbog demo
 klarbog retention --company "$KLARBOG_COMPANY"
 klarbog backup --company "$KLARBOG_COMPANY"
 klarbog gdpr-export --company "$KLARBOG_COMPANY"
+klarbog gdpr-erase-party --company "$KLARBOG_COMPANY" --party-id <id>   # dry-run; add --confirm
 ```
 
 ---
@@ -192,10 +211,10 @@ klarbog gdpr-export --company "$KLARBOG_COMPANY"
 ## Domæne — kort
 
 - **CRM:** parter i `parties.json`; ledger bruger kun `party_id` (ingen journal-write fra CRM-plugin).
-- **Faktura:** kladder + foreslået journal med `party_id` på ben; post via journal to-fase.
+- **Faktura:** kladder + betalings-ledger (remaining = total − summerede delbetalinger); `mark-part-paid` / `mark-paid` giver journalforslag med `party_id` — post via journal to-fase.
 - **Dokumenter:** metadata + `path_hint` (relativ, ingen `..`); binære filer via object store.
 - **Lagring:** default lokal disk under firmaet; valgfrit **Cloudflare R2 (EU)** via `KLARBOG_STORAGE=r2` og `KLARBOG_R2_*` (fail-closed uden for EU).
-- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.
+- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.vat.split_hint` (i64+bps, 25%/0), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.
 
 ---
 

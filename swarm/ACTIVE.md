@@ -1,7 +1,8 @@
 # Active swarm status
 
-- **Wave 2 (harden+wire) landed** — slices 15–21 queued done; tip VERIFY_OK
-- Next: live E2E with real Revolut/Stripe/R2 keys (optional); payment-ledger for true remaining balance; stronger moms math
-- Verify gate: `./scripts/verify.sh` before merge/commit (`VERIFY_OK`)
+- **Wave 3 (productize) landed** — slices 22–29 queued done; tip VERIFY_OK when merged
+- **Wave 4** next: live-fixture hardening, webhook→apply one-shot, retention bogføring notes, MCP erase-party, soft-linegate keep-under-300
+- Do not stop between slices unless `swarm/STOP` or real blocker
+- Verify gate: `./scripts/verify.sh` (`VERIFY_OK`)
 - Tip: no sister-product / internal host names in the public tree
-- Tip: soft linegate ≥300 warn, hard >400 fail (non-blank)
+- Tip: serialize env-mutating tests with tokio Mutex

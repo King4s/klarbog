@@ -163,6 +163,14 @@ async fn mark_part_paid_then_mark_paid() {
     let part_env: Envelope<Value> = serde_json::from_slice(&part_bytes).unwrap();
     let part_data = part_env.data.unwrap();
     assert_eq!(part_data["invoice"]["status"], "part_paid");
+    assert_eq!(
+        part_data["invoice"]["payments"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        part_data["invoice"]["payments"][0]["amount_minor"].as_i64(),
+        Some(2000)
+    );
     let leg0_amount = &part_data["journal_entry"]["legs"][0]["amount"];
     let units = leg0_amount
         .as_i64()
@@ -198,10 +206,11 @@ async fn mark_part_paid_then_mark_paid() {
     let paid_env: Envelope<Value> = serde_json::from_slice(&paid_bytes).unwrap();
     let data = paid_env.data.unwrap();
     assert_eq!(data["invoice"]["status"], "paid");
-    // DEV model: mark-paid suggests full total, not remaining.
+    assert_eq!(data["invoice"]["payments"].as_array().unwrap().len(), 2);
+    // Payment ledger: mark-paid suggests remaining (3000), not full total.
     let full_amount = &data["journal_entry"]["legs"][0]["amount"];
     let full_units = full_amount
         .as_i64()
         .or_else(|| full_amount.get("units").and_then(|u| u.as_i64()));
-    assert_eq!(full_units, Some(5000));
+    assert_eq!(full_units, Some(3000));
 }

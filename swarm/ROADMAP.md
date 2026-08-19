@@ -19,14 +19,34 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 13. R2 DeleteObject + retention purge enforce
 14. Install/release packaging docs
 
-## Wave 2 — harden + wire (after 0–14 scaffolds)
+## Wave 2 — harden + wire (landed)
 
 15. Revolut OAuth **refresh_token** rotate + fail-closed expiry
-16. Stripe webhook **queue consumer** → bank drafts / reconcile input (still no auto journal post) ✅
-17. Bank reconcile **apply** → journal preview suggestion (host two-phase commit)
-18. GDPR export expand (parties/invoices/exceptions metadata — still company-scoped stub→v1)
-19. rules-dk: expense without receipt **blocks commit** (fail-closed option) ✅
-20. Invoice **part_paid** payment suggestion + amount_minor partial
-21. Soft linegate hygiene: split webhook/reconcile/documents/invoice under soft 300
+16. Stripe webhook **queue consumer** → bank drafts
+17. Bank reconcile **apply** → journal preview suggestion
+18. GDPR export expand (company-scoped v1 metadata)
+19. rules-dk: expense without receipt **blocks commit**
+20. Invoice **part_paid** payment suggestion
+21. Soft linegate hygiene
+
+## Wave 3 — productize (in flight)
+
+22. MCP parity for wave2 HTTP (consume, reconcile apply, mark-part-paid, oauth refresh) ✅
+23. Invoice **payment ledger** — remaining balance for part_paid / mark-paid
+24. Stripe consume rows → reconcile **suggest** helper (one-shot pipeline, still no auto post)
+25. GDPR **party erasure** dry-run/confirm (metadata + optional R2 delete; keep journal immutable)
+26. rules-dk: VAT **split suggestion** (i64 minor + bps; no f64) for moms 25/0
+27. Reconcile apply optional `preview: true` → ConfirmStore token (wire to journal commit)
+28. `klarbog demo` covers wave2/3 surfaces (drop Revolut skip TODO)
+29. CHANGELOG + agent-setup prompt refresh for wave3
+
+## Wave 4 — deepen (after wave3)
+
+30. MCP `gdpr_erase_party` + retention skill note (journal immutable)
+31. One-shot Stripe consume → reconcile apply preview (opt-in, ConfirmStore)
+32. rules-dk: account range ↔ chart stub (DK expense/bank/AR codes documented)
+33. Backup manifest includes payments[] + erase audit trail file
+34. Soft linegate re-check after wave3 growth; split any ≥300
+35. Offline “contract smoke” script for new HTTP routes (no network)
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
