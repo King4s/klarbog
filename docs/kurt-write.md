@@ -1,11 +1,15 @@
 # Kurt write recipe (Klarbog)
 
-Kurt `POST /api/agent/write` requires:
+Owner rule: **no project-scope limit on WHAT** you write. **WHERE** is enforced.
+
+`POST /api/agent/write` requires:
 
 1. `path` under write root `/opt/pellucid-software`, ending in `.md`
-2. `project` whose source scope covers that relative path
+2. Nested layout: `<area>/.../<file>.md` (not a top-level file under the write root)
+3. First segment (`area`) is a safe slug (e.g. `klarbog`, `SeaAid.Me`)
+4. `project` is metadata + API-key allowlist only — it does **not** gate the path
 
-## Preferred
+## Example
 
 ```bash
 curl -H "x-api-key: $KURT_KEY" -H "Content-Type: application/json" \
@@ -18,14 +22,5 @@ curl -H "x-api-key: $KURT_KEY" -H "Content-Type: application/json" \
   }'
 ```
 
-Project `Klarbog` is registered with path `/opt/pellucid-software/klarbog`.
-
-## Also works
-
-`project: "SeaAid.Me"` with `path: "klarbog/..."` — Klarbog is in SeaAid.Me
-`KURT_PROJECT_EXTRA_PATHS` / code defaults.
-
-## Does not work
-
-Writing `docs/...` under SeaAid.Me (that is seaconnect-relative scope, not write-root),
-or writing pellucid-software paths outside the project’s source prefixes.
+Writing `klarbog/...` with `project: "SeaAid.Me"` (or any authorized project name) is allowed.
+Query/search may still filter by project scope; write only places files under the write root.

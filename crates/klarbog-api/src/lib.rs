@@ -1,10 +1,32 @@
 //! DEV-only HTTP surface. Bind loopback in the binary (ADR-003).
 
-use axum::http::StatusCode;
-use axum::{routing::get, routing::post, Json, Router};
+mod actor;
+mod crm;
+mod documents;
+mod invoice;
+mod journal;
+
+#[cfg(test)]
+mod api_tests;
+#[cfg(test)]
+mod documents_tests;
+
+use axum::extract::State;
+use axum::{routing::get, routing::patch, routing::post, Json, Router};
+use klarbog_core::{default_registry, ConfirmStore};
+use klarbog_plugin::{Capability, Registry};
 use klarbog_types::Envelope;
 use serde::Serialize;
 use serde_json::Value;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub confirm: Arc<ConfirmStore>,
+    pub allowlist_root: PathBuf,
+    pub registry: Arc<Registry>,
+}
 
 #[derive(Serialize)]
 pub struct Health {
@@ -21,62 +43,60 @@ async fn health() -> Json<Health> {
     })
 }
 
-async fn status_stub() -> Json<Envelope<Value>> {
+async fn status(State(state): State<AppState>) -> Json<Envelope<Value>> {
+    let cap_name = |c: Capability| match c {
+        Capability::Read => "read",
+        Capability::CrmWrite => "crm_write",
+        Capability::JournalWrite => "journal_write",
+        Capability::RulesValidate => "rules_validate",
+    };
+    let plugins: Vec<_> = state
+        .registry
+        .list()
+        .map(|p| {
+            serde_json::json!({
+                "id": p.id(),
+                "version": p.version(),
+                "capabilities": p.capabilities().iter().map(|c| cap_name(*c)).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
     Json(Envelope::ok(serde_json::json!({
         "mode": "dev",
-        "bind": "127.0.0.1:3195"
+        "bind": "127.0.0.1:3195",
+        "allowlist_root": state.allowlist_root,
+        "plugins": plugins,
     })))
 }
 
-async fn journal_stub() -> (StatusCode, Json<Envelope<Value>>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(Envelope::err(["journal write arrives in slice 2"])),
-    )
-}
-
-pub fn router() -> Router {
+pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
-        .route("/api/v1/status", get(status_stub))
-        .route("/api/v1/journal", post(journal_stub))
+        .route("/api/v1/status", get(status))
+        .route("/api/v1/journal/preview", post(journal::preview))
+        .route("/api/v1/journal/commit", post(journal::commit))
+        .route("/api/v1/crm/parties", post(crm::upsert))
+        .route("/api/v1/crm/parties", get(crm::list))
+        .route("/api/v1/invoices/drafts", post(invoice::create_draft))
+        .route("/api/v1/invoices/drafts", get(invoice::list))
+        .route("/api/v1/documents", post(documents::attach))
+        .route("/api/v1/documents", get(documents::list_docs))
+        .route("/api/v1/exceptions", post(documents::raise))
+        .route("/api/v1/exceptions", get(documents::list_exc))
+        .route("/api/v1/exceptions", patch(documents::close_exc))
+        .with_state(state)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
-    use tower::ServiceExt;
+pub fn default_allowlist_root() -> PathBuf {
+    std::env::var("KLARBOG_ALLOWLIST_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/opt/pellucid-software/klarbog"))
+}
 
-    #[tokio::test]
-    async fn health_ok() {
-        let app = router();
-        let res = app
-            .oneshot(
-                Request::builder()
-                    .uri("/health")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(res.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn journal_is_stub() {
-        let app = router();
-        let res = app
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/v1/journal")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(res.status(), StatusCode::NOT_IMPLEMENTED);
+pub fn default_state() -> AppState {
+    AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: default_allowlist_root(),
+        registry: Arc::new(default_registry()),
     }
 }

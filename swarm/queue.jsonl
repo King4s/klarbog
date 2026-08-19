@@ -1,3 +1,17 @@
 {"event":"bootstrap","slice":0,"status":"running","ts":"2026-08-19T21:12:00Z"}
 {"event":"slice0_done","slice":0,"status":"done","ts":"2026-08-19T21:27:00Z"}
 {"event":"slice1_smoke","slice":1,"status":"done","note":"money+journal+sqlite smoke-post","ts":"2026-08-19T21:27:00Z"}
+{"event":"slice2_done","slice":2,"status":"done","note":"api+mcp journal preview/commit, ConfirmStore, pathguard AuthZ","ts":"2026-08-19T21:55:00Z"}
+{"event":"slice2_done","slice":2,"status":"done","note":"api+mcp two-phase confirm+AuthZ","ts":"2026-08-19T21:55:00Z"}
+{"event":"slice3_done","slice":3,"status":"done","note":"plugin-host RulesPlugin + rules-dk; applied_rules on preview/commit","ts":"2026-08-19T22:05:00Z"}
+{"event":"slice4_done","slice":4,"status":"done","note":"CRM parties.json upsert/list/get + HTTP /api/v1/crm/parties; no journal-write (ADR-004)","ts":"2026-08-19T22:10:00Z"}
+{"event":"slice5_scaffold","slice":5,"status":"done","note":"klarbog-plugin-bank CSV parse + draft JournalEntry suggestions; Capability::Read only; ADR-006","ts":"2026-08-19T22:15:00Z"}
+{"event":"slice6_done","slice":6,"status":"done","note":"klarbog-plugin-invoice invoices.json + journal suggestions with party_id; POST/GET /api/v1/invoices/drafts; no JournalWrite","ts":"2026-08-19T22:30:00Z"}
+{"event":"slice5_done","slice":5,"status":"done","note":"klarbog-plugin-bank in workspace; amount.rs borrow fixed; 7 tests; VERIFY_OK","ts":"2026-08-19T22:20:00Z"}
+{"event":"slice7_done","slice":7,"status":"done","note":"klarbog-plugin-documents documents.json+exceptions.json; POST/GET /api/v1/documents + /exceptions PATCH close; path_hint guard; VERIFY_OK","ts":"2026-08-19T22:45:00Z"}
+{"event":"owner_addons","note":"ADR-007 Cloudflare R2 EU + ADR-008 Revolut bank","ts":"2026-08-19T22:40:00Z"}
+{"event":"storage_r2_scaffold","slice":7,"status":"done","note":"klarbog-storage ObjectStore trait, LocalFsStore, R2Config EU fail-closed, R2Store stub","ts":"2026-08-19T22:08:00Z"}
+{"event":"slice8_done","slice":8,"status":"done","note":"docs/skills/* agent markdowns; klarbog demo CLI smoke; VERIFY_OK","ts":"2026-08-19T22:12:00Z"}
+{"event":"revolut_profile","slice":8,"status":"done","note":"ADR-008 BankProfile::Revolut; parse_revolut_csv + parse_bank_csv_with_profile; comma RFC CSV; currency batch validation; fixture revolut_statement.csv; 15 bank tests","ts":"2026-08-19T23:10:00Z"}
+{"event":"revolut_amount_fix","slice":5,"status":"done","note":"ADR-008 verify: dot-decimal Revolut amounts (-45.50) fixed in amount.rs; GenericDk unchanged; klarbog-storage 12 tests; VERIFY_OK","ts":"2026-08-19T22:12:00Z"}
+{"event":"slice9_done","slice":9,"status":"done","note":"klarbog-plugin-retention: retention.json, backup manifest via LocalFsStore, gdpr_export stub, expense_memo template; CLI backup/retention/gdpr-export; VERIFY_OK","ts":"2026-08-19T22:15:00Z"}

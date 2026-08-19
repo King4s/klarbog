@@ -1,0 +1,13 @@
+[package]
+name = "klarbog-plugin-rules-dk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klarbog-plugin = { workspace = true }
+klarbog-journal = { workspace = true }
+klarbog-types = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }

@@ -4,3 +4,4 @@ mod open;
 mod persist;
 
 pub use open::{open_company, CompanyStore, StoreError};
+pub use persist::JournalDigestSummary;

@@ -1,0 +1,18 @@
+[package]
+name = "klarbog-plugin-bank"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klarbog-plugin = { workspace = true }
+klarbog-journal = { workspace = true }
+klarbog-types = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+# INTENTIONAL: no journal-write / store dependency (ADR-006)

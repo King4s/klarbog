@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,9 +52,14 @@ impl ConfirmStore {
                 expires,
             },
         );
+        let expires_unix_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_millis()
+            .saturating_add(self.ttl.as_millis());
         ConfirmToken {
             token,
-            expires_unix_ms: 0, // clients should treat TTL as server-side
+            expires_unix_ms,
         }
     }
 

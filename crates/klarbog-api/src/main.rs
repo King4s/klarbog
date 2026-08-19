@@ -8,6 +8,6 @@ async fn main() -> anyhow::Result<()> {
     let addr = SocketAddr::from(([127, 0, 0, 1], 3195));
     tracing::info!("klarbog-api listening on {addr}");
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, klarbog_api::router()).await?;
+    axum::serve(listener, klarbog_api::router(klarbog_api::default_state())).await?;
     Ok(())
 }

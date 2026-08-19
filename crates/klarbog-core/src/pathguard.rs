@@ -11,6 +11,10 @@ pub enum PathGuardError {
     ParentDir,
     #[error("company path outside allowlist root")]
     OutsideAllowlist,
+    #[error("path hint must be relative under company")]
+    NotRelative,
+    #[error("path hint must not be empty")]
+    EmptyPathHint,
 }
 
 /// Resolve and validate a company directory under an allowlist root.
@@ -39,6 +43,21 @@ pub fn assert_company_path(
     Ok(comp)
 }
 
+/// Validate a document `path_hint`: relative under company, no `..`.
+pub fn assert_relative_path_hint(hint: &str) -> Result<(), PathGuardError> {
+    if hint.trim().is_empty() {
+        return Err(PathGuardError::EmptyPathHint);
+    }
+    let path = Path::new(hint);
+    if path.is_absolute() {
+        return Err(PathGuardError::NotRelative);
+    }
+    if path.components().any(|c| matches!(c, Component::ParentDir)) {
+        return Err(PathGuardError::ParentDir);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -61,5 +80,18 @@ mod tests {
             assert_company_path(&root, Path::new("data/co")),
             Err(PathGuardError::NotAbsolute)
         );
+    }
+
+    #[test]
+    fn path_hint_rejects_dotdot() {
+        assert_eq!(
+            assert_relative_path_hint("attachments/../secret.pdf"),
+            Err(PathGuardError::ParentDir)
+        );
+    }
+
+    #[test]
+    fn path_hint_accepts_relative() {
+        assert!(assert_relative_path_hint("attachments/2026/receipt.pdf").is_ok());
     }
 }

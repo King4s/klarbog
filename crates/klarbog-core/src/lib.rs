@@ -1,13 +1,20 @@
 //! Company lifecycle and posting orchestration.
 
 mod confirm;
+mod journal_ops;
 mod pathguard;
+mod registry;
 
 pub use confirm::{ConfirmStore, ConfirmToken};
-pub use pathguard::{assert_company_path, PathGuardError};
+pub use journal_ops::{
+    journal_commit, journal_preview, payload_digest, CommitResult, PreviewResult,
+};
+pub use pathguard::{assert_company_path, assert_relative_path_hint, PathGuardError};
+pub use registry::default_registry;
 
 use anyhow::Context;
 use klarbog_journal::{JournalEntry, PostedEntry};
+use klarbog_plugin_retention::ensure_company_extras;
 use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
@@ -20,6 +27,14 @@ pub enum CoreError {
     Store(#[from] StoreError),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error(transparent)]
+    Path(#[from] PathGuardError),
+    #[error(transparent)]
+    Journal(#[from] klarbog_journal::JournalError),
+    #[error(transparent)]
+    Confirm(#[from] klarbog_types::KlarbogError),
+    #[error("rules validation failed: {0}")]
+    RulesViolation(String),
     #[error("actor not in policy: {0}")]
     ActorDenied(String),
 }
@@ -57,6 +72,7 @@ pub async fn init_company(path: &Path, name: &str, owner: &Actor) -> Result<Comp
         serde_json::to_string_pretty(&policy).context("policy json")?,
     )
     .context("write policy")?;
+    ensure_company_extras(path).map_err(|e| CoreError::Other(anyhow::anyhow!(e)))?;
     let store = open_company(path).await?;
     Ok(Company {
         path: path.to_path_buf(),
@@ -136,6 +152,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company = init_company(dir.path(), "Demo ApS", &owner).await.unwrap();
+        assert!(dir.path().join("retention.json").exists());
+        assert!(dir.path().join("templates/expense_memo.md").exists());
         let posted = company.post(expense(owner, 250)).await.unwrap();
         assert!(!posted.digest.is_empty());
     }

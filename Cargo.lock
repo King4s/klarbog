@@ -879,9 +879,18 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "chrono",
+ "klarbog-core",
+ "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-documents",
+ "klarbog-plugin-invoice",
+ "klarbog-plugin-rules-dk",
  "klarbog-types",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tower",
  "tracing",
@@ -897,8 +906,13 @@ dependencies = [
  "clap",
  "klarbog-core",
  "klarbog-journal",
+ "klarbog-plugin-bank",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-invoice",
+ "klarbog-plugin-retention",
  "klarbog-types",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 
@@ -910,6 +924,12 @@ dependencies = [
  "chrono",
  "hex",
  "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-documents",
+ "klarbog-plugin-invoice",
+ "klarbog-plugin-retention",
+ "klarbog-plugin-rules-dk",
  "klarbog-store-sqlite",
  "klarbog-types",
  "serde",
@@ -939,16 +959,37 @@ name = "klarbog-mcp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
+ "klarbog-core",
+ "klarbog-journal",
+ "klarbog-plugin",
  "klarbog-types",
  "serde",
  "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
 name = "klarbog-plugin"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "klarbog-journal",
  "klarbog-types",
+]
+
+[[package]]
+name = "klarbog-plugin-bank"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-types",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -959,6 +1000,83 @@ dependencies = [
  "klarbog-types",
  "serde",
  "serde_json",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
+name = "klarbog-plugin-documents"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-invoice",
+ "klarbog-storage",
+ "klarbog-types",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "klarbog-plugin-invoice"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-types",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "klarbog-plugin-retention"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "hex",
+ "klarbog-core",
+ "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-documents",
+ "klarbog-plugin-invoice",
+ "klarbog-storage",
+ "klarbog-store-sqlite",
+ "klarbog-types",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "klarbog-plugin-rules-dk"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "klarbog-journal",
+ "klarbog-plugin",
+ "klarbog-types",
+]
+
+[[package]]
+name = "klarbog-storage"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

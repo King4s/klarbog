@@ -1,7 +1,13 @@
+mod demo;
+
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use klarbog_core::{init_company, open_existing};
 use klarbog_journal::{Direction, JournalEntry, Leg};
+use klarbog_plugin_retention::{
+    load_retention, write_backup_manifest, write_gdpr_export, BackupManifest, GdprExport,
+    RetentionPolicy,
+};
 use klarbog_types::{Actor, Currency, Envelope, MinorAmount};
 use std::path::PathBuf;
 
@@ -33,6 +39,23 @@ enum Cmd {
         minor: i64,
     },
     Health,
+    /// End-to-end agent smoke (temp company, CRM, invoice, bank fixtures)
+    Demo,
+    /// Write backup manifest under company `backups/<ts>/manifest.json`
+    Backup {
+        #[arg(long)]
+        company: PathBuf,
+    },
+    /// Show retention policy from `retention.json`
+    Retention {
+        #[arg(long)]
+        company: PathBuf,
+    },
+    /// Write GDPR export stub (`gdpr_export.json`)
+    GdprExport {
+        #[arg(long)]
+        company: PathBuf,
+    },
 }
 
 #[tokio::main]
@@ -102,6 +125,25 @@ async fn main() -> anyhow::Result<()> {
                     "digest": posted.digest,
                 })))?
             );
+        }
+        Cmd::Demo => {
+            let data = demo::run_agent_demo().await?;
+            println!("{}", serde_json::to_string(&Envelope::ok(data))?);
+        }
+        Cmd::Backup { company } => {
+            open_existing(&company).await?;
+            let manifest: BackupManifest = write_backup_manifest(&company).await?;
+            println!("{}", serde_json::to_string(&Envelope::ok(manifest))?);
+        }
+        Cmd::Retention { company } => {
+            open_existing(&company).await?;
+            let policy: RetentionPolicy = load_retention(&company)?;
+            println!("{}", serde_json::to_string(&Envelope::ok(policy))?);
+        }
+        Cmd::GdprExport { company } => {
+            open_existing(&company).await?;
+            let export: GdprExport = write_gdpr_export(&company)?;
+            println!("{}", serde_json::to_string(&Envelope::ok(export))?);
         }
     }
     Ok(())

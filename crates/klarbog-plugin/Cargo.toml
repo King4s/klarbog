@@ -6,3 +6,7 @@ license.workspace = true
 
 [dependencies]
 klarbog-types = { workspace = true }
+klarbog-journal = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }

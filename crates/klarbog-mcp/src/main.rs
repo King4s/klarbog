@@ -1,44 +1,37 @@
-//! Minimal MCP-shaped stdio stub (tools/list). Full rmcp wiring in later slice.
-//! Two-phase confirm is documented here; mutating tools arrive in slice 2.
+//! Minimal MCP-shaped stdio server (tools/list + tools/call). Two-phase confirm.
 
+mod tools;
+
+use klarbog_core::{default_registry, ConfirmStore};
+use klarbog_plugin::Registry;
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
+use std::sync::{Arc, OnceLock};
 
-fn tools_list() -> Value {
-    json!({
-        "jsonrpc": "2.0",
-        "result": {
-            "tools": [
-                {
-                    "name": "klarbog_health",
-                    "description": "Health check (read-only)",
-                    "inputSchema": { "type": "object", "properties": {} }
-                },
-                {
-                    "name": "journal_post_preview",
-                    "description": "Phase-1: validate entry and return confirmation token (no write)",
-                    "inputSchema": { "type": "object", "properties": { "company": {"type":"string"} } }
-                },
-                {
-                    "name": "journal_post_commit",
-                    "description": "Phase-2: commit with confirmation token (ADR two-phase confirm)",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "company": {"type":"string"},
-                            "confirm_token": {"type":"string"}
-                        },
-                        "required": ["confirm_token"]
-                    }
-                }
-            ]
-        }
-    })
+fn confirm_store() -> Arc<ConfirmStore> {
+    static STORE: OnceLock<Arc<ConfirmStore>> = OnceLock::new();
+    STORE
+        .get_or_init(|| Arc::new(ConfirmStore::default()))
+        .clone()
+}
+
+fn plugin_registry() -> Arc<Registry> {
+    static REG: OnceLock<Arc<Registry>> = OnceLock::new();
+    REG.get_or_init(|| Arc::new(default_registry())).clone()
+}
+
+fn runtime() -> &'static tokio::runtime::Runtime {
+    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    RT.get_or_init(|| tokio::runtime::Runtime::new().expect("tokio runtime"))
 }
 
 fn main() -> anyhow::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
+    let store = confirm_store();
+    let registry = plugin_registry();
+    let allowlist = tools::default_allowlist_root();
+    let rt = runtime();
     for line in stdin.lock().lines() {
         let line = line?;
         if line.trim().is_empty() {
@@ -59,7 +52,7 @@ fn main() -> anyhow::Result<()> {
                 }
             }),
             "tools/list" => {
-                let mut r = tools_list();
+                let mut r = tools::tools_list();
                 r["id"] = id;
                 r
             }
@@ -68,19 +61,16 @@ fn main() -> anyhow::Result<()> {
                     .pointer("/params/name")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                let body = if name == "klarbog_health" {
-                    json!({"ok": true, "service": "klarbog-mcp"})
-                } else {
-                    json!({
-                        "ok": false,
-                        "errors": ["not implemented in slice 0/1 stub — see journal_post_preview/commit in slice 2"]
-                    })
-                };
+                let args = req
+                    .pointer("/params/arguments")
+                    .cloned()
+                    .unwrap_or(json!({}));
+                let body = tools::handle_tool_call(name, &args, &store, &allowlist, &registry, rt);
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
                     "result": {
-                        "content": [{ "type": "text", "text": body.to_string() }]
+                        "content": [{ "type": "text", "text": serde_json::to_string(&body)? }]
                     }
                 })
             }
@@ -94,19 +84,4 @@ fn main() -> anyhow::Result<()> {
         stdout.flush()?;
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tools_list_names() {
-        let listed = tools_list();
-        let tools = listed["result"]["tools"].as_array().unwrap();
-        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
-        assert!(names.contains(&"klarbog_health"));
-        assert!(names.contains(&"journal_post_preview"));
-        assert!(names.contains(&"journal_post_commit"));
-    }
 }

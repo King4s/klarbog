@@ -1,8 +1,16 @@
 use anyhow::Context;
 use klarbog_journal::{Direction, PostedEntry};
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
 use crate::open::{CompanyStore, StoreError};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JournalDigestSummary {
+    pub id: String,
+    pub digest: String,
+    pub prev_digest: Option<String>,
+}
 
 impl CompanyStore {
     pub async fn append(&self, posted: &PostedEntry) -> Result<(), StoreError> {
@@ -57,6 +65,21 @@ impl CompanyStore {
             .fetch_optional(&self.pool)
             .await?;
         Ok(row.map(|r| r.get::<String, _>("digest")))
+    }
+
+    pub async fn list_journal_digests(&self) -> Result<Vec<JournalDigestSummary>, StoreError> {
+        let rows =
+            sqlx::query("SELECT id, digest, prev_digest FROM journal_entries ORDER BY rowid ASC")
+                .fetch_all(&self.pool)
+                .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| JournalDigestSummary {
+                id: r.get("id"),
+                digest: r.get("digest"),
+                prev_digest: r.get("prev_digest"),
+            })
+            .collect())
     }
 
     pub async fn schema_version(&self) -> Result<i64, StoreError> {

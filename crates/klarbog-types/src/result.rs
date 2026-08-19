@@ -33,6 +33,15 @@ impl<T> Envelope<T> {
         }
     }
 
+    pub fn ok_with_rules(data: T, applied_rules: Vec<String>) -> Self {
+        Self {
+            ok: true,
+            data: Some(data),
+            errors: vec![],
+            applied_rules,
+        }
+    }
+
     pub fn err(errors: impl IntoIterator<Item = impl Into<String>>) -> Self {
         Self {
             ok: false,

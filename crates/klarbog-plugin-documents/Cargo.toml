@@ -1,0 +1,22 @@
+[package]
+name = "klarbog-plugin-documents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klarbog-plugin = { workspace = true }
+klarbog-plugin-crm = { workspace = true }
+klarbog-plugin-invoice = { workspace = true }
+klarbog-storage = { workspace = true }
+klarbog-types = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# INTENTIONAL: no JournalWrite capability (ADR-004)
+
+[dev-dependencies]
+tempfile = "3"

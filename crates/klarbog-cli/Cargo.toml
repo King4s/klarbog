@@ -12,8 +12,16 @@ path = "src/main.rs"
 klarbog-core = { workspace = true }
 klarbog-types = { workspace = true }
 klarbog-journal = { workspace = true }
+klarbog-plugin-crm = { workspace = true }
+klarbog-plugin-invoice = { workspace = true }
+klarbog-plugin-bank = { workspace = true }
+klarbog-plugin-retention = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }
+tempfile = "3"
+
+[dev-dependencies]
+tokio = { workspace = true }
