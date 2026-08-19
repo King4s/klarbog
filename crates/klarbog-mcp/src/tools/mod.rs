@@ -2,6 +2,7 @@
 
 mod auth;
 mod bank;
+mod bank_stripe_pipelines;
 mod bank_wave2;
 mod invoice;
 mod journal;
@@ -93,6 +94,38 @@ pub fn tools_list() -> Value {
                         "type": "object",
                         "properties": {
                             "company": {"type": "string"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
+                    "name": "bank_stripe_reconcile_suggest",
+                    "description": "Stripe consume → reconcile suggest (dry-run consume unless confirm_consume; no journal post)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "confirm_consume": {"type": "boolean"},
+                            "limit": {"type": "integer"},
+                            "raise_exceptions": {"type": "boolean"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
+                    "name": "bank_stripe_reconcile_apply_preview",
+                    "description": "Stripe consume → unique safe apply + ConfirmStore preview (no journal commit)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "confirm_consume": {"type": "boolean"},
+                            "force": {"type": "boolean"},
+                            "limit": {"type": "integer"},
                             "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                             "actor_id": {"type": "string"}
                         },
@@ -226,6 +259,17 @@ pub fn handle_tool_call(
         "revolut_oauth_refresh" => {
             rt.block_on(bank_wave2::revolut_oauth_refresh(args, allowlist_root))
         }
+        "bank_stripe_reconcile_suggest" => rt.block_on(
+            bank_stripe_pipelines::bank_stripe_reconcile_suggest(args, allowlist_root),
+        ),
+        "bank_stripe_reconcile_apply_preview" => {
+            rt.block_on(bank_stripe_pipelines::bank_stripe_reconcile_apply_preview(
+                args,
+                allowlist_root,
+                store,
+                registry,
+            ))
+        }
         "retention_get" => rt.block_on(retention::retention_get(args, allowlist_root)),
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
         "gdpr_erase_party" => rt.block_on(retention::gdpr_erase_party(args, allowlist_root)),
@@ -267,6 +311,8 @@ mod tests {
         assert!(names.contains(&"bank_stripe_consume"));
         assert!(names.contains(&"bank_reconcile_apply"));
         assert!(names.contains(&"revolut_oauth_refresh"));
+        assert!(names.contains(&"bank_stripe_reconcile_suggest"));
+        assert!(names.contains(&"bank_stripe_reconcile_apply_preview"));
         assert!(names.contains(&"retention_get"));
         assert!(names.contains(&"backup_manifest"));
         assert!(names.contains(&"gdpr_erase_party"));

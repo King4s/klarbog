@@ -1,4 +1,4 @@
-//! Offline HTTP contract smoke (slice 35).
+//! Offline HTTP contract smoke (slice 35 + 39).
 //!
 //! Uses axum `oneshot` against a temp company — no TCP bind, no network.
 
@@ -15,7 +15,11 @@ use klarbog_types::{Actor, ActorKind, Envelope};
 use serde_json::Value;
 use std::sync::Arc;
 use tempfile::tempdir;
+use tokio::sync::Mutex;
 use tower::ServiceExt;
+
+/// Serializes env mutation across oauth fail-closed smoke (slice 39).
+static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
 
 const PAYOUT_FIXTURE: &str =
     include_str!("../../klarbog-plugin-bank/tests/fixtures/stripe_webhook_payout_paid.json");
@@ -59,8 +63,51 @@ async fn json_req(
     (status, env.data.unwrap_or(Value::Null))
 }
 
-/// Full offline contract smoke: health → CRM → invoice → part-paid → reconcile →
-/// GDPR export → erase dry-run → stripe consume dry-run.
+/// Revolut oauth refresh fail-closed (503) when client env tokens are absent.
+#[tokio::test]
+async fn contract_smoke_oauth_refresh_fail_closed() {
+    let _lock = ENV_TEST_LOCK.lock().await;
+    let _guards = [
+        EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN"),
+        EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_ID"),
+        EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_SECRET"),
+    ];
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let (kind, id) = actor_headers(&owner);
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let body = serde_json::json!({ "company": company_path.to_string_lossy() });
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/revolut/oauth/refresh")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = std::str::from_utf8(bytes.as_ref()).unwrap();
+    assert!(!body_str.contains("\"access_token\""));
+    assert!(!body_str.contains("\"refresh_token\""));
+}
+
+/// Full offline contract smoke: health → CRM → invoice → part-paid → mark-paid
+/// remaining → reconcile → GDPR export → erase dry-run → stripe consume dry-run.
 #[tokio::test]
 async fn contract_smoke() {
     let dir = tempdir().unwrap();
@@ -155,6 +202,29 @@ async fn contract_smoke() {
     .await;
     assert_eq!(st, StatusCode::OK);
     assert_eq!(part["invoice"]["status"], "part_paid");
+    // after part_paid (2500 of 10000), mark-paid must suggest remaining 7500
+    let (st, paid) = json_req(
+        app.clone(),
+        "POST",
+        "/api/v1/invoices/mark-paid",
+        kind,
+        &id,
+        serde_json::json!({
+            "company": company,
+            "invoice_id": invoice_id
+        }),
+    )
+    .await;
+    assert_eq!(st, StatusCode::OK);
+    assert_eq!(paid["invoice"]["status"], "paid");
+    let remaining_leg = &paid["journal_entry"]["legs"][0]["amount"];
+    let remaining_units = remaining_leg
+        .as_i64()
+        .or_else(|| remaining_leg.get("units").and_then(|u| u.as_i64()));
+    assert_eq!(remaining_units, Some(7_500));
+    if let Some(rm) = paid.get("remaining_minor").and_then(|v| v.as_i64()) {
+        assert_eq!(rm, 0);
+    }
 
     // reconcile suggest (open sale + matching bank row)
     let party2 = upsert_party(&company_path, None, "Nordic Supply".into()).unwrap();
@@ -235,4 +305,26 @@ async fn contract_smoke() {
     assert_eq!(consume["dry_run"], true);
     assert!(consume["consumed_count"].as_u64().unwrap() >= 1);
     assert!(!company_path.join(STRIPE_WEBHOOKS_CONSUMED).exists());
+}
+
+struct EnvGuard {
+    key: &'static str,
+    prev: Option<String>,
+}
+
+impl EnvGuard {
+    fn unset(key: &'static str) -> Self {
+        let prev = std::env::var(key).ok();
+        unsafe { std::env::remove_var(key) };
+        Self { key, prev }
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        match &self.prev {
+            Some(v) => unsafe { std::env::set_var(self.key, v) },
+            None => unsafe { std::env::remove_var(self.key) },
+        }
+    }
 }

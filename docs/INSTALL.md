@@ -126,7 +126,9 @@ export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$(pwd)}"
 
 Wire it in your AI client (Cursor, Claude Desktop, etc.) as a **stdio MCP server**
 pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
-(preview token → commit).
+(preview token → commit). Wave4-relevant tools include `gdpr_erase_party` and
+`bank_reconcile_apply` (`force` only for `user` below safe threshold — see
+[`docs/skills/bank-import.md`](skills/bank-import.md)).
 
 **End-user AI instructions:** give your assistant
 [`docs/agent-setup/prompt.md`](agent-setup/prompt.md) — one markdown file that

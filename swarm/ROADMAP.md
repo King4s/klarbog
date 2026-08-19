@@ -49,4 +49,13 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 34. Soft linegate re-check after wave3 growth; split any ≥300
 35. Offline “contract smoke” script for new HTTP routes (no network) ✅
 
+## Wave 5 — polish (in flight)
+
+36. Soft-split `backup.rs` under 300; keep erase_audit lean
+37. MCP tools for `stripe/reconcile-suggest` + `stripe/reconcile-apply-preview`
+38. ADR: DK bogføring retention (5y) vs GDPR erase — journal never purged by party erase
+39. `contract-smoke` extend: oauth refresh fail-closed + mark-paid remaining ✅
+40. Bank reconcile force path MCP + skill cross-links ✅ (light: skill cross-link)
+41. CHANGELOG/prompt sync for wave4 endpoints ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

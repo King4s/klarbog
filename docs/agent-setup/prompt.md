@@ -216,7 +216,7 @@ klarbog gdpr-erase-party --company "$KLARBOG_COMPANY" --party-id <id>   # dry-ru
 - **Faktura:** kladder + betalings-ledger (remaining = total − summerede delbetalinger); `mark-part-paid` / `mark-paid` giver journalforslag med `party_id` — post via journal to-fase.
 - **Dokumenter:** metadata + `path_hint` (relativ, ingen `..`); binære filer via object store.
 - **Lagring:** default lokal disk under firmaet; valgfrit **Cloudflare R2 (EU)** via `KLARBOG_STORAGE=r2` og `KLARBOG_R2_*` (fail-closed uden for EU).
-- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.vat.split_hint` (i64+bps, 25%/0), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.
+- **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, **chart stub** (`1000` bank, `1500` AR, `4400` AP, udgift `4000`–`6999`; bank-CSV ofte `5800`/`6100`), valgfri hint `dk.bookkeeping.known_account` (blokerer ikke), moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.vat.split_hint` (i64+bps, 25%/0), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.
 
 ---
 

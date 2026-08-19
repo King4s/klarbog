@@ -137,3 +137,7 @@ Or `row_index` + `rows` / CSV provider fields. Response `data.entry` is the jour
 Optional `preview: true` (default `false`): after building the entry, runs the same ConfirmStore path as `POST /api/v1/journal/preview` and adds `confirm_token`, `expires_unix_ms`, and `payload_digest` so the client can commit without a separate preview call. Still does **not** post.
 
 **Unsafe matches** (confidence &lt; `SAFE_THRESHOLD_BPS`): rejected unless `force: true` **and** actor is `user` (agents/system cannot force). When applied, any open `unmatched_bank_transaction` for that bank row related-id is closed.
+
+### MCP — `bank_reconcile_apply` (force path)
+
+Same contract as HTTP apply: args `company`, `invoice_id`, `row` / `row_index`, optional `force`. Below `SAFE_THRESHOLD_BPS`, `force: true` is accepted **only** when `actor_kind` is `user`; agents/system are rejected. Response includes `entry`, `confidence_bps`, `forced`, `exception_closed`. Does **not** post — feed `entry` into `journal_post_preview` → `journal_post_commit`. (HTTP-only: optional `preview: true` → ConfirmStore token.)

@@ -70,13 +70,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 ### Added — Wave 4 (deepen)
 
 - **Slice 30:** MCP `gdpr_erase_party` (AuthZ + allowlist; `confirm` / `delete_documents`); skill note that journal is immutable (`journal_refs_retained`).
+- **Slice 31:** Stripe consume → reconcile apply preview — `apply_preview_from_stripe_consume`; `POST /api/v1/bank/stripe/reconcile-apply-preview` (unique safe match → ConfirmStore; still no auto journal commit).
 - **Slice 32:** rules-dk **chart stub** — document Klarbog DK codes (`1000` bank, `1500` AR, `4400` AP, `4000`–`6999` expense); optional `dk.bookkeeping.known_account` hint (not hard fail); i64 account parse.
 - **Slice 33:** Backup manifest invoice `payments[]` summary (`count`/`total_minor` when present); `erase_party` appends `{company}/gdpr_erase_audit.jsonl` (party_id, unix_ms, mode dry_run|confirm, docs_touched — no secrets).
-
-### Added — Wave 4 (deepen)
-
-- **Slice 31:** Stripe consume → reconcile apply preview — `apply_preview_from_stripe_consume`; `POST /api/v1/bank/stripe/reconcile-apply-preview` (unique safe match → ConfirmStore; still no auto journal commit).
+- **Slice 34:** Soft linegate re-check after wave3 growth; split modules at soft ≥300 (bank HTTP tests, rules-dk tests, retention erase HTTP tests).
 - **Slice 35:** Offline **contract smoke** — `cargo test -p klarbog-api contract_smoke` / `./scripts/contract-smoke.sh` (axum oneshot: health, CRM upsert, invoice draft, mark-part-paid, reconcile suggest, GDPR export, erase-party dry-run, stripe consume dry-run; no bind/network).
+
+### Added — Wave 5 (polish)
+
+- **Slice 38:** ADR-010 — DK bogføring ~5y retention vs GDPR party erase; journal never deleted by `erase_party`; export/erase document `journal_refs_retained`; invoices/`payments[]` metadata policy. See [`docs/adr/ADR-010-bookkeeping-retention.md`](docs/adr/ADR-010-bookkeeping-retention.md).
+- **Slice 40 (light):** Skill cross-link — MCP `bank_reconcile_apply` documents the same `force` + `user` rule as HTTP reconcile apply (agents/system cannot force below safe threshold). See [`docs/skills/bank-import.md`](docs/skills/bank-import.md).
+- **Slice 41:** CHANGELOG + [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) + INSTALL synced for wave4 endpoints (stripe `reconcile-apply-preview`, MCP erase, chart stub, `contract-smoke.sh`).
 
 ### Added — tooling
 

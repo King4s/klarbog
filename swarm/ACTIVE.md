@@ -1,7 +1,7 @@
 # Active swarm status
 
-- **Wave 4 (deepen) landed** — slices 30–35 queued done; tip VERIFY_OK
-- Next: live E2E with real keys (optional), bogføring retention policy ADR, UI later
+- **Wave 4 landed** (`1fea165`)
+- **Wave 5 (polish) in flight** — backup linegate, MCP stripe pipelines, bogføring ADR, contract-smoke extend, docs sync
 - Do not stop unless `swarm/STOP` or owner redirect
 - Verify: `./scripts/verify.sh` / `./scripts/contract-smoke.sh`
-- Tip: no sister-product names; ignore `slice-*.md`; env tests use tokio Mutex
+- Tip: no sister-product names; ignore unreadable `slice-*.md` / `docs/status-*` scratch
