@@ -1,5 +1,6 @@
 //! GDPR party erasure — anonymize CRM metadata; never mutate confirmed journal.
 
+use crate::erase_audit::{append_erase_audit, EraseAuditLine, EraseAuditMode};
 use crate::GdprError;
 use klarbog_plugin_crm::{get_party, upsert_party};
 use klarbog_plugin_documents::{
@@ -64,6 +65,22 @@ pub async fn erase_party(
     if !dry_run {
         upsert_party(company, Some(party_id.clone()), ERASED_DISPLAY_NAME.into())?;
     }
+
+    let docs_touched = documents_stripped.len() + documents_deleted.len();
+    // Audit both dry_run and confirm (mode field); no display names or paths.
+    append_erase_audit(
+        company,
+        &EraseAuditLine {
+            party_id: party_id.to_string(),
+            unix_ms: chrono::Utc::now().timestamp_millis(),
+            mode: if dry_run {
+                EraseAuditMode::DryRun
+            } else {
+                EraseAuditMode::Confirm
+            },
+            docs_touched,
+        },
+    )?;
 
     Ok(ErasePartyReport {
         dry_run,
@@ -224,5 +241,71 @@ mod tests {
             get_party(&co, &party.id).unwrap().unwrap().display_name,
             "erased"
         );
+    }
+
+    #[tokio::test]
+    async fn confirm_appends_erase_audit_jsonl_no_secrets() {
+        use crate::erase_audit::{erase_audit_path, EraseAuditLine, EraseAuditMode};
+        use std::fs;
+
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let co = dir.path().join("co");
+        init_company(&co, "Demo", &owner).await.unwrap();
+        let party = crm_upsert(&co, None, "Secret Name".into()).unwrap();
+        attach_document(
+            &co,
+            DocumentKind::Receipt,
+            "secret.pdf".into(),
+            Some(party.id.clone()),
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        erase_party(
+            &co,
+            &party.id,
+            ErasePartyOptions {
+                confirm: true,
+                delete_documents: false,
+            },
+        )
+        .await
+        .unwrap();
+
+        let path = erase_audit_path(&co);
+        assert!(path.exists());
+        let text = fs::read_to_string(&path).unwrap();
+        let line: EraseAuditLine = serde_json::from_str(text.lines().next().unwrap()).unwrap();
+        assert_eq!(line.party_id, party.id.to_string());
+        assert_eq!(line.mode, EraseAuditMode::Confirm);
+        assert_eq!(line.docs_touched, 1);
+        assert!(line.unix_ms > 0);
+        assert!(!text.contains("Secret Name"));
+        assert!(!text.contains("secret.pdf"));
+        assert!(!text.contains("display_name"));
+    }
+
+    #[tokio::test]
+    async fn dry_run_also_records_audit_mode() {
+        use crate::erase_audit::{erase_audit_path, EraseAuditLine, EraseAuditMode};
+        use std::fs;
+
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let co = dir.path().join("co");
+        init_company(&co, "Demo", &owner).await.unwrap();
+        let party = crm_upsert(&co, None, "Preview".into()).unwrap();
+        erase_party(&co, &party.id, ErasePartyOptions::default())
+            .await
+            .unwrap();
+        let text = fs::read_to_string(erase_audit_path(&co)).unwrap();
+        let line: EraseAuditLine = serde_json::from_str(text.trim()).unwrap();
+        assert_eq!(line.mode, EraseAuditMode::DryRun);
+        assert_eq!(line.docs_touched, 0);
+        assert!(!text.contains("Preview"));
     }
 }

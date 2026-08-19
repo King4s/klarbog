@@ -52,6 +52,13 @@ install -m 755 target/release/klarbog{,-api,-mcp} ~/.local/bin/
 
 Expect the last line: `VERIFY_OK` (fmt, clippy, tests, line gates).
 
+Offline HTTP contract smoke (axum oneshot, no bind/network):
+
+```bash
+./scripts/contract-smoke.sh
+# or: cargo test -p klarbog-api contract_smoke
+```
+
 ## Data layout and isolation
 
 Company data lives under directories you create (typically `companies/<slug>/`).
@@ -104,7 +111,7 @@ Optional client env:
 REST surface (v1): journal preview/commit; CRM parties; invoice drafts / status /
 mark-paid / mark-part-paid (payment ledger remaining); bank import preview;
 reconcile suggest/apply (`preview` → confirm-token); Stripe webhook + consume +
-reconcile-suggest; Revolut OAuth start/callback/refresh; documents (+ delete);
+reconcile-suggest; reconcile-apply-preview; Revolut OAuth start/callback/refresh; documents (+ delete);
 exceptions; retention / purge / backup; GDPR export + party erase. See
 [`docs/skills/`](skills/) and [`docs/agent-setup/prompt.md`](agent-setup/prompt.md).
 

@@ -23,6 +23,7 @@ Klarbog integrates **Stripe** via the **Stripe API** as a first-class payments r
 - Ingress: `POST /api/v1/webhooks/stripe` — HMAC verify (`KLARBOG_STRIPE_WEBHOOK_SECRET`), append to `{company}/stripe_webhooks/queue.jsonl`, draft rows for `payout.paid` / `charge.succeeded`.
 - Consume: `POST /api/v1/bank/stripe/consume` — actor AuthZ + allowlist; default dry-run / `confirm:true` fail-closed (like retention purge); idempotent via `queue.consumed` sidecar (event id); returns count + row preview. **No journal post**.
 - Pipeline: `POST /api/v1/bank/stripe/reconcile-suggest` — `suggest_from_stripe_consume` (consume drafts → reconcile suggest in one call). Body `{company, confirm_consume?, limit?}`; dry-run consume by default; `confirm_consume:true` persists then suggests. Still **no** auto journal post.
+- Pipeline: `POST /api/v1/bank/stripe/reconcile-apply-preview` — `apply_preview_from_stripe_consume` (consume → unique safe apply + ConfirmStore preview). Body `{company, confirm_consume?, force?, limit?}`. Applies only when exactly one best suggestion ≥ safe threshold; else suggestions only. Still **no** auto journal commit.
 
 ### Out of scope here
 - Connect / OAuth onboarding UI. Initial DEV uses server-side secret key from env.

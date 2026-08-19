@@ -113,6 +113,10 @@ Capability: **Read only**. Never posts journal entries from the bank plugin.
 
 `POST /api/v1/bank/stripe/reconcile-suggest` with `{company, confirm_consume?, limit?}`. Runs queue consume then reconcile suggest. Default dry-run consume; `confirm_consume:true` persists `queue.consumed` then suggests. Helper: `suggest_from_stripe_consume`. **No** auto journal post.
 
+### Stripe consume → apply preview (one-shot opt-in)
+
+`POST /api/v1/bank/stripe/reconcile-apply-preview` with `{company, confirm_consume?, force?, limit?}`. Consume → suggest → when **exactly one** best suggestion is ≥ `SAFE_THRESHOLD_BPS`, runs `apply_match` and issues a ConfirmStore `confirm_token` (same path as reconcile apply `preview:true`). Otherwise returns suggestions with `applied: null`. Helper: `apply_preview_from_stripe_consume`. Still **no** auto journal commit.
+
 ### Apply → preview suggestion only
 
 `apply_match(company, bank_row, invoice_id, actor, force, row_index)` builds a **payment** `JournalEntry` (invoice kind + `party_id` on legs; memo `bank:{text}:invoice:{id}`). Does **not** post and does **not** mark the invoice paid — host feeds the entry into `/api/v1/journal/preview` then commit (two-phase).

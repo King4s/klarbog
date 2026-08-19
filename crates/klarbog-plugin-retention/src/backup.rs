@@ -47,10 +47,20 @@ pub struct ManifestPartyRef {
     pub display_name: String,
 }
 
+/// Counts/totals for invoice `payments[]` when the ledger is non-empty.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManifestInvoicePaymentsSummary {
+    pub count: usize,
+    pub total_minor: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestInvoiceRef {
     pub id: String,
     pub party_id: String,
+    /// Present only when the invoice has one or more payment ledger rows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payments: Option<ManifestInvoicePaymentsSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,13 +125,22 @@ pub async fn build_backup_manifest(company: &Path) -> Result<BackupManifest, Bac
             display_name: p.display_name,
         })
         .collect();
-    let invoices = list_invoices(company)?
-        .into_iter()
-        .map(|inv| ManifestInvoiceRef {
+    let mut invoices = Vec::new();
+    for inv in list_invoices(company)? {
+        let payments = if inv.payments.is_empty() {
+            None
+        } else {
+            Some(ManifestInvoicePaymentsSummary {
+                count: inv.payments.len(),
+                total_minor: inv.paid_minor()?,
+            })
+        };
+        invoices.push(ManifestInvoiceRef {
             id: inv.id.to_string(),
             party_id: inv.party_id.to_string(),
-        })
-        .collect();
+            payments,
+        });
+    }
     let documents = list_documents(company)?
         .into_iter()
         .map(|d| ManifestDocumentRef {
@@ -269,5 +288,61 @@ mod tests {
         text.push(' ');
         fs::write(&path, text).unwrap();
         assert!(!verify_manifest_sidecar(&path));
+    }
+
+    #[tokio::test]
+    async fn manifest_includes_invoice_payments_summary_when_present() {
+        use klarbog_plugin_invoice::{
+            create_draft_from_new, mark_part_paid_preview, patch_status, InvoiceConfig,
+            InvoiceKind, InvoiceStatus, NewLine,
+        };
+
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        let actor = Actor::user("owner");
+        init_company(&co, "Pay Backup", &actor).await.unwrap();
+        ensure_company_extras(&co).unwrap();
+        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let unpaid = create_draft_from_new(
+            &co,
+            party.id.clone(),
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Open".into(),
+                amount_minor: 5_000,
+                currency: "DKK".into(),
+            }],
+        )
+        .unwrap();
+        let paid = create_draft_from_new(
+            &co,
+            party.id.clone(),
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Partial".into(),
+                amount_minor: 10_000,
+                currency: "DKK".into(),
+            }],
+        )
+        .unwrap();
+        patch_status(&co, &paid.id, InvoiceStatus::Sent).unwrap();
+        mark_part_paid_preview(&co, &paid.id, 4_000, &actor, &InvoiceConfig::default()).unwrap();
+
+        let manifest = build_backup_manifest(&co).await.unwrap();
+        assert_eq!(manifest.invoices.len(), 2);
+        let unpaid_ref = manifest
+            .invoices
+            .iter()
+            .find(|i| i.id == unpaid.id.to_string())
+            .unwrap();
+        assert!(unpaid_ref.payments.is_none());
+        let paid_ref = manifest
+            .invoices
+            .iter()
+            .find(|i| i.id == paid.id.to_string())
+            .unwrap();
+        let summary = paid_ref.payments.as_ref().unwrap();
+        assert_eq!(summary.count, 1);
+        assert_eq!(summary.total_minor, 4_000);
     }
 }

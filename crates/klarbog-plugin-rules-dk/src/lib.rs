@@ -1,7 +1,12 @@
 //! Danish bookkeeping rules (DEV). Full SKAT/Moms later.
 
+mod chart;
 mod vat_split;
 
+pub use chart::{
+    is_expense_account_code, is_known_dk_account, DK_CHART_AP, DK_CHART_AR, DK_CHART_BANK,
+    DK_CHART_EXPENSE_MAX, DK_CHART_EXPENSE_MIN, RULE_KNOWN_ACCOUNT,
+};
 pub use vat_split::{
     split_vat25_inclusive, split_vat_from_net, split_vat_inclusive, VatSplitError,
     VatSplitSuggestion, BPS_PER_UNIT, DK_VAT25_INCLUSIVE_BPS, DK_VAT_STANDARD_BPS,
@@ -49,8 +54,13 @@ impl RulesPlugin for RulesDkPlugin {
         let has_receipt = has_receipt_signal(&entry.memo);
 
         for leg in &entry.legs {
-            if let Err(msg) = validate_account(&leg.account) {
-                errors.push(msg);
+            match validate_account(&leg.account) {
+                Err(msg) => errors.push(msg),
+                Ok(()) if !is_known_dk_account(&leg.account) => {
+                    // Hint only — empty / non-digit already hard-fail above.
+                    applied.push(RULE_KNOWN_ACCOUNT.into());
+                }
+                Ok(()) => {}
             }
             if leg.amount.minor() == 0 {
                 errors.push(format!(
@@ -97,9 +107,9 @@ fn validate_account(account: &str) -> Result<(), String> {
 
 fn is_expense_account(account: &str) -> bool {
     account
-        .parse::<u32>()
+        .parse::<i64>()
         .ok()
-        .is_some_and(|n| (4000..=6999).contains(&n))
+        .is_some_and(is_expense_account_code)
 }
 
 fn is_expense_debit(leg: &Leg) -> bool {
@@ -132,11 +142,11 @@ fn has_receipt_signal(memo: &str) -> bool {
 }
 
 /// Parse optional VAT rate hints from memo/tags text (25 or 0 only; no money math).
-fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i32>, String> {
+fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i64>, String> {
     let lower = memo.to_lowercase();
-    let mut found: Option<i32> = None;
+    let mut found: Option<i64> = None;
 
-    let mut note_rate = |rate: i32| -> Result<(), String> {
+    let mut note_rate = |rate: i64| -> Result<(), String> {
         if rate != 0 && rate != 25 {
             return Err(format!("unsupported VAT rate {rate} in memo (dk.vat.rate)"));
         }
@@ -157,7 +167,7 @@ fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i32>, String> {
                 if let Some(rest) = word.strip_prefix(&prefix) {
                     let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
                     if !digits.is_empty() {
-                        if let Ok(rate) = digits.parse::<i32>() {
+                        if let Ok(rate) = digits.parse::<i64>() {
                             note_rate(rate)?;
                         }
                     }
@@ -165,7 +175,7 @@ fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i32>, String> {
             }
         }
         if let Some(num) = word.strip_suffix('%') {
-            if let Ok(rate) = num.parse::<i32>() {
+            if let Ok(rate) = num.parse::<i64>() {
                 note_rate(rate)?;
             }
         }
@@ -183,164 +193,5 @@ fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i32>, String> {
 pub static RULES_DK: RulesDkPlugin = RulesDkPlugin;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::Utc;
-    use klarbog_journal::{Direction, Leg};
-    use klarbog_types::{Actor, Currency, MinorAmount, PartyId};
-
-    fn entry(memo: &str, minor: i64) -> JournalEntry {
-        entry_with_party(memo, minor, None)
-    }
-
-    fn entry_with_party(memo: &str, minor: i64, party_id: Option<PartyId>) -> JournalEntry {
-        let amount = MinorAmount::from_minor(minor);
-        let currency = Currency::new("DKK").unwrap();
-        JournalEntry {
-            as_of: Utc::now(),
-            memo: memo.into(),
-            actor: Actor::user("t"),
-            legs: vec![
-                Leg {
-                    account: "6000".into(),
-                    direction: Direction::Debit,
-                    amount,
-                    currency: currency.clone(),
-                    party_id: party_id.clone(),
-                },
-                Leg {
-                    account: "5800".into(),
-                    direction: Direction::Credit,
-                    amount,
-                    currency,
-                    party_id: None,
-                },
-            ],
-        }
-    }
-
-    #[test]
-    fn rejects_empty_memo() {
-        let err = RULES_DK.validate_entry(&entry("", 100)).unwrap_err();
-        assert!(err.to_string().contains("memo"));
-    }
-
-    #[test]
-    fn rejects_zero_amount_leg() {
-        let err = RULES_DK.validate_entry(&entry("ok", 0)).unwrap_err();
-        assert!(err.to_string().contains("zero amount"));
-    }
-
-    #[test]
-    fn rejects_invalid_account() {
-        let mut e = entry("ok #receipt", 100);
-        e.legs[0].account = "6abc".into();
-        let err = RULES_DK.validate_entry(&e).unwrap_err();
-        assert!(err.to_string().contains("account_range"));
-    }
-
-    #[test]
-    fn rejects_empty_account() {
-        let mut e = entry("ok #receipt", 100);
-        e.legs[0].account = "   ".into();
-        let err = RULES_DK.validate_entry(&e).unwrap_err();
-        assert!(err.to_string().contains("account_range"));
-    }
-
-    #[test]
-    fn rejects_unsupported_vat_rate() {
-        let err = RULES_DK
-            .validate_entry(&entry("office vat:12 #receipt", 100))
-            .unwrap_err();
-        assert!(err.to_string().contains("dk.vat.rate"));
-    }
-
-    #[test]
-    fn flags_vat_rate_hint() {
-        let applied = RULES_DK
-            .validate_entry(&entry("supplies moms:25 #receipt", 500))
-            .unwrap();
-        assert!(applied.contains(&"dk.vat.rate".to_string()));
-        assert!(applied.contains(&"dk.vat.split_hint".to_string()));
-    }
-
-    #[test]
-    fn vat0_rate_without_split_hint() {
-        let applied = RULES_DK
-            .validate_entry(&entry("zero-rated #vat0 #receipt", 500))
-            .unwrap();
-        assert!(applied.contains(&"dk.vat.rate".to_string()));
-        assert!(!applied.contains(&"dk.vat.split_hint".to_string()));
-    }
-
-    #[test]
-    fn blocks_expense_without_party_or_receipt() {
-        let err = RULES_DK
-            .validate_entry(&entry("office supplies", 500))
-            .unwrap_err();
-        assert!(err.to_string().contains("dk.expense.receipt_required"));
-    }
-
-    #[test]
-    fn allows_expense_with_receipt_tag() {
-        let applied = RULES_DK
-            .validate_entry(&entry("office supplies #receipt", 500))
-            .unwrap();
-        assert!(!applied.contains(&"dk.expense.receipt_hint".to_string()));
-    }
-
-    #[test]
-    fn allows_expense_with_document_id_signal() {
-        let applied = RULES_DK
-            .validate_entry(&entry("office document_id:doc-9", 500))
-            .unwrap();
-        assert!(applied.is_empty());
-    }
-
-    #[test]
-    fn hints_when_party_without_receipt() {
-        let party = PartyId::new("vendor-1");
-        let applied = RULES_DK
-            .validate_entry(&entry_with_party("office supplies", 500, Some(party)))
-            .unwrap();
-        assert_eq!(applied, vec!["dk.expense.receipt_hint"]);
-    }
-
-    #[test]
-    fn allows_party_plus_receipt_tag() {
-        let party = PartyId::new("vendor-1");
-        let applied = RULES_DK
-            .validate_entry(&entry_with_party("office #receipt", 500, Some(party)))
-            .unwrap();
-        assert!(!applied.contains(&"dk.expense.receipt_hint".to_string()));
-    }
-
-    #[test]
-    fn no_receipt_rule_without_expense_debit() {
-        let amount = MinorAmount::from_minor(100);
-        let currency = Currency::new("DKK").unwrap();
-        let e = JournalEntry {
-            as_of: Utc::now(),
-            memo: "transfer".into(),
-            actor: Actor::user("t"),
-            legs: vec![
-                Leg {
-                    account: "1000".into(),
-                    direction: Direction::Debit,
-                    amount,
-                    currency: currency.clone(),
-                    party_id: None,
-                },
-                Leg {
-                    account: "5800".into(),
-                    direction: Direction::Credit,
-                    amount,
-                    currency,
-                    party_id: None,
-                },
-            ],
-        };
-        let applied = RULES_DK.validate_entry(&e).unwrap();
-        assert!(applied.is_empty());
-    }
-}
+#[path = "rules_tests.rs"]
+mod tests;

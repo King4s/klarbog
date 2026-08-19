@@ -4,6 +4,7 @@
 mod backup;
 mod digest;
 mod erase;
+mod erase_audit;
 mod gdpr;
 mod purge;
 mod retention;
@@ -12,9 +13,13 @@ mod template;
 pub use backup::{
     build_backup_manifest, manifest_path, manifest_sidecar_path, verify_manifest_sidecar,
     write_backup_manifest, BackupError, BackupManifest, ManifestDocumentRef, ManifestFileEntry,
-    ManifestInvoiceRef, ManifestPartyRef, MANIFEST_KEY, MANIFEST_SHA256_KEY,
+    ManifestInvoicePaymentsSummary, ManifestInvoiceRef, ManifestPartyRef, MANIFEST_KEY,
+    MANIFEST_SHA256_KEY,
 };
 pub use erase::{erase_party, ErasePartyOptions, ErasePartyReport, ERASED_DISPLAY_NAME};
+pub use erase_audit::{
+    append_erase_audit, erase_audit_path, EraseAuditLine, EraseAuditMode, GDPR_ERASE_AUDIT_FILENAME,
+};
 pub use gdpr::{
     build_gdpr_export, gdpr_export_path, write_gdpr_export, GdprDocument, GdprError, GdprException,
     GdprExport, GdprInvoice, GdprParty, GdprRetentionSummary, GDPR_EXPORT_FILENAME,

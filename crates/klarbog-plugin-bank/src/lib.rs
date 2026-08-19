@@ -50,8 +50,9 @@ pub use reconcile::{
 };
 pub use reconcile_apply::{apply_match, ApplyMatchResult};
 pub use stripe_reconcile::{
-    suggest_from_stripe_consume, suggest_from_stripe_consume_with, StripeReconcilePipelineError,
-    StripeReconcileSuggestReport,
+    apply_preview_from_stripe_consume, apply_preview_from_stripe_consume_with,
+    suggest_from_stripe_consume, suggest_from_stripe_consume_with, StripeReconcileApplied,
+    StripeReconcileApplyPreviewReport, StripeReconcilePipelineError, StripeReconcileSuggestReport,
 };
 pub use webhook::{
     draft_from_event, draft_to_bank_row, ingest_stripe_webhook, parse_webhook_event,

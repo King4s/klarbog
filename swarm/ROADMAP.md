@@ -47,6 +47,6 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 32. rules-dk: account range ↔ chart stub (DK expense/bank/AR codes documented)
 33. Backup manifest includes payments[] + erase audit trail file
 34. Soft linegate re-check after wave3 growth; split any ≥300
-35. Offline “contract smoke” script for new HTTP routes (no network)
+35. Offline “contract smoke” script for new HTTP routes (no network) ✅
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

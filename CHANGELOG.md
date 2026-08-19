@@ -67,6 +67,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - **Slice 29:** CHANGELOG + [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) + INSTALL refreshed for wave2/wave3 HTTP+MCP surface.
 - Remaining: demo CLI coverage — see [`swarm/ROADMAP.md`](swarm/ROADMAP.md).
 
+### Added — Wave 4 (deepen)
+
+- **Slice 30:** MCP `gdpr_erase_party` (AuthZ + allowlist; `confirm` / `delete_documents`); skill note that journal is immutable (`journal_refs_retained`).
+- **Slice 32:** rules-dk **chart stub** — document Klarbog DK codes (`1000` bank, `1500` AR, `4400` AP, `4000`–`6999` expense); optional `dk.bookkeeping.known_account` hint (not hard fail); i64 account parse.
+- **Slice 33:** Backup manifest invoice `payments[]` summary (`count`/`total_minor` when present); `erase_party` appends `{company}/gdpr_erase_audit.jsonl` (party_id, unix_ms, mode dry_run|confirm, docs_touched — no secrets).
+
+### Added — Wave 4 (deepen)
+
+- **Slice 31:** Stripe consume → reconcile apply preview — `apply_preview_from_stripe_consume`; `POST /api/v1/bank/stripe/reconcile-apply-preview` (unique safe match → ConfirmStore; still no auto journal commit).
+- **Slice 35:** Offline **contract smoke** — `cargo test -p klarbog-api contract_smoke` / `./scripts/contract-smoke.sh` (axum oneshot: health, CRM upsert, invoice draft, mark-part-paid, reconcile suggest, GDPR export, erase-party dry-run, stripe consume dry-run; no bind/network).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

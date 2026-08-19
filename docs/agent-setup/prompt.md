@@ -70,6 +70,7 @@ Kald `tools/list`. Forvent mindst:
 | `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag |
 | `retention_get` | Læs retention-politik |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
+| `gdpr_erase_party` | GDPR party-erase (dry-run/`confirm`; journal immutable → `journal_refs_retained`) |
 
 Typiske argumenter: `company` (absolut sti), `actor_kind`, `actor_id`, plus tool-specifikke felter (`entry`, `csv`, `profile`, `confirm_token`, …).
 
@@ -122,6 +123,7 @@ x-klarbog-actor-id: owner
 | POST | `/api/v1/webhooks/stripe` | Stripe webhook-ingress (HMAC; kø til drafts) |
 | POST | `/api/v1/bank/stripe/consume` | Forbrug webhook-kø → bank-udkast (`confirm` fail-closed) |
 | POST | `/api/v1/bank/stripe/reconcile-suggest` | Consume (+valgfri persist) → reconcile-forslag (ingen auto-post) |
+| POST | `/api/v1/bank/stripe/reconcile-apply-preview` | Consume → unik safe apply + ConfirmStore preview (ingen auto-commit) |
 | GET | `/api/v1/revolut/oauth/start` | Revolut OAuth start (auth-URL) |
 | POST | `/api/v1/revolut/oauth/callback` | OAuth code → tokens (gemmes lokalt, returnerer ikke secrets) |
 | POST | `/api/v1/revolut/oauth/refresh` | Refresh access-token (fail-closed uden refresh) |

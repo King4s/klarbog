@@ -1,11 +1,12 @@
-//! Unit tests for Stripe consume → reconcile suggest pipeline.
+//! Unit tests for Stripe consume → reconcile suggest / apply-preview pipeline.
 
 use crate::config::StripeWebhookConfig;
-use crate::stripe_reconcile::suggest_from_stripe_consume;
+use crate::stripe_reconcile::{apply_preview_from_stripe_consume, suggest_from_stripe_consume};
 use crate::webhook::{ingest_stripe_webhook, sign_test_payload};
 use crate::webhook_consume::{ConsumeOpts, STRIPE_WEBHOOKS_CONSUMED};
 use klarbog_plugin_crm::upsert_party;
 use klarbog_plugin_invoice::{create_draft_from_new, InvoiceKind, NewLine};
+use klarbog_types::Actor;
 use std::fs;
 use tempfile::tempdir;
 
@@ -78,4 +79,59 @@ fn confirm_persists_consumed_then_suggests() {
     .unwrap();
     assert_eq!(again.consume.consumed_count, 0);
     assert!(again.matches.is_empty());
+}
+
+#[test]
+fn unique_safe_applies_journal_suggestion() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    fs::create_dir_all(&company).unwrap();
+    let party = upsert_party(&company, None, "Customer payment".into()).unwrap();
+    create_draft_from_new(
+        &company,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Widgets".into(),
+            amount_minor: 24_275,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    ingest_charge(&company);
+
+    let actor = Actor::user("owner");
+    let report =
+        apply_preview_from_stripe_consume(&company, ConsumeOpts::default(), &actor, false).unwrap();
+    assert!(report.consume.dry_run);
+    let applied = report.applied.expect("unique safe apply");
+    assert_eq!(applied.row_index, 0);
+    assert!(applied.result.entry.memo.contains("bank:"));
+    assert!(!applied.result.forced);
+}
+
+#[test]
+fn no_safe_match_skips_apply() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    fs::create_dir_all(&company).unwrap();
+    let party = upsert_party(&company, None, "Other Party".into()).unwrap();
+    create_draft_from_new(
+        &company,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Mismatch".into(),
+            amount_minor: 99_999,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    ingest_charge(&company);
+
+    let actor = Actor::user("owner");
+    let report =
+        apply_preview_from_stripe_consume(&company, ConsumeOpts::default(), &actor, false).unwrap();
+    assert!(report.applied.is_none());
+    assert_eq!(report.matches.len(), 1);
 }

@@ -126,6 +126,22 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "gdpr_erase_party",
+                    "description": "GDPR party erase preview/confirm: anonymize display_name; strip or delete docs; journal immutable (journal_refs_retained)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "party_id": {"type": "string"},
+                            "confirm": {"type": "boolean"},
+                            "delete_documents": {"type": "boolean"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "party_id", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "invoice_mark_paid_preview",
                     "description": "Mark invoice paid for remaining balance (payment ledger) and return payment journal suggestion with party_id (no post). Rejects when remaining is 0.",
                     "inputSchema": {
@@ -212,6 +228,7 @@ pub fn handle_tool_call(
         }
         "retention_get" => rt.block_on(retention::retention_get(args, allowlist_root)),
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
+        "gdpr_erase_party" => rt.block_on(retention::gdpr_erase_party(args, allowlist_root)),
         "invoice_mark_paid_preview" => {
             rt.block_on(invoice::invoice_mark_paid_preview(args, allowlist_root))
         }
@@ -252,6 +269,7 @@ mod tests {
         assert!(names.contains(&"revolut_oauth_refresh"));
         assert!(names.contains(&"retention_get"));
         assert!(names.contains(&"backup_manifest"));
+        assert!(names.contains(&"gdpr_erase_party"));
         assert!(names.contains(&"invoice_mark_paid_preview"));
         assert!(names.contains(&"invoice_mark_part_paid_preview"));
         assert!(names.contains(&"journal_post_preview"));

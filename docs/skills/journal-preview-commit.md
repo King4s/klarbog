@@ -18,7 +18,8 @@ description: >-
 - **Double-entry mandatory**: every entry has ≥2 legs; debits == credits per currency.
 - **Money is i64 minor units** (`MinorAmount`); never use `f32`/`f64`.
 - **Actor binding**: host overwrites `entry.actor` from authenticated actor — do not spoof in body.
-- **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.vat.split_hint`, `dk.expense.receipt_hint`, …).
+- **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.vat.split_hint`, `dk.expense.receipt_hint`, `dk.bookkeeping.known_account`, …).
+- **Chart stub (DEV):** common Klarbog codes — bank `1000`, AR `1500`, AP `4400`, expense band `4000`–`6999` (bank-CSV often uses `5800` / income `6100` inside that band). Empty or non-digit account → hard fail `dk.bookkeeping.account_range`. Digit account outside the stub → optional hint `dk.bookkeeping.known_account` (does **not** block).
 - **Expense receipt (fail-closed):** debit on accounts `4000`–`6999` without `party_id` **and** without a memo receipt signal → `dk.expense.receipt_required` **error** (blocks preview/commit). Soft hint `dk.expense.receipt_hint` only when `party_id` is set but receipt signal is missing.
 - **Receipt signals** (whitespace tokens in `memo`, case-insensitive): `#receipt` / `#receipt:…`, or `document_id:<id>` / `document_id=<id>`.
 - **VAT split (hint only):** memo `#vat25` / `moms:25` / `#moms25` applies `dk.vat.rate` + `dk.vat.split_hint` (does **not** block). Split amounts with i64 bps only — never f32/f64:

@@ -1,8 +1,7 @@
 # Active swarm status
 
-- **Wave 3 landed** on `rust-dev` (`30d0021`)
-- **Wave 4 (deepen) in flight** — MCP erase, stripe→apply preview, chart stub, backup/erase audit, linegate, contract smoke
-- Do not stop between slices unless `swarm/STOP` or real blocker
-- Verify gate: `./scripts/verify.sh` (`VERIFY_OK`)
-- Tip: no sister-product / internal host names in the public tree; ignore `slice-*.md` scratch notes
-- Tip: serialize env-mutating tests with tokio Mutex
+- **Wave 4 (deepen) landed** — slices 30–35 queued done; tip VERIFY_OK
+- Next: live E2E with real keys (optional), bogføring retention policy ADR, UI later
+- Do not stop unless `swarm/STOP` or owner redirect
+- Verify: `./scripts/verify.sh` / `./scripts/contract-smoke.sh`
+- Tip: no sister-product names; ignore `slice-*.md`; env tests use tokio Mutex

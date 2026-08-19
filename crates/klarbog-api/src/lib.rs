@@ -14,19 +14,26 @@ mod retention;
 mod retention_erase;
 mod revolut_oauth;
 mod stripe_consume;
+mod stripe_reconcile_apply_preview;
 mod stripe_reconcile_suggest;
 mod stripe_webhook;
 
 #[cfg(test)]
 mod api_tests;
 #[cfg(test)]
+mod contract_smoke;
+#[cfg(test)]
 mod documents_tests;
 #[cfg(test)]
 mod invoice_lifecycle_http_tests;
 #[cfg(test)]
+mod retention_erase_http_tests;
+#[cfg(test)]
 mod retention_tests;
 #[cfg(test)]
 mod revolut_oauth_http_tests;
+#[cfg(test)]
+mod stripe_reconcile_apply_preview_tests;
 #[cfg(test)]
 mod stripe_reconcile_suggest_tests;
 
@@ -138,6 +145,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/bank/stripe/reconcile-suggest",
             post(stripe_reconcile_suggest::reconcile_suggest),
+        )
+        .route(
+            "/api/v1/bank/stripe/reconcile-apply-preview",
+            post(stripe_reconcile_apply_preview::reconcile_apply_preview),
         )
         .route(
             "/api/v1/revolut/oauth/start",
