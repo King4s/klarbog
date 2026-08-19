@@ -10,6 +10,7 @@ mod documents_exceptions;
 mod invoice;
 mod invoice_lifecycle;
 mod journal;
+mod moms_suggest;
 mod retention;
 mod retention_erase;
 mod revolut_oauth;
@@ -101,6 +102,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/status", get(status))
         .route("/api/v1/journal/preview", post(journal::preview))
         .route("/api/v1/journal/commit", post(journal::commit))
+        .route("/api/v1/journal/moms-suggest", post(moms_suggest::moms_suggest))
         .route("/api/v1/crm/parties", post(crm::upsert))
         .route("/api/v1/crm/parties", get(crm::list))
         .route("/api/v1/invoices/drafts", post(invoice::create_draft))

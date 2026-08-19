@@ -1,6 +1,7 @@
 //! Unit tests for Stripe consume → reconcile suggest / apply-preview pipeline.
 
 use crate::config::StripeWebhookConfig;
+use crate::reconcile::list_unmatched_bank_exceptions;
 use crate::stripe_reconcile::{apply_preview_from_stripe_consume, suggest_from_stripe_consume};
 use crate::webhook::{ingest_stripe_webhook, sign_test_payload};
 use crate::webhook_consume::{ConsumeOpts, STRIPE_WEBHOOKS_CONSUMED};
@@ -134,4 +135,37 @@ fn no_safe_match_skips_apply() {
         apply_preview_from_stripe_consume(&company, ConsumeOpts::default(), &actor, false).unwrap();
     assert!(report.applied.is_none());
     assert_eq!(report.matches.len(), 1);
+}
+
+#[test]
+fn unique_safe_apply_closes_prior_unmatched_exception() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    fs::create_dir_all(&company).unwrap();
+    ingest_charge(&company);
+
+    let raised = suggest_from_stripe_consume(&company, ConsumeOpts::default()).unwrap();
+    assert_eq!(list_unmatched_bank_exceptions(&company).unwrap().len(), 1);
+    assert!(!raised.exceptions_raised.is_empty());
+
+    let party = upsert_party(&company, None, "Customer payment".into()).unwrap();
+    create_draft_from_new(
+        &company,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Widgets".into(),
+            amount_minor: 24_275,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+
+    let actor = Actor::user("owner");
+    let report =
+        apply_preview_from_stripe_consume(&company, ConsumeOpts::default(), &actor, false).unwrap();
+    let applied = report.applied.expect("unique safe apply");
+    assert!(applied.result.exception_closed.is_some());
+    assert!(report.exceptions.is_empty());
+    assert!(list_unmatched_bank_exceptions(&company).unwrap().is_empty());
 }

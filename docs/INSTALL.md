@@ -219,6 +219,23 @@ See [`docs/skills/storage-r2.md`](skills/storage-r2.md) and
 Builds `--release` and copies the three binaries into `dist/`. The `dist/` directory
 is gitignored; use it for local bundles or CI artifacts.
 
+By default the script prints **sha256** digests of `dist/klarbog`,
+`dist/klarbog-api`, and `dist/klarbog-mcp` (set `PACKAGE_DEV_NO_SHA256=1` to skip).
+You can re-check later with:
+
+```bash
+sha256sum dist/klarbog dist/klarbog-api dist/klarbog-mcp
+# macOS: shasum -a 256 dist/klarbog dist/klarbog-api dist/klarbog-mcp
+```
+
+After packaging (or any release build), run the offline contract smoke:
+
+```bash
+./scripts/contract-smoke.sh
+```
+
+Expect `CONTRACT_SMOKE_OK`. Full tree gate remains `./scripts/verify.sh` → `VERIFY_OK`.
+
 ## Credits and license
 
 Klarbog is a Rust port of

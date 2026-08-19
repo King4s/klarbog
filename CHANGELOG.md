@@ -82,10 +82,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - **Slice 40 (light):** Skill cross-link — MCP `bank_reconcile_apply` documents the same `force` + `user` rule as HTTP reconcile apply (agents/system cannot force below safe threshold). See [`docs/skills/bank-import.md`](docs/skills/bank-import.md).
 - **Slice 41:** CHANGELOG + [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) + INSTALL synced for wave4 endpoints (stripe `reconcile-apply-preview`, MCP erase, chart stub, `contract-smoke.sh`).
 
+### Added — Wave 6 (next gaps)
+
+- **Slice 44:** Multi-currency fail-closed regression — Revolut/Stripe CSV + API fixtures reject mixed batch and EUR-only vs company DKK; `import_preview` + HTTP `POST /api/v1/bank/import/preview` return 400 (i64 minor only).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
-- `./scripts/package-dev.sh` — release build + copy binaries to `dist/`.
+- `./scripts/package-dev.sh` — release build + copy binaries to `dist/`; optional sha256 of dist binaries (`PACKAGE_DEV_NO_SHA256=1` to skip); points at `./scripts/contract-smoke.sh`.
+- **Slice 45:** INSTALL package section documents contract-smoke + dist checksums (no absolute host paths).
 
 ### Credits
 

@@ -1,11 +1,16 @@
 //! Danish bookkeeping rules (DEV). Full SKAT/Moms later.
 
 mod chart;
+mod moms_post_suggestion;
 mod vat_split;
 
 pub use chart::{
     is_expense_account_code, is_known_dk_account, DK_CHART_AP, DK_CHART_AR, DK_CHART_BANK,
     DK_CHART_EXPENSE_MAX, DK_CHART_EXPENSE_MIN, RULE_KNOWN_ACCOUNT,
+};
+pub use moms_post_suggestion::{
+    memo_requests_vat25, moms_post_suggestion, MomsPostSuggestion, MomsPostSuggestionError,
+    MomsSuggestedLeg,
 };
 pub use vat_split::{
     split_vat25_inclusive, split_vat_from_net, split_vat_inclusive, VatSplitError,
@@ -142,7 +147,7 @@ fn has_receipt_signal(memo: &str) -> bool {
 }
 
 /// Parse optional VAT rate hints from memo/tags text (25 or 0 only; no money math).
-fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i64>, String> {
+pub(crate) fn parse_vat_rate_from_memo(memo: &str) -> Result<Option<i64>, String> {
     let lower = memo.to_lowercase();
     let mut found: Option<i64> = None;
 

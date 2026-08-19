@@ -59,3 +59,13 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 41. CHANGELOG/prompt sync for wave4 endpoints ✅
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
+
+## Wave 6 — next product gaps (in flight)
+
+42. Soft-split `klarbog-mcp/src/tools/mod.rs` under 300
+43. Invoice/journal: moms post **suggestion** from `split_vat25_inclusive` (preview only) ✅
+44. Multi-currency fail-closed regression tests (batch currency mismatch) ✅
+45. `package-dev.sh` + INSTALL: contract-smoke + dist checksums note ✅
+46. Exception close-on-apply coverage for stripe apply-preview path
+
+Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

@@ -16,6 +16,7 @@ klarbog-plugin = { workspace = true }
 klarbog-plugin-bank = { workspace = true }
 klarbog-plugin-retention = { workspace = true }
 klarbog-plugin-invoice = { workspace = true }
+klarbog-plugin-rules-dk = { workspace = true }
 klarbog-plugin-crm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

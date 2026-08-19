@@ -81,16 +81,20 @@ MCP: `invoice_mark_part_paid_preview`, `invoice_mark_paid_preview`. Still **no**
 Invoice line totals are often **gross inclusive**. Before building multi-leg journal suggestions, split with i64 basis points (no floats) via rules-dk:
 
 ```rust
-use klarbog_plugin_rules_dk::split_vat25_inclusive;
+use klarbog_plugin_rules_dk::{moms_post_suggestion, split_vat25_inclusive};
 
 let gross = inv.total_minor()?; // treat as moms-inkl.
 let s = split_vat25_inclusive(gross)?;
 // s.net_minor + s.vat_minor == gross; e.g. 12500 → 10000 + 2500
+
+// Optional preview suggestion when memo will include #vat25 (never auto-posts):
+let sug = moms_post_suggestion(gross, "invoice draft #vat25")?;
 ```
 
 Formula: `vat = gross * 2500 / 12500` (integer); `net = gross - vat` (remainder in net).
 Memo tags `#vat25` / `moms:25` on a journal preview apply hint id `dk.vat.split_hint` (non-blocking).
 
+HTTP `POST /api/v1/journal/moms-suggest` and MCP `journal_moms_post_suggestion` return the same net+vat legs for agents.
 ## Envelope
 
 Create returns invoice + optional embedded suggestion metadata via API.

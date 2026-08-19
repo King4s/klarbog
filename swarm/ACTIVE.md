@@ -1,6 +1,6 @@
 # Active swarm status
 
-- **Wave 5 (polish) landed** (`afaad31`) — ADR-010, MCP stripe pipelines, backup split, smoke extend, docs
-- Continue autonomously: next gaps = live E2E optional, stronger moms posting, UI later
+- **Wave 5 landed** (`afaad31` / `20c69e6`)
+- **Wave 6 in flight** — slice 44 multi-currency fail-closed ✅; slice 45 package/INSTALL done; next: MCP mod linegate, moms suggestion, stripe exception close
+- Do not stop unless `swarm/STOP` or owner redirect
 - Verify: `./scripts/verify.sh` / `./scripts/contract-smoke.sh`
-- Tip: no sister-product names; skip unreadable `docs/status-*` / `slice-*.md`

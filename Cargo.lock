@@ -1032,6 +1032,7 @@ dependencies = [
  "klarbog-plugin-crm",
  "klarbog-plugin-invoice",
  "klarbog-plugin-retention",
+ "klarbog-plugin-rules-dk",
  "klarbog-types",
  "serde",
  "serde_json",
@@ -1149,6 +1150,7 @@ dependencies = [
  "klarbog-journal",
  "klarbog-plugin",
  "klarbog-types",
+ "serde",
  "thiserror",
 ]
 

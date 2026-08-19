@@ -7,6 +7,8 @@ mod config;
 mod csv;
 mod import;
 mod map;
+#[cfg(test)]
+mod multi_currency_tests;
 mod oauth;
 mod reconcile;
 mod reconcile_apply;

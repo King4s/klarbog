@@ -112,6 +112,94 @@ async fn bank_preview_revolut_api_missing_env() {
 }
 
 #[tokio::test]
+async fn bank_preview_revolut_csv_mixed_currency_vs_dkk() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let (kind, id) = actor_headers(&owner);
+    let csv = "Completed Date,Description,Amount,Currency\n\
+2026-01-01,A,-10.00,DKK\n2026-01-02,B,5.00,EUR\n";
+    let body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "provider": "revolut",
+        "source": "csv",
+        "currency": "DKK",
+        "csv": csv,
+    });
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/bank/import/preview")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
+    assert!(env.errors.iter().any(|e| e.contains("mixed currencies")));
+}
+
+#[tokio::test]
+async fn bank_preview_stripe_csv_eur_vs_company_dkk() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let (kind, id) = actor_headers(&owner);
+    let csv = "Created,Description,Net,Currency\n2026-01-01,A,-10.00,EUR\n";
+    let body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "provider": "stripe",
+        "source": "csv",
+        "currency": "DKK",
+        "csv": csv,
+    });
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/bank/import/preview")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
+    assert!(env
+        .errors
+        .iter()
+        .any(|e| e.contains("currency mismatch") && e.contains("DKK")));
+}
+
+#[tokio::test]
 async fn bank_preview_actor_denied() {
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
