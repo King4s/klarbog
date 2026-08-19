@@ -127,6 +127,30 @@ pub async fn attach_document(
     Ok(doc)
 }
 
+pub async fn remove_document(
+    company: &Path,
+    id: &DocumentId,
+    delete_object: bool,
+) -> Result<Document, DocumentError> {
+    let mut file = load_documents(company)?;
+    let idx = file
+        .documents
+        .iter()
+        .position(|d| d.id == *id)
+        .ok_or_else(|| DocumentError::NotFound(id.to_string()))?;
+    let removed = file.documents.remove(idx);
+    if delete_object {
+        let storage = klarbog_storage(company)?;
+        match storage.delete(&removed.path_hint).await {
+            Ok(()) => {}
+            Err(klarbog_storage::StorageError::NotFound(_)) => {}
+            Err(err) => return Err(err.into()),
+        }
+    }
+    save_documents(company, &file)?;
+    Ok(removed)
+}
+
 pub fn list_exceptions(company: &Path, open_only: bool) -> Result<Vec<Exception>, DocumentError> {
     let items = load_exceptions(company)?.exceptions;
     Ok(if open_only {
@@ -163,6 +187,7 @@ pub fn raise_exception(
         message,
         related_ids,
         open: true,
+        closed_unix_ms: None,
     };
     let mut file = load_exceptions(company)?;
     file.exceptions.push(exc.clone());
@@ -182,128 +207,63 @@ pub fn set_exception_open(
         .find(|e| e.id == *id)
         .ok_or_else(|| DocumentError::ExceptionNotFound(id.to_string()))?;
     exc.open = open;
+    if open {
+        exc.closed_unix_ms = None;
+    } else {
+        exc.closed_unix_ms = Some(chrono::Utc::now().timestamp_millis());
+    }
     let updated = exc.clone();
     save_exceptions(company, &file)?;
     Ok(updated)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::DocumentKind;
-    use klarbog_plugin_crm::upsert_party;
-    use klarbog_plugin_invoice::{create_draft_from_new, InvoiceKind, NewLine};
-    use tempfile::tempdir;
-
-    #[tokio::test]
-    async fn document_roundtrip() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        fs::create_dir_all(&co).unwrap();
-        let doc = attach_document(
-            &co,
-            DocumentKind::Receipt,
-            "attachments/r.pdf".into(),
-            None,
-            None,
-            Some("note".into()),
-            None,
-        )
-        .await
-        .unwrap();
-        assert!(co.join(DOCUMENTS_FILENAME).exists());
-        assert_eq!(list_documents(&co).unwrap().len(), 1);
-        assert!(get_document(&co, &doc.id).unwrap().is_some());
+pub fn purge_closed_exceptions(
+    company: &Path,
+    before_unix_ms: i64,
+    dry_run: bool,
+) -> Result<Vec<ExceptionId>, DocumentError> {
+    let mut file = load_exceptions(company)?;
+    let to_remove: Vec<ExceptionId> = file
+        .exceptions
+        .iter()
+        .filter(|e| {
+            !e.open
+                && e.closed_unix_ms
+                    .is_some_and(|closed| closed < before_unix_ms)
+        })
+        .map(|e| e.id.clone())
+        .collect();
+    if !dry_run && !to_remove.is_empty() {
+        file.exceptions
+            .retain(|e| !to_remove.iter().any(|id| id == &e.id));
+        save_exceptions(company, &file)?;
     }
-
-    #[tokio::test]
-    async fn attach_puts_bytes_under_objects() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        fs::create_dir_all(&co).unwrap();
-        let bytes = b"pdf-bytes";
-        attach_document(
-            &co,
-            DocumentKind::Receipt,
-            "attachments/r.pdf".into(),
-            None,
-            None,
-            None,
-            Some(bytes),
-        )
-        .await
-        .unwrap();
-        let stored = co.join("objects").join("attachments/r.pdf");
-        assert!(stored.is_file());
-        assert_eq!(fs::read(stored).unwrap(), bytes);
-    }
-
-    #[tokio::test]
-    async fn rejects_bad_path_hint() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        fs::create_dir_all(&co).unwrap();
-        let err = attach_document(
-            &co,
-            DocumentKind::Other,
-            "../escape.pdf".into(),
-            None,
-            None,
-            None,
-            None,
-        )
-        .await
-        .unwrap_err();
-        assert!(matches!(err, DocumentError::InvalidPathHint(_)));
-    }
-
-    #[test]
-    fn exception_raise_and_close() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        fs::create_dir_all(&co).unwrap();
-        let exc = raise_exception(
-            &co,
-            "missing_attachment".into(),
-            ExceptionSeverity::Warn,
-            "No receipt".into(),
-            vec!["inv_x".into()],
-        )
-        .unwrap();
-        assert!(co.join(EXCEPTIONS_FILENAME).exists());
-        assert_eq!(list_exceptions(&co, true).unwrap().len(), 1);
-        set_exception_open(&co, &exc.id, false).unwrap();
-        assert!(list_exceptions(&co, true).unwrap().is_empty());
-        assert_eq!(list_exceptions(&co, false).unwrap().len(), 1);
-    }
-
-    #[tokio::test]
-    async fn validates_party_and_invoice() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Vendor".into()).unwrap();
-        let inv = create_draft_from_new(
-            &co,
-            party.id.clone(),
-            InvoiceKind::Purchase,
-            vec![NewLine {
-                description: "Goods".into(),
-                amount_minor: 1000,
-                currency: "DKK".into(),
-            }],
-        )
-        .unwrap();
-        attach_document(
-            &co,
-            DocumentKind::InvoiceScan,
-            "scans/inv.pdf".into(),
-            Some(party.id),
-            Some(inv.id),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-    }
+    Ok(to_remove)
 }
+
+pub fn find_orphan_documents(company: &Path) -> Result<Vec<DocumentId>, DocumentError> {
+    let mut orphans = Vec::new();
+    for doc in list_documents(company)? {
+        let mut orphan = false;
+        if let Some(ref pid) = doc.party_id {
+            if get_party(company, pid)?.is_none() {
+                orphan = true;
+            }
+        }
+        if !orphan {
+            if let Some(ref iid) = doc.invoice_id {
+                if get_invoice(company, iid)?.is_none() {
+                    orphan = true;
+                }
+            }
+        }
+        if orphan {
+            orphans.push(doc.id);
+        }
+    }
+    Ok(orphans)
+}
+
+#[cfg(test)]
+#[path = "store_tests.rs"]
+mod store_tests;

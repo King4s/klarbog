@@ -62,6 +62,8 @@ cargo build --workspace
 cargo run -p klarbog-cli -- demo
 ```
 
+**Installér og kør (API / MCP / CLI, env vars, R2):** [`docs/INSTALL.md`](docs/INSTALL.md)
+
 ## Mere
 
 - Skills: [`docs/skills/`](docs/skills/)

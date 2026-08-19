@@ -70,10 +70,11 @@ pub async fn bank_import_preview(args: &Value, allowlist_root: &Path) -> Envelop
         currency: currency.clone(),
         ..BankImportConfig::default()
     };
-    let (rows, drafts) = match import_preview(source, provider, csv, &cfg, &actor).await {
-        Ok(r) => r,
-        Err(e) => return map_import(e),
-    };
+    let (rows, drafts) =
+        match import_preview(source, provider, csv, &cfg, &actor, Some(&path)).await {
+            Ok(r) => r,
+            Err(e) => return map_import(e),
+        };
     let summaries: Vec<Value> = rows
         .iter()
         .zip(drafts.iter())

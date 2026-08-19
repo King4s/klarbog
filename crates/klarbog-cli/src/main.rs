@@ -5,8 +5,8 @@ use clap::{Parser, Subcommand};
 use klarbog_core::{init_company, open_existing};
 use klarbog_journal::{Direction, JournalEntry, Leg};
 use klarbog_plugin_retention::{
-    load_retention, write_backup_manifest, write_gdpr_export, BackupManifest, GdprExport,
-    RetentionPolicy,
+    load_retention, run_retention_purge, write_backup_manifest, write_gdpr_export, BackupManifest,
+    GdprExport, PurgeOptions, PurgeReport, RetentionPolicy,
 };
 use klarbog_types::{Actor, Currency, Envelope, MinorAmount};
 use std::path::PathBuf;
@@ -55,6 +55,17 @@ enum Cmd {
     GdprExport {
         #[arg(long)]
         company: PathBuf,
+    },
+    /// Preview or apply retention purge (closed exceptions; optional orphan doc GC)
+    Purge {
+        #[arg(long)]
+        company: PathBuf,
+        /// Apply purge; default is dry-run preview only
+        #[arg(long)]
+        confirm: bool,
+        /// Remove document metadata whose party/invoice no longer exists
+        #[arg(long)]
+        gc_orphan_documents: bool,
     },
 }
 
@@ -144,6 +155,22 @@ async fn main() -> anyhow::Result<()> {
             open_existing(&company).await?;
             let export: GdprExport = write_gdpr_export(&company)?;
             println!("{}", serde_json::to_string(&Envelope::ok(export))?);
+        }
+        Cmd::Purge {
+            company,
+            confirm,
+            gc_orphan_documents,
+        } => {
+            open_existing(&company).await?;
+            let report: PurgeReport = run_retention_purge(
+                &company,
+                PurgeOptions {
+                    confirm,
+                    gc_orphan_documents,
+                },
+            )
+            .await?;
+            println!("{}", serde_json::to_string(&Envelope::ok(report))?);
         }
     }
     Ok(())

@@ -1,7 +1,7 @@
 # ADR-007: Cloudflare EU object storage (R2+)
 
 ## Status
-Accepted (owner 2026-08-19). **SigV4 put/get implemented** (2026-08-20, `klarbog-storage`).
+Accepted (owner 2026-08-19). **SigV4 put/get/delete implemented** (2026-08-20, `klarbog-storage`).
 
 ## Decision
 Klarbog may use **Cloudflare products that offer EU data residency / EU-approved processing**, starting with:
@@ -18,15 +18,12 @@ Klarbog may use **Cloudflare products that offer EU data residency / EU-approved
 
 ### Implementation (2026-08-20)
 - Crate: `crates/klarbog-storage`
-- **PutObject / GetObject** via `reqwest` + manual **AWS SigV4** (`sigv4.rs`), region `auto`, path-style URI against `R2Config.endpoint`.
+- **PutObject / GetObject / DeleteObject** via `reqwest` + manual **AWS SigV4** (`sigv4.rs`), region `auto`, path-style URI against `R2Config.endpoint`.
 - Unit tests: signing vectors + key/jurisdiction guards; **no live R2 in CI**.
-- **DeleteObject**: still deferred (`NotImplementedInDev`); add same signer when needed.
 
 ### Optional next steps
-1. Wire document attach to call `R2Store::put` when `KLARBOG_STORAGE=r2`.
-2. Implement `delete` with signed DELETE.
-3. Stage smoke script (owner creds) + optional integration test behind `#[ignore]`.
-4. Multipart upload only if objects exceed single PUT limits.
+1. Stage smoke script (owner creds) + optional integration test behind `#[ignore]`.
+2. Multipart upload only if objects exceed single PUT limits.
 
 ## Consequences
 Slice 7 documents plugin talks to a storage trait (`Local` | `R2`). Backup/GDPR slice (9) can reuse the same store for exports.

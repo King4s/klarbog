@@ -1,0 +1,15 @@
+{
+  "id": "evt_test_charge_ok",
+  "object": "event",
+  "type": "charge.succeeded",
+  "data": {
+    "object": {
+      "id": "ch_test_1",
+      "object": "charge",
+      "amount": 24275,
+      "currency": "dkk",
+      "created": 1736553600,
+      "description": "Customer payment"
+    }
+  }
+}

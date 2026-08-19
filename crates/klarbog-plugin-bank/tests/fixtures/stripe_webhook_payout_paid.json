@@ -1,0 +1,15 @@
+{
+  "id": "evt_test_payout_paid",
+  "object": "event",
+  "type": "payout.paid",
+  "data": {
+    "object": {
+      "id": "po_test_1",
+      "object": "payout",
+      "amount": 100000,
+      "currency": "dkk",
+      "arrival_date": 1736640000,
+      "status": "paid"
+    }
+  }
+}

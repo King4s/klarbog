@@ -1,5 +1,6 @@
 //! API credentials from environment (fail closed when missing).
 
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -9,9 +10,23 @@ pub struct RevolutApiConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct RevolutOAuthConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    pub token_url: String,
+    pub auth_url: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct StripeApiConfig {
     pub secret_key: String,
     pub base_url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct StripeWebhookConfig {
+    pub webhook_secret: String,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -25,10 +40,44 @@ impl RevolutApiConfig {
 
     pub fn from_env() -> Result<Self, BankApiConfigError> {
         let token = required_env("KLARBOG_REVOLUT_API_TOKEN")?;
-        let base_url = std::env::var("KLARBOG_REVOLUT_API_BASE")
-            .unwrap_or_else(|_| Self::DEFAULT_BASE.to_string());
-        Ok(Self { token, base_url })
+        Ok(Self {
+            token,
+            base_url: revolut_api_base_from_env(),
+        })
     }
+
+    /// Env bearer token first; else company `secrets/revolut.json` access token (OAuth scaffold).
+    pub fn from_env_or_company_secrets(company: &Path) -> Result<Self, BankApiConfigError> {
+        if let Ok(cfg) = Self::from_env() {
+            return Ok(cfg);
+        }
+        let token = crate::oauth::load_revolut_access_token(company)?;
+        Ok(Self {
+            token,
+            base_url: revolut_api_base_from_env(),
+        })
+    }
+}
+
+impl RevolutOAuthConfig {
+    pub const DEFAULT_TOKEN_URL: &'static str = "https://b2b.revolut.com/api/1.0/auth/token";
+
+    pub fn from_env() -> Result<Self, BankApiConfigError> {
+        Ok(Self {
+            client_id: required_env("KLARBOG_REVOLUT_CLIENT_ID")?,
+            client_secret: required_env("KLARBOG_REVOLUT_CLIENT_SECRET")?,
+            redirect_uri: required_env("KLARBOG_REVOLUT_REDIRECT_URI")?,
+            token_url: std::env::var("KLARBOG_REVOLUT_TOKEN_URL")
+                .unwrap_or_else(|_| Self::DEFAULT_TOKEN_URL.to_string()),
+            auth_url: std::env::var("KLARBOG_REVOLUT_AUTH_URL")
+                .unwrap_or_else(|_| crate::oauth::DEFAULT_AUTH_URL.to_string()),
+        })
+    }
+}
+
+fn revolut_api_base_from_env() -> String {
+    std::env::var("KLARBOG_REVOLUT_API_BASE")
+        .unwrap_or_else(|_| RevolutApiConfig::DEFAULT_BASE.to_string())
 }
 
 impl StripeApiConfig {
@@ -45,7 +94,15 @@ impl StripeApiConfig {
     }
 }
 
-fn required_env(key: &'static str) -> Result<String, BankApiConfigError> {
+impl StripeWebhookConfig {
+    pub fn from_env() -> Result<Self, BankApiConfigError> {
+        Ok(Self {
+            webhook_secret: required_env("KLARBOG_STRIPE_WEBHOOK_SECRET")?,
+        })
+    }
+}
+
+pub(crate) fn required_env(key: &'static str) -> Result<String, BankApiConfigError> {
     let value = std::env::var(key).map_err(|_| BankApiConfigError::MissingEnv(key))?;
     if value.trim().is_empty() {
         return Err(BankApiConfigError::MissingEnv(key));

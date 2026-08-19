@@ -31,7 +31,7 @@ struct DraftSummary {
     amount_minor: i64,
 }
 
-async fn authorize_company(
+pub(crate) async fn authorize_company(
     allowlist_root: &Path,
     company: &Path,
     actor: &Actor,
@@ -41,7 +41,7 @@ async fn authorize_company(
     Ok(path)
 }
 
-fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
+pub(crate) fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     match err {
         CoreError::ActorDenied(tag) => (
             StatusCode::FORBIDDEN,
@@ -63,7 +63,7 @@ fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     }
 }
 
-fn map_import(err: BankImportError) -> (StatusCode, Envelope<Value>) {
+pub(crate) fn map_import(err: BankImportError) -> (StatusCode, Envelope<Value>) {
     let status = match &err {
         BankImportError::Config(_) => StatusCode::SERVICE_UNAVAILABLE,
         BankImportError::MissingCsv | BankImportError::ApiNotSupported { .. } => {
@@ -94,7 +94,7 @@ pub async fn preview(
     let actor = parse_actor(&headers).map_err(|(s, e)| (s, Json(e)))?;
     let currency = resolve_currency(&body).map_err(|(s, e)| (s, Json(e)))?;
     let company = PathBuf::from(body.company);
-    let _path = authorize_company(&state.allowlist_root, &company, &actor)
+    let path = authorize_company(&state.allowlist_root, &company, &actor)
         .await
         .map_err(|e| {
             let (s, env) = map_core(e);
@@ -113,12 +113,19 @@ pub async fn preview(
             Json(Envelope::err(["missing csv"])),
         ));
     }
-    let (rows, drafts) = import_preview(source, body.provider, body.csv.as_deref(), &cfg, &actor)
-        .await
-        .map_err(|e| {
-            let (s, env) = map_import(e);
-            (s, Json(env))
-        })?;
+    let (rows, drafts) = import_preview(
+        source,
+        body.provider,
+        body.csv.as_deref(),
+        &cfg,
+        &actor,
+        Some(&path),
+    )
+    .await
+    .map_err(|e| {
+        let (s, env) = map_import(e);
+        (s, Json(env))
+    })?;
     let summaries: Vec<DraftSummary> = rows
         .iter()
         .zip(drafts.iter())

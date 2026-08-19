@@ -2,9 +2,13 @@
 //! No journal-write capability (ADR-004).
 
 mod draft;
+mod lifecycle;
+mod status;
 mod store;
 
-pub use draft::{journal_suggestion, InvoiceConfig};
+pub use draft::{journal_suggestion, payment_journal_suggestion, InvoiceConfig};
+pub use lifecycle::{mark_paid_preview, patch_status};
+pub use status::InvoiceStatus;
 pub use store::{
     create_draft, create_draft_from_new, get_invoice, list_invoices, NewLine, INVOICES_FILENAME,
 };
@@ -58,6 +62,8 @@ pub struct Invoice {
     pub party_id: PartyId,
     pub kind: InvoiceKind,
     pub lines: Vec<InvoiceLine>,
+    #[serde(default)]
+    pub status: InvoiceStatus,
 }
 
 impl Invoice {
@@ -109,6 +115,11 @@ pub enum InvoiceError {
     MixedCurrency,
     #[error("overflow")]
     Overflow,
+    #[error("invalid status transition: {from:?} -> {to:?}")]
+    InvalidTransition {
+        from: InvoiceStatus,
+        to: InvoiceStatus,
+    },
     #[error(transparent)]
     Money(#[from] MoneyError),
     #[error(transparent)]
@@ -201,5 +212,37 @@ mod tests {
             .iter()
             .all(|l| l.party_id.as_ref() == Some(&invoice.party_id)));
         assert_eq!(plugin.list(&co).unwrap().len(), 1);
+        assert_eq!(invoice.status, InvoiceStatus::Draft);
+    }
+
+    #[test]
+    fn lifecycle_patch_and_mark_paid() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let plugin = InvoicePlugin;
+        let invoice = plugin
+            .create(
+                &co,
+                party.id,
+                InvoiceKind::Sale,
+                vec![NewLine {
+                    description: "Item".into(),
+                    amount_minor: 3000,
+                    currency: "DKK".into(),
+                }],
+            )
+            .unwrap();
+        let sent = patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
+        assert_eq!(sent.status, InvoiceStatus::Sent);
+        let actor = klarbog_types::Actor::user("t");
+        let (paid, entry) =
+            mark_paid_preview(&co, &invoice.id, &actor, &InvoiceConfig::default()).unwrap();
+        assert_eq!(paid.status, InvoiceStatus::Paid);
+        assert!(entry
+            .legs
+            .iter()
+            .all(|l| l.party_id.as_ref() == Some(&invoice.party_id)));
     }
 }

@@ -140,6 +140,15 @@ mod tests {
         ) -> Result<(u16, String), BankApiError> {
             Ok((200, self.body.clone()))
         }
+
+        async fn post_form(
+            &self,
+            _url: &str,
+            _body: &str,
+            _bearer_token: Option<&str>,
+        ) -> Result<(u16, String), BankApiError> {
+            Ok((200, "{}".into()))
+        }
     }
 
     #[test]

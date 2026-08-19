@@ -2,11 +2,15 @@
 
 mod actor;
 mod bank;
+mod bank_reconcile;
 mod crm;
 mod documents;
 mod invoice;
+mod invoice_lifecycle;
 mod journal;
 mod retention;
+mod revolut_oauth;
+mod stripe_webhook;
 
 #[cfg(test)]
 mod api_tests;
@@ -16,7 +20,7 @@ mod documents_tests;
 mod retention_tests;
 
 use axum::extract::State;
-use axum::{routing::get, routing::patch, routing::post, Json, Router};
+use axum::{routing::delete, routing::get, routing::patch, routing::post, Json, Router};
 use klarbog_core::{default_registry, ConfirmStore};
 use klarbog_plugin::{Capability, Registry};
 use klarbog_types::Envelope;
@@ -83,15 +87,38 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/crm/parties", get(crm::list))
         .route("/api/v1/invoices/drafts", post(invoice::create_draft))
         .route("/api/v1/invoices/drafts", get(invoice::list))
+        .route(
+            "/api/v1/invoices/status",
+            patch(invoice_lifecycle::patch_status_handler),
+        )
+        .route(
+            "/api/v1/invoices/mark-paid",
+            post(invoice_lifecycle::mark_paid),
+        )
         .route("/api/v1/documents", post(documents::attach))
         .route("/api/v1/documents", get(documents::list_docs))
+        .route("/api/v1/documents", delete(documents::delete_doc))
         .route("/api/v1/exceptions", post(documents::raise))
         .route("/api/v1/exceptions", get(documents::list_exc))
         .route("/api/v1/exceptions", patch(documents::close_exc))
         .route("/api/v1/retention", get(retention::get_retention))
         .route("/api/v1/backup", post(retention::post_backup))
         .route("/api/v1/gdpr-export", post(retention::post_gdpr_export))
+        .route("/api/v1/retention/purge", post(retention::post_purge))
         .route("/api/v1/bank/import/preview", post(bank::preview))
+        .route(
+            "/api/v1/bank/reconcile/suggest",
+            post(bank_reconcile::reconcile_suggest),
+        )
+        .route("/api/v1/webhooks/stripe", post(stripe_webhook::handle))
+        .route(
+            "/api/v1/revolut/oauth/start",
+            get(revolut_oauth::oauth_start_handler),
+        )
+        .route(
+            "/api/v1/revolut/oauth/callback",
+            post(revolut_oauth::oauth_callback_handler),
+        )
         .with_state(state)
 }
 

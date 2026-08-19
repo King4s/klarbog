@@ -7,6 +7,9 @@ mod error;
 mod key;
 mod local;
 mod r2;
+#[cfg(test)]
+mod r2_tests;
+mod r2_time;
 mod select;
 mod sigv4;
 

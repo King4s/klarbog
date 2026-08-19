@@ -27,6 +27,13 @@ pub trait HttpClient: Send + Sync {
         url: &str,
         bearer_token: &str,
     ) -> impl std::future::Future<Output = Result<(u16, String), BankApiError>> + Send;
+
+    fn post_form(
+        &self,
+        url: &str,
+        body: &str,
+        bearer_token: Option<&str>,
+    ) -> impl std::future::Future<Output = Result<(u16, String), BankApiError>> + Send;
 }
 
 pub struct ReqwestHttpClient;
@@ -46,5 +53,31 @@ impl HttpClient for ReqwestHttpClient {
             .await
             .map_err(|e| BankApiError::Request(e.to_string()))?;
         Ok((status, body))
+    }
+
+    async fn post_form(
+        &self,
+        url: &str,
+        body: &str,
+        bearer_token: Option<&str>,
+    ) -> Result<(u16, String), BankApiError> {
+        let mut req = reqwest::Client::new()
+            .post(url)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Accept", "application/json")
+            .body(body.to_string());
+        if let Some(token) = bearer_token {
+            req = req.bearer_auth(token);
+        }
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| BankApiError::Request(e.to_string()))?;
+        let status = resp.status().as_u16();
+        let resp_body = resp
+            .text()
+            .await
+            .map_err(|e| BankApiError::Request(e.to_string()))?;
+        Ok((status, resp_body))
     }
 }

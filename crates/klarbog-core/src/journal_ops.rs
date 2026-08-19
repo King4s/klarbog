@@ -157,7 +157,7 @@ mod tests {
         .unwrap();
         assert!(preview
             .applied_rules
-            .contains(&"dk.expense.hint".to_string()));
+            .contains(&"dk.expense.receipt_hint".to_string()));
         let result = journal_commit(
             root.path(),
             &company_path,
@@ -172,7 +172,7 @@ mod tests {
         assert!(!result.posted.digest.is_empty());
         assert!(result
             .applied_rules
-            .contains(&"dk.expense.hint".to_string()));
+            .contains(&"dk.expense.receipt_hint".to_string()));
     }
 
     #[tokio::test]

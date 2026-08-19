@@ -4,8 +4,9 @@
 mod store;
 
 pub use store::{
-    attach_document, get_document, get_exception, list_documents, list_exceptions, raise_exception,
-    set_exception_open, DOCUMENTS_FILENAME, EXCEPTIONS_FILENAME,
+    attach_document, find_orphan_documents, get_document, get_exception, list_documents,
+    list_exceptions, purge_closed_exceptions, raise_exception, remove_document, set_exception_open,
+    DOCUMENTS_FILENAME, EXCEPTIONS_FILENAME,
 };
 
 use klarbog_plugin::{Capability, Plugin};
@@ -65,7 +66,7 @@ pub enum ExceptionSeverity {
     Error,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ExceptionId(String);
 
 impl ExceptionId {
@@ -96,6 +97,8 @@ pub struct Exception {
     pub message: String,
     pub related_ids: Vec<String>,
     pub open: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_unix_ms: Option<i64>,
 }
 
 #[derive(Debug, Error)]
@@ -158,6 +161,15 @@ impl DocumentsPlugin {
 
     pub fn get(&self, company: &Path, id: &DocumentId) -> Result<Option<Document>, DocumentError> {
         get_document(company, id)
+    }
+
+    pub async fn remove(
+        &self,
+        company: &Path,
+        id: &DocumentId,
+        delete_object: bool,
+    ) -> Result<Document, DocumentError> {
+        remove_document(company, id, delete_object).await
     }
 
     pub fn raise(

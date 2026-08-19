@@ -1,5 +1,6 @@
 //! Per-company `invoices.json` persistence (slice 6).
 
+use crate::status::InvoiceStatus;
 use crate::{Invoice, InvoiceError, InvoiceId, InvoiceKind, InvoiceLine};
 use klarbog_plugin_crm::get_party;
 use klarbog_types::{Currency, PartyId};
@@ -10,15 +11,15 @@ use std::path::{Path, PathBuf};
 pub const INVOICES_FILENAME: &str = "invoices.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct InvoicesFile {
-    invoices: Vec<Invoice>,
+pub(crate) struct InvoicesFile {
+    pub(crate) invoices: Vec<Invoice>,
 }
 
 fn invoices_path(company: &Path) -> PathBuf {
     company.join(INVOICES_FILENAME)
 }
 
-fn load(company: &Path) -> Result<InvoicesFile, InvoiceError> {
+pub(crate) fn load(company: &Path) -> Result<InvoicesFile, InvoiceError> {
     let path = invoices_path(company);
     if !path.exists() {
         return Ok(InvoicesFile::default());
@@ -26,7 +27,7 @@ fn load(company: &Path) -> Result<InvoicesFile, InvoiceError> {
     Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
 }
 
-fn save(company: &Path, file: &InvoicesFile) -> Result<(), InvoiceError> {
+pub(crate) fn save(company: &Path, file: &InvoicesFile) -> Result<(), InvoiceError> {
     let json = serde_json::to_string_pretty(file)?;
     fs::write(invoices_path(company), json)?;
     Ok(())
@@ -59,6 +60,7 @@ pub fn create_draft(
         party_id,
         kind,
         lines,
+        status: InvoiceStatus::Draft,
     };
     invoice.validate_lines()?;
     let mut file = load(company)?;
@@ -120,6 +122,7 @@ mod tests {
         };
         let inv = create_draft(&co, party.id.clone(), InvoiceKind::Sale, vec![line]).unwrap();
         assert!(co.join(INVOICES_FILENAME).exists());
+        assert_eq!(inv.status, InvoiceStatus::Draft);
         assert_eq!(list_invoices(&co).unwrap().len(), 1);
         assert!(get_invoice(&co, &inv.id).unwrap().is_some());
     }

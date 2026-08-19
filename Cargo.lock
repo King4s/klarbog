@@ -1029,6 +1029,8 @@ dependencies = [
  "klarbog-journal",
  "klarbog-plugin",
  "klarbog-plugin-bank",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-invoice",
  "klarbog-plugin-retention",
  "klarbog-types",
  "serde",
@@ -1051,14 +1053,23 @@ name = "klarbog-plugin-bank"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "form_urlencoded",
+ "hex",
+ "hmac",
  "klarbog-journal",
  "klarbog-plugin",
+ "klarbog-plugin-crm",
+ "klarbog-plugin-documents",
+ "klarbog-plugin-invoice",
  "klarbog-types",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
+ "tempfile",
  "thiserror",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

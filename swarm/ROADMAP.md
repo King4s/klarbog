@@ -13,4 +13,10 @@
 
 Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 
+10. Payments hardening: Stripe webhooks + Revolut OAuth
+11. rules-dk expansion (VAT/account/receipt hints)
+12. Bank reconcile suggestions + invoice lifecycle states
+13. R2 DeleteObject + retention purge enforce
+14. Install/release packaging docs
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

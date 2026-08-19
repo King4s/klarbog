@@ -1,6 +1,6 @@
 # Active swarm status
 
-- slices **2–12 done**; bank import API-primary for Revolut/Stripe (CSV offline fallback); GenericDk CSV-only
-- next: optional document-attach R2 wiring; Revolut OAuth UX; Stripe webhooks
-- verify: VERIFY_OK
-- tip: create `swarm/STOP` to halt dispatch
+- autonomous multi-agent wave in flight (R2 delete, rules-dk, Stripe webhooks, Revolut OAuth, reconcile, invoice lifecycle, GDPR purge, release docs)
+- do not stop between slices unless `swarm/STOP` or real blocker
+- verify gate: `./scripts/verify.sh` before merge/commit
+- tip: no sister-product names in public tree

@@ -7,6 +7,7 @@ use crate::map::{draft_entries_from_rows, BankImportConfig, BankMapError};
 use klarbog_journal::JournalEntry;
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub async fn import_preview(
     csv: Option<&str>,
     cfg: &BankImportConfig,
     actor: &Actor,
+    company: Option<&Path>,
 ) -> Result<(Vec<crate::csv::BankRow>, Vec<JournalEntry>), BankImportError> {
     let required = match rail {
         BankProfile::Revolut | BankProfile::Stripe => Some(&cfg.currency),
@@ -61,7 +63,10 @@ pub async fn import_preview(
             parse_bank_csv_with_profile(rail, csv, required)?
         }
         (BankImportSource::Api, BankProfile::Revolut) => {
-            let api_cfg = RevolutApiConfig::from_env()?;
+            let api_cfg = match company {
+                Some(path) => RevolutApiConfig::from_env_or_company_secrets(path)?,
+                None => RevolutApiConfig::from_env()?,
+            };
             fetch_revolut_transactions(&api_cfg, None, required).await?
         }
         (BankImportSource::Api, BankProfile::Stripe) => {
@@ -110,6 +115,7 @@ mod tests {
             Some(CSV),
             &cfg,
             &Actor::agent("t"),
+            None,
         )
         .await
         .unwrap();
@@ -126,10 +132,29 @@ mod tests {
             None,
             &cfg,
             &Actor::agent("t"),
+            None,
         )
         .await
         .unwrap_err();
         assert!(matches!(err, BankImportError::Config(_)));
+    }
+
+    #[tokio::test]
+    async fn api_revolut_uses_company_stored_token_when_env_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let company = dir.path().join("co");
+        std::fs::create_dir_all(&company).unwrap();
+        let tokens = crate::oauth::RevolutStoredTokens {
+            access_token: "stored-access".into(),
+            refresh_token: None,
+            expires_at: None,
+            token_type: None,
+        };
+        crate::oauth::save_revolut_tokens(&company, &tokens).unwrap();
+        let _guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
+        let api_cfg =
+            RevolutApiConfig::from_env_or_company_secrets(&company).expect("stored token");
+        assert_eq!(api_cfg.token, "stored-access");
     }
 
     #[test]

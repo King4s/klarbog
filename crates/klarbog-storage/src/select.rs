@@ -22,6 +22,14 @@ impl KlarbogStorage {
             Self::R2(store) => store.put(key, bytes).await,
         }
     }
+
+    /// Delete object at `key` using the active backend.
+    pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
+        match self {
+            Self::Local(store) => store.delete(key).await,
+            Self::R2(store) => store.delete(key).await,
+        }
+    }
 }
 
 /// Select storage from `KLARBOG_STORAGE` (default `local`).
@@ -103,6 +111,24 @@ mod tests {
         let err = klarbog_storage(&company).unwrap_err();
         clear_r2_env();
         assert!(matches!(err, StorageError::MissingEnv(_)));
+    }
+
+    #[tokio::test]
+    async fn local_delete_roundtrip() {
+        let dir = {
+            let _g = ENV_LOCK.lock().unwrap();
+            clear_r2_env();
+            tempdir().unwrap()
+        };
+        let company = dir.path().join("co");
+        std::fs::create_dir_all(&company).unwrap();
+        let backend = klarbog_storage(&company).unwrap();
+        backend.put("a/x.bin", b"data").await.unwrap();
+        backend.delete("a/x.bin").await.unwrap();
+        assert!(matches!(
+            backend.delete("a/x.bin").await,
+            Err(StorageError::NotFound(_))
+        ));
     }
 
     #[test]

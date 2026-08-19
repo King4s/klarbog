@@ -7,8 +7,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use klarbog_core::{assert_company_path, open_existing, CoreError};
 use klarbog_plugin_retention::{
-    load_retention, write_backup_manifest, write_gdpr_export, BackupError, GdprError,
-    RetentionError,
+    load_retention, run_retention_purge, write_backup_manifest, write_gdpr_export, BackupError,
+    GdprError, PurgeError, PurgeOptions, RetentionError,
 };
 use klarbog_types::{Actor, Envelope};
 use serde::Deserialize;
@@ -23,6 +23,15 @@ pub struct RetentionQuery {
 #[derive(Deserialize)]
 pub struct CompanyBody {
     pub company: String,
+}
+
+#[derive(Deserialize)]
+pub struct PurgeBody {
+    pub company: String,
+    #[serde(default)]
+    pub confirm: bool,
+    #[serde(default)]
+    pub gc_orphan_documents: bool,
 }
 
 async fn authorize_company(
@@ -87,6 +96,16 @@ fn map_gdpr(err: GdprError) -> (StatusCode, Envelope<Value>) {
     )
 }
 
+fn map_purge(err: PurgeError) -> (StatusCode, Envelope<Value>) {
+    match err {
+        PurgeError::Retention(e) => map_retention(e),
+        PurgeError::Documents(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Envelope::err([e.to_string()]),
+        ),
+    }
+}
+
 pub async fn get_retention(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -145,4 +164,32 @@ pub async fn post_gdpr_export(
         (s, Json(env))
     })?;
     Ok(Json(Envelope::ok(serde_json::to_value(export).unwrap())))
+}
+
+pub async fn post_purge(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(body): Json<PurgeBody>,
+) -> Result<Json<Envelope<Value>>, (StatusCode, Json<Envelope<Value>>)> {
+    let actor = parse_actor(&headers).map_err(|(s, e)| (s, Json(e)))?;
+    let company = PathBuf::from(body.company);
+    let path = authorize_company(&state.allowlist_root, &company, &actor)
+        .await
+        .map_err(|e| {
+            let (s, env) = map_core(e);
+            (s, Json(env))
+        })?;
+    let report = run_retention_purge(
+        &path,
+        PurgeOptions {
+            confirm: body.confirm,
+            gc_orphan_documents: body.gc_orphan_documents,
+        },
+    )
+    .await
+    .map_err(|e| {
+        let (s, env) = map_purge(e);
+        (s, Json(env))
+    })?;
+    Ok(Json(Envelope::ok(serde_json::to_value(report).unwrap())))
 }

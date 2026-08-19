@@ -22,5 +22,10 @@ Klarbog integrates **Revolut** via the **Revolut Business API** as a first-class
 ### Out of scope here
 - Full OAuth app install UX (may follow); initial DEV may use personal/business API token from env.
 
+### OAuth scaffold (2026-08-20)
+- Env: `KLARBOG_REVOLUT_CLIENT_ID`, `KLARBOG_REVOLUT_CLIENT_SECRET`, `KLARBOG_REVOLUT_REDIRECT_URI`, optional `KLARBOG_REVOLUT_TOKEN_URL` / `KLARBOG_REVOLUT_AUTH_URL`.
+- HTTP: `GET /api/v1/revolut/oauth/start` → auth URL; `POST /api/v1/revolut/oauth/callback` with `{ company, code }` → token exchange (mockable `HttpClient`).
+- DEV token store: `{company}/secrets/revolut.json` mode `0600` (never log secrets). Env bearer `KLARBOG_REVOLUT_API_TOKEN` remains primary when set.
+
 ## Consequences
 HTTP/MCP bank import gains `source: "api"` + `provider: "revolut"` (in addition to CSV profile).

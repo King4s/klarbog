@@ -123,7 +123,7 @@ async fn preview_commit_posts() {
     assert!(preview_env.ok);
     assert!(preview_env
         .applied_rules
-        .contains(&"dk.expense.hint".to_string()));
+        .contains(&"dk.expense.receipt_hint".to_string()));
     let token = preview_env.data.unwrap()["confirm_token"]
         .as_str()
         .unwrap()

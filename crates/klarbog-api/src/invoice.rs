@@ -29,7 +29,7 @@ pub struct ListQuery {
     pub invoice_id: Option<String>,
 }
 
-async fn authorize_company(
+pub(crate) async fn authorize_company(
     allowlist_root: &Path,
     company: &Path,
     actor: &Actor,
@@ -39,7 +39,7 @@ async fn authorize_company(
     Ok(path)
 }
 
-fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
+pub(crate) fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     match err {
         CoreError::ActorDenied(tag) => (
             StatusCode::FORBIDDEN,
@@ -61,7 +61,7 @@ fn map_core(err: CoreError) -> (StatusCode, Envelope<Value>) {
     }
 }
 
-fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
+pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
     match err {
         InvoiceError::NotFound(id) => (
             StatusCode::NOT_FOUND,
@@ -87,6 +87,9 @@ fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         ),
         InvoiceError::Overflow | InvoiceError::Money(_) | InvoiceError::Journal(_) => {
             (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
+        }
+        InvoiceError::InvalidTransition { .. } => {
+            (StatusCode::CONFLICT, Envelope::err([err.to_string()]))
         }
         InvoiceError::Crm(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

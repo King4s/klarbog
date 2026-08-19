@@ -18,7 +18,7 @@ description: >-
 - **Double-entry mandatory**: every entry has ≥2 legs; debits == credits per currency.
 - **Money is i64 minor units** (`MinorAmount`); never use `f32`/`f64`.
 - **Actor binding**: host overwrites `entry.actor` from authenticated actor — do not spoof in body.
-- **Rules-dk** runs on preview and commit; check `applied_rules` in the Envelope.
+- **Rules-dk** runs on preview and commit; check `applied_rules` (`dk.vat.rate`, `dk.expense.receipt_hint`, …).
 
 ## HTTP (DEV, loopback)
 

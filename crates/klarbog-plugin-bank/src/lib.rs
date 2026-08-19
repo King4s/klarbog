@@ -7,21 +7,42 @@ mod config;
 mod csv;
 mod import;
 mod map;
+mod oauth;
+mod reconcile;
+#[cfg(test)]
+mod reconcile_tests;
 mod revolut;
 mod stripe;
+mod webhook;
 
 pub use amount::{parse_amount_minor, BankAmountError};
 pub use api::{
     fetch_revolut_transactions, fetch_stripe_balance_transactions, parse_revolut_api_json,
     parse_stripe_api_json, BankApiError, HttpClient, ReqwestHttpClient,
 };
-pub use config::{BankApiConfigError, RevolutApiConfig, StripeApiConfig};
+pub use config::{
+    BankApiConfigError, RevolutApiConfig, RevolutOAuthConfig, StripeApiConfig, StripeWebhookConfig,
+};
 pub use csv::{
     parse_bank_csv, parse_bank_csv_with_profile, parse_revolut_csv, parse_stripe_csv, BankCsvError,
     BankProfile, BankRow,
 };
 pub use import::{default_source_for_rail, import_preview, BankImportError, BankImportSource};
 pub use map::{draft_entries_from_rows, BankImportConfig, BankMapError};
+pub use oauth::{
+    load_revolut_tokens, oauth_exchange_code, oauth_exchange_code_with_client, oauth_start,
+    oauth_start_with_state, save_revolut_tokens, RevolutOAuthError, RevolutOAuthStart,
+    RevolutStoredTokens,
+};
+pub use reconcile::{
+    list_unmatched_bank_exceptions, suggest_matches, sync_unmatched_exceptions, BankRowMatchResult,
+    MatchKind, MatchSuggestion, ReconcileError, EXCEPTION_UNMATCHED_BANK, SAFE_THRESHOLD_BPS,
+};
+pub use webhook::{
+    draft_from_event, draft_to_bank_row, ingest_stripe_webhook, parse_webhook_event,
+    queue_stripe_webhook, sign_test_payload, verify_stripe_signature, QueuedStripeWebhook,
+    StripeWebhookDraft, StripeWebhookError, STRIPE_WEBHOOKS_DIR, STRIPE_WEBHOOKS_QUEUE,
+};
 
 use klarbog_plugin::{Capability, Plugin};
 

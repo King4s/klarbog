@@ -30,7 +30,7 @@ pub struct SignInput<'a> {
     pub amz_date: &'a str,
 }
 
-/// Sign an S3 PutObject/GetObject-style request (path-style URI, empty query).
+/// Sign an S3 PutObject/GetObject/DeleteObject-style request (path-style URI, empty query).
 pub fn sign_s3_request(input: &SignInput<'_>) -> SignedHeaders {
     let payload_hash = sha256_hex(input.payload);
     let date_stamp = &input.amz_date[..8];

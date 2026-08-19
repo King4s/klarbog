@@ -8,7 +8,8 @@ use axum::Json;
 use klarbog_core::{assert_company_path, open_existing, CoreError};
 use klarbog_plugin_documents::{
     attach_document, get_document, get_exception, list_documents, list_exceptions, raise_exception,
-    set_exception_open, DocumentError, DocumentId, DocumentKind, ExceptionId, ExceptionSeverity,
+    remove_document, set_exception_open, DocumentError, DocumentId, DocumentKind, ExceptionId,
+    ExceptionSeverity,
 };
 use klarbog_plugin_invoice::InvoiceId;
 use klarbog_types::{Actor, Envelope, PartyId};
@@ -61,6 +62,18 @@ pub struct CloseBody {
     pub exception_id: String,
     #[serde(default)]
     pub open: bool,
+}
+
+#[derive(Deserialize)]
+pub struct DeleteBody {
+    pub company: String,
+    pub document_id: String,
+    #[serde(default = "default_delete_object")]
+    pub delete_object: bool,
+}
+
+fn default_delete_object() -> bool {
+    true
 }
 
 async fn authorize_company(
@@ -220,6 +233,29 @@ pub async fn list_docs(
         (s, Json(env))
     })?;
     Ok(Json(Envelope::ok(serde_json::to_value(docs).unwrap())))
+}
+
+pub async fn delete_doc(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(body): Json<DeleteBody>,
+) -> Result<Json<Envelope<Value>>, (StatusCode, Json<Envelope<Value>>)> {
+    let actor = parse_actor(&headers).map_err(|(s, e)| (s, Json(e)))?;
+    let company = PathBuf::from(body.company);
+    let path = authorize_company(&state.allowlist_root, &company, &actor)
+        .await
+        .map_err(|e| {
+            let (s, env) = map_core(e);
+            (s, Json(env))
+        })?;
+    let id = DocumentId::new(body.document_id);
+    let doc = remove_document(&path, &id, body.delete_object)
+        .await
+        .map_err(|e| {
+            let (s, env) = map_doc(e);
+            (s, Json(env))
+        })?;
+    Ok(Json(Envelope::ok(serde_json::to_value(doc).unwrap())))
 }
 
 pub async fn raise(

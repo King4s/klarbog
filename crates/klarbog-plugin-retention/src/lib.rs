@@ -4,6 +4,7 @@
 mod backup;
 mod digest;
 mod gdpr;
+mod purge;
 mod retention;
 mod template;
 
@@ -16,6 +17,7 @@ pub use gdpr::{
     build_gdpr_export, gdpr_export_path, write_gdpr_export, GdprDocumentHint, GdprError,
     GdprExport, GDPR_EXPORT_FILENAME,
 };
+pub use purge::{run_retention_purge, PurgeError, PurgeOptions, PurgeReport};
 pub use retention::{
     ensure_retention, load_retention, save_retention, RetentionError, RetentionPolicy,
     DEFAULT_RETAIN_DAYS, RETENTION_FILENAME,

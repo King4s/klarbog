@@ -2,6 +2,7 @@
 
 mod auth;
 mod bank;
+mod invoice;
 mod journal;
 mod retention;
 
@@ -71,6 +72,20 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "invoice_mark_paid_preview",
+                    "description": "Mark invoice paid and return payment journal suggestion with party_id (no post)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "invoice_id": {"type": "string"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "invoice_id", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "journal_post_preview",
                     "description": "Phase-1: validate entry and return confirmation token (no write)",
                     "inputSchema": {
@@ -121,6 +136,9 @@ pub fn handle_tool_call(
         "bank_import_preview" => rt.block_on(bank::bank_import_preview(args, allowlist_root)),
         "retention_get" => rt.block_on(retention::retention_get(args, allowlist_root)),
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
+        "invoice_mark_paid_preview" => {
+            rt.block_on(invoice::invoice_mark_paid_preview(args, allowlist_root))
+        }
         "journal_post_preview" => rt.block_on(journal::journal_post_preview(
             args,
             allowlist_root,
@@ -151,6 +169,7 @@ mod tests {
         assert!(names.contains(&"bank_import_preview"));
         assert!(names.contains(&"retention_get"));
         assert!(names.contains(&"backup_manifest"));
+        assert!(names.contains(&"invoice_mark_paid_preview"));
         assert!(names.contains(&"journal_post_preview"));
         assert!(names.contains(&"journal_post_commit"));
     }
