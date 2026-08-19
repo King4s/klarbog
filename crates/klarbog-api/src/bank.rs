@@ -70,6 +70,7 @@ pub(crate) fn map_import(err: BankImportError) -> (StatusCode, Envelope<Value>) 
             StatusCode::BAD_REQUEST
         }
         BankImportError::Csv(_) | BankImportError::Map(_) => StatusCode::BAD_REQUEST,
+        BankImportError::OAuth(_) => StatusCode::SERVICE_UNAVAILABLE,
         BankImportError::Api(e) => match e {
             klarbog_plugin_bank::BankApiError::Http { status, .. } if *status == 401 => {
                 StatusCode::BAD_GATEWAY
@@ -152,7 +153,10 @@ mod http_tests {
     use serde_json::Value;
     use std::sync::Arc;
     use tempfile::tempdir;
+    use tokio::sync::Mutex;
     use tower::ServiceExt;
+
+    static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
 
     const FIXTURE: &str = "Dato;Tekst;Beløb\n19.08.2026;Office supplies;-125,50\n20.08.2026;Customer payment;500,00\n";
 
@@ -214,6 +218,7 @@ mod http_tests {
 
     #[tokio::test]
     async fn bank_preview_revolut_api_missing_env() {
+        let _lock = ENV_TEST_LOCK.lock().await;
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");
@@ -225,7 +230,11 @@ mod http_tests {
         };
         let app = router(state);
         let (kind, id) = actor_headers(&owner);
-        let _guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
+        let _guards = [
+            EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN"),
+            EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_ID"),
+            EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_SECRET"),
+        ];
         let body = serde_json::json!({
             "company": company_path.to_string_lossy(),
             "provider": "revolut",

@@ -1,8 +1,10 @@
-//! Revolut OAuth scaffold — auth URL + authorization-code exchange (ADR-008).
+//! Revolut OAuth scaffold — auth URL, code exchange, refresh (ADR-008).
 
 use crate::api::{BankApiError, HttpClient, ReqwestHttpClient};
-use crate::config::{BankApiConfigError, RevolutOAuthConfig};
-use crate::oauth::token_store::{save_revolut_tokens, RevolutStoredTokens};
+use crate::config::{RevolutApiConfig, RevolutOAuthConfig};
+use crate::oauth::token_store::{
+    access_token_expired, load_revolut_tokens, save_revolut_tokens, RevolutStoredTokens,
+};
 use chrono::Utc;
 use serde::Deserialize;
 use std::path::Path;
@@ -21,11 +23,15 @@ pub struct RevolutOAuthStart {
 #[derive(Debug, Error)]
 pub enum RevolutOAuthError {
     #[error(transparent)]
-    Config(#[from] BankApiConfigError),
+    Config(#[from] crate::config::BankApiConfigError),
     #[error("missing authorization code")]
     MissingCode,
+    #[error("missing refresh_token in company secrets")]
+    MissingRefresh,
     #[error("token exchange failed: {0}")]
     Exchange(String),
+    #[error("token refresh failed: {0}")]
+    Refresh(String),
     #[error(transparent)]
     Api(#[from] BankApiError),
     #[error(transparent)]
@@ -86,123 +92,110 @@ pub async fn oauth_exchange_code_with_client<C: HttpClient>(
         .append_pair("client_secret", &cfg.client_secret)
         .append_pair("redirect_uri", &cfg.redirect_uri)
         .finish();
-    let (status, resp_body) = client.post_form(&cfg.token_url, &body, None).await?;
-    if status != 200 {
-        return Err(RevolutOAuthError::Exchange(format!(
-            "http {status}: token response rejected"
-        )));
-    }
-    let parsed: TokenResponse = serde_json::from_str(&resp_body)
-        .map_err(|e| RevolutOAuthError::Exchange(format!("invalid token json: {e}")))?;
-    if parsed.access_token.trim().is_empty() {
-        return Err(RevolutOAuthError::Exchange(
-            "empty access_token in response".into(),
-        ));
-    }
-    let expires_at = parsed.expires_in.map(|secs| Utc::now().timestamp() + secs);
-    let stored = RevolutStoredTokens {
-        access_token: parsed.access_token,
-        refresh_token: parsed.refresh_token,
-        expires_at,
-        token_type: parsed.token_type,
-    };
+    let stored = token_grant_with_client(client, cfg, &body, "exchange").await?;
     save_revolut_tokens(company, &stored)?;
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::api::HttpClient;
-    use std::sync::{Arc, Mutex};
-    use tempfile::tempdir;
+pub async fn refresh_access_token(
+    cfg: &RevolutOAuthConfig,
+    company: &Path,
+) -> Result<RevolutStoredTokens, RevolutOAuthError> {
+    refresh_access_token_with_client(&ReqwestHttpClient, cfg, company).await
+}
 
-    struct MockClient {
-        last_body: Arc<Mutex<Option<String>>>,
-        response: String,
+pub async fn refresh_access_token_with_client<C: HttpClient>(
+    client: &C,
+    cfg: &RevolutOAuthConfig,
+    company: &Path,
+) -> Result<RevolutStoredTokens, RevolutOAuthError> {
+    let existing = load_revolut_tokens(company)?;
+    let refresh = existing
+        .refresh_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or(RevolutOAuthError::MissingRefresh)?;
+    let body = form_urlencoded::Serializer::new(String::new())
+        .append_pair("grant_type", "refresh_token")
+        .append_pair("refresh_token", refresh)
+        .append_pair("client_id", &cfg.client_id)
+        .append_pair("client_secret", &cfg.client_secret)
+        .finish();
+    let mut stored = token_grant_with_client(client, cfg, &body, "refresh").await?;
+    if stored.refresh_token.is_none() {
+        stored.refresh_token = existing.refresh_token;
     }
+    if stored.token_type.is_none() {
+        stored.token_type = existing.token_type;
+    }
+    save_revolut_tokens(company, &stored)?;
+    Ok(stored)
+}
 
-    impl HttpClient for MockClient {
-        async fn get(
-            &self,
-            _url: &str,
-            _bearer_token: &str,
-        ) -> Result<(u16, String), BankApiError> {
-            Ok((200, "[]".into()))
+/// Env bearer first; else company secrets, refreshing when access is expired.
+pub async fn from_env_or_company_secrets_refreshed<C: HttpClient>(
+    client: &C,
+    company: &Path,
+) -> Result<RevolutApiConfig, RevolutOAuthError> {
+    if let Ok(cfg) = RevolutApiConfig::from_env() {
+        return Ok(cfg);
+    }
+    let tokens = load_revolut_tokens(company).map_err(|_| {
+        RevolutOAuthError::Config(crate::config::BankApiConfigError::MissingEnv(
+            "KLARBOG_REVOLUT_API_TOKEN",
+        ))
+    })?;
+    let now_ms = Utc::now().timestamp_millis();
+    if !access_token_expired(&tokens, now_ms) {
+        return Ok(RevolutApiConfig {
+            token: tokens.access_token,
+            base_url: RevolutApiConfig::base_from_env(),
+        });
+    }
+    let oauth = RevolutOAuthConfig::from_env()?;
+    let refreshed = refresh_access_token_with_client(client, &oauth, company).await?;
+    Ok(RevolutApiConfig {
+        token: refreshed.access_token,
+        base_url: RevolutApiConfig::base_from_env(),
+    })
+}
+
+async fn token_grant_with_client<C: HttpClient>(
+    client: &C,
+    cfg: &RevolutOAuthConfig,
+    body: &str,
+    kind: &str,
+) -> Result<RevolutStoredTokens, RevolutOAuthError> {
+    let (status, resp_body) = client.post_form(&cfg.token_url, body, None).await?;
+    if status != 200 {
+        let msg = format!("http {status}: token response rejected");
+        return Err(match kind {
+            "refresh" => RevolutOAuthError::Refresh(msg),
+            _ => RevolutOAuthError::Exchange(msg),
+        });
+    }
+    let parsed: TokenResponse = serde_json::from_str(&resp_body).map_err(|e| {
+        let msg = format!("invalid token json: {e}");
+        match kind {
+            "refresh" => RevolutOAuthError::Refresh(msg),
+            _ => RevolutOAuthError::Exchange(msg),
         }
-
-        async fn post_form(
-            &self,
-            _url: &str,
-            body: &str,
-            _bearer_token: Option<&str>,
-        ) -> Result<(u16, String), BankApiError> {
-            *self.last_body.lock().unwrap() = Some(body.to_string());
-            Ok((200, self.response.clone()))
-        }
+    })?;
+    if parsed.access_token.trim().is_empty() {
+        let msg = "empty access_token in response".into();
+        return Err(match kind {
+            "refresh" => RevolutOAuthError::Refresh(msg),
+            _ => RevolutOAuthError::Exchange(msg),
+        });
     }
-
-    fn test_oauth_cfg() -> RevolutOAuthConfig {
-        RevolutOAuthConfig {
-            client_id: "client-id".into(),
-            client_secret: "client-secret".into(),
-            redirect_uri: "https://example.test/callback".into(),
-            token_url: "https://example.test/token".into(),
-            auth_url: DEFAULT_AUTH_URL.into(),
-        }
-    }
-
-    #[test]
-    fn start_url_contains_required_params() {
-        let cfg = test_oauth_cfg();
-        let start = oauth_start_with_state(&cfg, "state-123".into());
-        assert!(start.auth_url.starts_with(DEFAULT_AUTH_URL));
-        assert!(start.auth_url.contains("client_id=client-id"));
-        assert!(start.auth_url.contains("redirect_uri="));
-        assert!(start.auth_url.contains("response_type=code"));
-        assert!(start.auth_url.contains("scope=READ"));
-        assert!(start.auth_url.contains("state=state-123"));
-        assert!(!start.auth_url.contains("client-secret"));
-    }
-
-    #[tokio::test]
-    async fn exchange_stores_tokens_without_logging_secrets() {
-        let dir = tempdir().unwrap();
-        let company = dir.path().join("co");
-        std::fs::create_dir_all(&company).unwrap();
-        let last_body = Arc::new(Mutex::new(None));
-        let client = MockClient {
-            last_body: Arc::clone(&last_body),
-            response: r#"{"access_token":"at-1","refresh_token":"rt-1","expires_in":3600,"token_type":"Bearer"}"#
-                .into(),
-        };
-        oauth_exchange_code_with_client(&client, &test_oauth_cfg(), &company, "auth-code-xyz")
-            .await
-            .unwrap();
-        let body = last_body.lock().unwrap().clone().unwrap();
-        assert!(body.contains("grant_type=authorization_code"));
-        assert!(body.contains("code=auth-code-xyz"));
-        assert!(body.contains("client_id=client-id"));
-        assert!(body.contains("client_secret=client-secret"));
-        let stored = crate::oauth::token_store::load_revolut_tokens(&company).unwrap();
-        assert_eq!(stored.access_token, "at-1");
-        assert_eq!(stored.refresh_token.as_deref(), Some("rt-1"));
-        assert_eq!(stored.token_type.as_deref(), Some("Bearer"));
-        assert!(stored.expires_at.is_some());
-    }
-
-    #[tokio::test]
-    async fn exchange_rejects_empty_code() {
-        let dir = tempdir().unwrap();
-        let company = dir.path().join("co");
-        std::fs::create_dir_all(&company).unwrap();
-        let client = MockClient {
-            last_body: Arc::new(Mutex::new(None)),
-            response: "{}".into(),
-        };
-        let err = oauth_exchange_code_with_client(&client, &test_oauth_cfg(), &company, "  ")
-            .await
-            .unwrap_err();
-        assert!(matches!(err, RevolutOAuthError::MissingCode));
-    }
+    let expires_at = parsed
+        .expires_in
+        .map(|secs| Utc::now().timestamp_millis() + secs.saturating_mul(1000));
+    Ok(RevolutStoredTokens {
+        access_token: parsed.access_token,
+        refresh_token: parsed.refresh_token,
+        expires_at,
+        token_type: parsed.token_type,
+    })
 }

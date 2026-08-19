@@ -38,15 +38,20 @@ pub enum BankApiConfigError {
 impl RevolutApiConfig {
     pub const DEFAULT_BASE: &'static str = "https://b2b.revolut.com/api/1.0";
 
+    pub fn base_from_env() -> String {
+        revolut_api_base_from_env()
+    }
+
     pub fn from_env() -> Result<Self, BankApiConfigError> {
         let token = required_env("KLARBOG_REVOLUT_API_TOKEN")?;
         Ok(Self {
             token,
-            base_url: revolut_api_base_from_env(),
+            base_url: Self::base_from_env(),
         })
     }
 
     /// Env bearer token first; else company `secrets/revolut.json` access token (OAuth scaffold).
+    /// Does not refresh. Prefer `from_env_or_company_secrets_refreshed` when expiry matters.
     pub fn from_env_or_company_secrets(company: &Path) -> Result<Self, BankApiConfigError> {
         if let Ok(cfg) = Self::from_env() {
             return Ok(cfg);
@@ -54,7 +59,7 @@ impl RevolutApiConfig {
         let token = crate::oauth::load_revolut_access_token(company)?;
         Ok(Self {
             token,
-            base_url: revolut_api_base_from_env(),
+            base_url: Self::base_from_env(),
         })
     }
 }

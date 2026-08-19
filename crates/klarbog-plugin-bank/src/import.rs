@@ -1,9 +1,12 @@
 //! Unified bank import entry — CSV fallback or live API (ADR-008/009).
 
-use crate::api::{fetch_revolut_transactions, fetch_stripe_balance_transactions, BankApiError};
+use crate::api::{
+    fetch_revolut_transactions, fetch_stripe_balance_transactions, BankApiError, ReqwestHttpClient,
+};
 use crate::config::{BankApiConfigError, RevolutApiConfig, StripeApiConfig};
 use crate::csv::{parse_bank_csv_with_profile, BankCsvError, BankProfile};
 use crate::map::{draft_entries_from_rows, BankImportConfig, BankMapError};
+use crate::oauth::{from_env_or_company_secrets_refreshed, RevolutOAuthError};
 use klarbog_journal::JournalEntry;
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
@@ -29,6 +32,8 @@ pub enum BankImportError {
     Api(#[from] BankApiError),
     #[error(transparent)]
     Config(#[from] BankApiConfigError),
+    #[error(transparent)]
+    OAuth(#[from] RevolutOAuthError),
     #[error(transparent)]
     Map(#[from] BankMapError),
 }
@@ -64,7 +69,9 @@ pub async fn import_preview(
         }
         (BankImportSource::Api, BankProfile::Revolut) => {
             let api_cfg = match company {
-                Some(path) => RevolutApiConfig::from_env_or_company_secrets(path)?,
+                Some(path) => {
+                    from_env_or_company_secrets_refreshed(&ReqwestHttpClient, path).await?
+                }
                 None => RevolutApiConfig::from_env()?,
             };
             fetch_revolut_transactions(&api_cfg, None, required).await?

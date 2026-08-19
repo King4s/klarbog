@@ -15,6 +15,7 @@ pub struct RevolutStoredTokens {
     pub access_token: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh_token: Option<String>,
+    /// Unix epoch milliseconds when `access_token` expires.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -67,34 +68,58 @@ pub fn save_revolut_tokens(
     let path = revolut_tokens_path(company);
     let json = serde_json::to_string_pretty(tokens)
         .map_err(|e| RevolutTokenStoreError::Parse(e.to_string()))?;
-    write_secret_file(&path, &json)?;
+    write_secret_file_atomic(&path, &json)?;
     Ok(())
 }
 
-fn write_secret_file(path: &Path, contents: &str) -> Result<(), RevolutTokenStoreError> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(path)?;
-        file.write_all(contents.as_bytes())?;
+fn write_secret_file_atomic(path: &Path, contents: &str) -> Result<(), RevolutTokenStoreError> {
+    let dir = path.parent().ok_or_else(|| {
+        RevolutTokenStoreError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "token path has no parent",
+        ))
+    })?;
+    let tmp = dir.join(format!(
+        ".{}.tmp.{}",
+        REVOLUT_TOKENS_FILENAME,
+        std::process::id()
+    ));
+    let write_result = (|| -> Result<(), RevolutTokenStoreError> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&tmp)?;
+            file.write_all(contents.as_bytes())?;
+            file.sync_all()?;
+        }
+        #[cfg(not(unix))]
+        {
+            fs::write(&tmp, contents)?;
+        }
+        fs::rename(&tmp, path)?;
         Ok(())
+    })();
+    if write_result.is_err() {
+        let _ = fs::remove_file(&tmp);
     }
-    #[cfg(not(unix))]
-    {
-        fs::write(path, contents)?;
-        Ok(())
-    }
+    write_result
 }
 
 pub fn load_revolut_access_token(company: &Path) -> Result<String, BankApiConfigError> {
     load_revolut_tokens(company)
         .map(|t| t.access_token)
         .map_err(|_| BankApiConfigError::MissingEnv("KLARBOG_REVOLUT_API_TOKEN"))
+}
+
+pub fn access_token_expired(tokens: &RevolutStoredTokens, now_ms: i64) -> bool {
+    tokens
+        .expires_at
+        .is_some_and(|expires_at| now_ms >= expires_at)
 }
 
 #[cfg(test)]
@@ -110,7 +135,7 @@ mod tests {
         let tokens = RevolutStoredTokens {
             access_token: "access-test".into(),
             refresh_token: Some("refresh-test".into()),
-            expires_at: Some(1_700_000_000),
+            expires_at: Some(1_700_000_000_000),
             token_type: Some("Bearer".into()),
         };
         save_revolut_tokens(&company, &tokens).unwrap();
@@ -142,5 +167,17 @@ mod tests {
             .mode()
             & 0o777;
         assert_eq!(mode, 0o600);
+    }
+
+    #[test]
+    fn expired_helper_uses_unix_ms() {
+        let tokens = RevolutStoredTokens {
+            access_token: "x".into(),
+            refresh_token: Some("r".into()),
+            expires_at: Some(1_000),
+            token_type: None,
+        };
+        assert!(access_token_expired(&tokens, 1_000));
+        assert!(!access_token_expired(&tokens, 999));
     }
 }

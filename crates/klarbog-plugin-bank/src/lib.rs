@@ -9,11 +9,17 @@ mod import;
 mod map;
 mod oauth;
 mod reconcile;
+mod reconcile_apply;
 #[cfg(test)]
 mod reconcile_tests;
 mod revolut;
 mod stripe;
 mod webhook;
+mod webhook_consume;
+#[cfg(test)]
+mod webhook_consume_tests;
+#[cfg(test)]
+mod webhook_tests;
 
 pub use amount::{parse_amount_minor, BankAmountError};
 pub use api::{
@@ -30,18 +36,24 @@ pub use csv::{
 pub use import::{default_source_for_rail, import_preview, BankImportError, BankImportSource};
 pub use map::{draft_entries_from_rows, BankImportConfig, BankMapError};
 pub use oauth::{
-    load_revolut_tokens, oauth_exchange_code, oauth_exchange_code_with_client, oauth_start,
-    oauth_start_with_state, save_revolut_tokens, RevolutOAuthError, RevolutOAuthStart,
+    from_env_or_company_secrets_refreshed, load_revolut_tokens, oauth_exchange_code,
+    oauth_exchange_code_with_client, oauth_start, oauth_start_with_state, refresh_access_token,
+    refresh_access_token_with_client, save_revolut_tokens, RevolutOAuthError, RevolutOAuthStart,
     RevolutStoredTokens,
 };
 pub use reconcile::{
     list_unmatched_bank_exceptions, suggest_matches, sync_unmatched_exceptions, BankRowMatchResult,
     MatchKind, MatchSuggestion, ReconcileError, EXCEPTION_UNMATCHED_BANK, SAFE_THRESHOLD_BPS,
 };
+pub use reconcile_apply::{apply_match, ApplyMatchResult};
 pub use webhook::{
     draft_from_event, draft_to_bank_row, ingest_stripe_webhook, parse_webhook_event,
     queue_stripe_webhook, sign_test_payload, verify_stripe_signature, QueuedStripeWebhook,
     StripeWebhookDraft, StripeWebhookError, STRIPE_WEBHOOKS_DIR, STRIPE_WEBHOOKS_QUEUE,
+};
+pub use webhook_consume::{
+    consume_stripe_webhook_queue, ConsumeOpts, ConsumeReport, ConsumedBankRow,
+    STRIPE_WEBHOOKS_CONSUMED,
 };
 
 use klarbog_plugin::{Capability, Plugin};

@@ -3,13 +3,16 @@
 mod actor;
 mod bank;
 mod bank_reconcile;
+mod bank_reconcile_apply;
 mod crm;
 mod documents;
+mod documents_exceptions;
 mod invoice;
 mod invoice_lifecycle;
 mod journal;
 mod retention;
 mod revolut_oauth;
+mod stripe_consume;
 mod stripe_webhook;
 
 #[cfg(test)]
@@ -17,7 +20,11 @@ mod api_tests;
 #[cfg(test)]
 mod documents_tests;
 #[cfg(test)]
+mod invoice_lifecycle_http_tests;
+#[cfg(test)]
 mod retention_tests;
+#[cfg(test)]
+mod revolut_oauth_http_tests;
 
 use axum::extract::State;
 use axum::{routing::delete, routing::get, routing::patch, routing::post, Json, Router};
@@ -95,12 +102,16 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/invoices/mark-paid",
             post(invoice_lifecycle::mark_paid),
         )
+        .route(
+            "/api/v1/invoices/mark-part-paid",
+            post(invoice_lifecycle::mark_part_paid),
+        )
         .route("/api/v1/documents", post(documents::attach))
         .route("/api/v1/documents", get(documents::list_docs))
         .route("/api/v1/documents", delete(documents::delete_doc))
-        .route("/api/v1/exceptions", post(documents::raise))
-        .route("/api/v1/exceptions", get(documents::list_exc))
-        .route("/api/v1/exceptions", patch(documents::close_exc))
+        .route("/api/v1/exceptions", post(documents_exceptions::raise))
+        .route("/api/v1/exceptions", get(documents_exceptions::list_exc))
+        .route("/api/v1/exceptions", patch(documents_exceptions::close_exc))
         .route("/api/v1/retention", get(retention::get_retention))
         .route("/api/v1/backup", post(retention::post_backup))
         .route("/api/v1/gdpr-export", post(retention::post_gdpr_export))
@@ -110,7 +121,12 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/bank/reconcile/suggest",
             post(bank_reconcile::reconcile_suggest),
         )
+        .route(
+            "/api/v1/bank/reconcile/apply",
+            post(bank_reconcile_apply::reconcile_apply),
+        )
         .route("/api/v1/webhooks/stripe", post(stripe_webhook::handle))
+        .route("/api/v1/bank/stripe/consume", post(stripe_consume::consume))
         .route(
             "/api/v1/revolut/oauth/start",
             get(revolut_oauth::oauth_start_handler),
@@ -118,6 +134,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/revolut/oauth/callback",
             post(revolut_oauth::oauth_callback_handler),
+        )
+        .route(
+            "/api/v1/revolut/oauth/refresh",
+            post(revolut_oauth::oauth_refresh_handler),
         )
         .with_state(state)
 }
