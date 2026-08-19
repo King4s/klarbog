@@ -1,13 +1,14 @@
 //! Object storage for Klarbog attachments (ADR-007).
 //!
 //! DEV default: [`LocalFsStore`] under the company allowlist path.
-//! Stage/prod may use [`R2Store`] (Cloudflare R2 EU) when wired with real S3 signing.
+//! Stage/prod may use [`R2Store`] (Cloudflare R2 EU) with SigV4 PutObject/GetObject.
 
 mod error;
 mod key;
 mod local;
 mod r2;
 mod select;
+mod sigv4;
 
 pub use error::StorageError;
 pub use key::validate_object_key;

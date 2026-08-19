@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 pub const MANIFEST_KEY: &str = "manifest.json";
+pub const MANIFEST_SHA256_KEY: &str = "manifest.sha256";
 
 #[derive(Debug, Error)]
 pub enum BackupError {
@@ -62,6 +63,8 @@ pub struct ManifestDocumentRef {
 pub struct BackupManifest {
     pub created_unix_ms: i64,
     pub backup_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_sha256: Option<String>,
     pub files: Vec<ManifestFileEntry>,
     pub journal_digests: Vec<JournalDigestSummary>,
     pub parties: Vec<ManifestPartyRef>,
@@ -130,6 +133,7 @@ pub async fn build_backup_manifest(company: &Path) -> Result<BackupManifest, Bac
     Ok(BackupManifest {
         created_unix_ms: ts,
         backup_key: format!("backups/{ts}/manifest.json"),
+        content_sha256: None,
         files,
         journal_digests,
         parties,
@@ -138,14 +142,47 @@ pub async fn build_backup_manifest(company: &Path) -> Result<BackupManifest, Bac
     })
 }
 
+fn sidecar_key_for(manifest_key: &str) -> String {
+    manifest_key.replace(MANIFEST_KEY, MANIFEST_SHA256_KEY)
+}
+
+/// Path to `manifest.sha256` beside a `manifest.json` path.
+pub fn manifest_sidecar_path(manifest_path: &Path) -> PathBuf {
+    manifest_path.with_file_name(MANIFEST_SHA256_KEY)
+}
+
+/// Verify `manifest.sha256` sidecar matches on-disk `manifest.json` bytes.
+pub fn verify_manifest_sidecar(manifest_path: &Path) -> bool {
+    let sidecar_path = manifest_sidecar_path(manifest_path);
+    let Ok(body) = fs::read(manifest_path) else {
+        return false;
+    };
+    let Ok(expected_raw) = fs::read_to_string(&sidecar_path) else {
+        return false;
+    };
+    let expected = expected_raw.trim();
+    if expected.len() != 64 || !expected.chars().all(|c| c.is_ascii_hexdigit()) {
+        return false;
+    }
+    crate::digest::sha256_bytes(&body) == expected
+}
+
 /// Write manifest to `backups/<ts>/manifest.json` via [`LocalFsStore`].
+/// Embeds `content_sha256` (hash of JSON without that field) and writes
+/// `manifest.sha256` sidecar (hash of final file bytes).
 pub async fn write_backup_manifest(company: &Path) -> Result<BackupManifest, BackupError> {
     let mut manifest = build_backup_manifest(company).await?;
     let key = manifest.backup_key.clone();
+    manifest.content_sha256 = None;
+    let pre_hash = serde_json::to_string_pretty(&manifest)?;
+    manifest.content_sha256 = Some(crate::digest::sha256_bytes(pre_hash.as_bytes()));
     let json = serde_json::to_string_pretty(&manifest)?;
     let store = LocalFsStore::new(company, company)?;
     store.put(&key, json.as_bytes()).await?;
-    manifest.backup_key = key;
+    let file_hash = crate::digest::sha256_bytes(json.as_bytes());
+    store
+        .put(&sidecar_key_for(&key), format!("{file_hash}\n").as_bytes())
+        .await?;
     Ok(manifest)
 }
 
@@ -207,6 +244,30 @@ mod tests {
         assert!(manifest.files.iter().any(|f| f.path == "retention.json"));
         assert_eq!(manifest.journal_digests.len(), 1);
         assert_eq!(manifest.parties.len(), 1);
-        assert!(manifest_path(&co, &manifest.backup_key).exists());
+        let path = manifest_path(&co, &manifest.backup_key);
+        assert!(path.exists());
+        assert!(manifest
+            .content_sha256
+            .as_ref()
+            .is_some_and(|h| h.len() == 64));
+        let sidecar = manifest_sidecar_path(&path);
+        assert!(sidecar.exists());
+        assert!(verify_manifest_sidecar(&path));
+    }
+
+    #[tokio::test]
+    async fn sidecar_detects_tamper() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        let actor = Actor::user("owner");
+        init_company(&co, "Tamper Test", &actor).await.unwrap();
+        ensure_company_extras(&co).unwrap();
+        let manifest = write_backup_manifest(&co).await.unwrap();
+        let path = manifest_path(&co, &manifest.backup_key);
+        assert!(verify_manifest_sidecar(&path));
+        let mut text = fs::read_to_string(&path).unwrap();
+        text.push(' ');
+        fs::write(&path, text).unwrap();
+        assert!(!verify_manifest_sidecar(&path));
     }
 }

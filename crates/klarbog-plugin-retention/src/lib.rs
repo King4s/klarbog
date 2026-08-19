@@ -8,8 +8,9 @@ mod retention;
 mod template;
 
 pub use backup::{
-    build_backup_manifest, manifest_path, write_backup_manifest, BackupError, BackupManifest,
-    ManifestDocumentRef, ManifestFileEntry, ManifestInvoiceRef, ManifestPartyRef, MANIFEST_KEY,
+    build_backup_manifest, manifest_path, manifest_sidecar_path, verify_manifest_sidecar,
+    write_backup_manifest, BackupError, BackupManifest, ManifestDocumentRef, ManifestFileEntry,
+    ManifestInvoiceRef, ManifestPartyRef, MANIFEST_KEY, MANIFEST_SHA256_KEY,
 };
 pub use gdpr::{
     build_gdpr_export, gdpr_export_path, write_gdpr_export, GdprDocumentHint, GdprError,

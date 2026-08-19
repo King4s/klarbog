@@ -1,35 +1,42 @@
 # Klarbog
 
-**DEV-only** Danish agent-first ledger (Rust rewrite), forked from
-[Rentemester](https://github.com/mikkelkrogsholm/rentemester) (MIT — see `LICENSE` + `NOTICE`).
+**Agent-first bogføring til Danmark** — Rust-ledger med MCP, HTTP API og CLI.  
+Forket fra [Rentemester](https://github.com/mikkelkrogsholm/rentemester) (MIT — se `LICENSE` + `NOTICE`).
 
-Not production. Not Finance Tracker. Not SeaAid billing.
+Status: **DEV** (loopback API, lokal data). Ikke produktion endnu.
 
-Workspace crates: `klarbog-types`, `klarbog-journal`, `klarbog-store-sqlite`,
-`klarbog-core`, `klarbog-plugin`, `klarbog-plugin-crm`, `klarbog-api`,
-`klarbog-mcp`, `klarbog-cli`.
-Money is `i64` minor units (never `f64`). Journal double-entry is mandatory.
+## Produktpunkt: AI-prompt med i pakken
 
-## Surfaces
+Når Klarbog er installeret, kan brugeren give **én markdown-fil** til *hvilken som helst* AI (ChatGPT, Claude, Cursor, Codex, Gemini, …). AI’en lærer så selv, hvordan den skal snakke med produktet — MCP-tools, HTTP-ruter, CLI, to-fase journal, øre som heltal, Revolut/DK-bank, osv.
 
-- `klarbog` CLI — init / health / smoke-post
-- `klarbog-api` — `127.0.0.1:3195/health` plus stub `/api/v1/*`
-- `klarbog-mcp` — stdio JSON-RPC stub (`tools/list`, two-phase confirm reserved)
+📄 **[`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md)** ← den fil
 
-## Quick start
+Mønster som Cloudflare’s [agent-setup prompt](https://developers.cloudflare.com/agent-setup/prompt.md), men rettet mod **at bruge Klarbog**, ikke at sætte Cloudflare-udviklermiljø op.
+
+*(Udviklere der hacker på kildekoden: [`docs/agent-setup/DEVELOPER.md`](docs/agent-setup/DEVELOPER.md).)*
+
+## Overflader
+
+| Overflade | Formål |
+|-----------|--------|
+| **MCP** (`klarbog-mcp`) | AI kalder tools (journal preview/commit, bank-import, backup, …) |
+| **HTTP** (`klarbog-api`) | REST på `127.0.0.1:3195` |
+| **CLI** (`klarbog`) | init, demo, backup, retention, GDPR-export |
+
+Penge er `i64` minor units (øre) — aldrig `f64`. Dobbelt bogholderi er obligatorisk. Journal-skrivning er to-fase (preview → commit).
+
+## Hurtig start (udvikler)
 
 ```bash
 cargo build --workspace
 cargo test --workspace
 ./scripts/verify.sh
-cargo run -p klarbog-cli -- init --company /tmp/klarbog-demo --name "Demo ApS"
-cargo run -p klarbog-cli -- smoke-post --company /tmp/klarbog-demo
+cargo run -p klarbog-cli -- demo
 ```
 
-## Swarm
+## Mere
 
-See `swarm/ROADMAP.md` and `docs/adr/`. Create `swarm/STOP` to halt autonomous dispatch.
-
-## Upstream reference
-
-TypeScript Rentemester sources live under `reference/typescript/` for domain fixtures only.
+- Skills til agenter: [`docs/skills/`](docs/skills/)
+- Beslutninger: [`docs/adr/`](docs/adr/)
+- Slice-roadmap: [`swarm/ROADMAP.md`](swarm/ROADMAP.md)
+- Upstream TypeScript-reference: `reference/typescript/`

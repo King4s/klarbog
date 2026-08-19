@@ -15,6 +15,8 @@ klarbog-journal = { workspace = true }
 klarbog-plugin-crm = { workspace = true }
 klarbog-plugin-invoice = { workspace = true }
 klarbog-plugin-documents = { workspace = true }
+klarbog-plugin-bank = { workspace = true }
+klarbog-plugin-retention = { workspace = true }
 klarbog-plugin = { workspace = true }
 klarbog-plugin-rules-dk = { workspace = true }
 axum = { workspace = true }

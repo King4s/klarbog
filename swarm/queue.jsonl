@@ -15,3 +15,9 @@
 {"event":"revolut_profile","slice":8,"status":"done","note":"ADR-008 BankProfile::Revolut; parse_revolut_csv + parse_bank_csv_with_profile; comma RFC CSV; currency batch validation; fixture revolut_statement.csv; 15 bank tests","ts":"2026-08-19T23:10:00Z"}
 {"event":"revolut_amount_fix","slice":5,"status":"done","note":"ADR-008 verify: dot-decimal Revolut amounts (-45.50) fixed in amount.rs; GenericDk unchanged; klarbog-storage 12 tests; VERIFY_OK","ts":"2026-08-19T22:12:00Z"}
 {"event":"slice9_done","slice":9,"status":"done","note":"klarbog-plugin-retention: retention.json, backup manifest via LocalFsStore, gdpr_export stub, expense_memo template; CLI backup/retention/gdpr-export; VERIFY_OK","ts":"2026-08-19T22:15:00Z"}
+{"event":"polish_track_a","slice":10,"status":"done","note":"manifest.sha256 sidecar + content_sha256; verify_manifest_sidecar; POST /api/v1/bank/import/preview; ADR-006 extended; VERIFY_OK","ts":"2026-08-20T22:21:00Z"}
+{"event":"http_retention","slice":9,"status":"done","note":"GET /api/v1/retention, POST /api/v1/backup, POST /api/v1/gdpr-export; actor headers + allowlist AuthZ; VERIFY_OK","ts":"2026-08-20T22:21:00Z"}
+{"event":"mcp_bank_retention","slice":10,"status":"done","note":"MCP bank_import_preview, retention_get, backup_manifest; AuthZ + split modules; VERIFY_OK","ts":"2026-08-20T22:25:00Z"}
+{"event":"agent_setup_prompt","note":"docs/agent-setup/prompt.md Cloudflare-style Klarbog bootstrap","ts":"2026-08-20T00:25:00Z"}
+{"event":"r2_sigv4","slice":7,"status":"done","note":"R2Store SigV4 put/get via reqwest+sigv4.rs; EU fail-closed; offline tests; delete deferred","ts":"2026-08-20T22:30:00Z"}
+{"event":"agent_prompt_product","note":"prompt.md rewritten as end-user AI product talk guide; DEVELOPER.md split","ts":"2026-08-20T00:30:00Z"}

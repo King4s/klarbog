@@ -1,0 +1,15 @@
+# Klarbog — udvikler agent-bootstrap (ikke slutbruger)
+
+Til AI’er der **udvikler** Klarbog i kilde-repoet.  
+Slutbrugere / “tal med det installerede produkt” → se **`prompt.md`** i samme mappe.
+
+```bash
+cd /opt/pellucid-software/klarbog   # eller din clone
+git checkout rust-dev
+./scripts/verify.sh                 # forvent VERIFY_OK
+cargo build -p klarbog-mcp --release
+cargo run -p klarbog-cli -- demo
+```
+
+Skills under `docs/skills/`. ADR under `docs/adr/`. Swarm: `swarm/ROADMAP.md`.  
+DEV only — ingen SeaAid/Stripe/prod. Penge = i64. Journal = to-fase confirm.

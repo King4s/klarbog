@@ -12,6 +12,12 @@ pub enum DigestError {
     Io(#[from] std::io::Error),
 }
 
+pub fn sha256_bytes(data: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
+}
+
 pub fn sha256_file(path: &Path) -> Result<String, DigestError> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);

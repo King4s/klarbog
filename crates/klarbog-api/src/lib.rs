@@ -1,15 +1,19 @@
 //! DEV-only HTTP surface. Bind loopback in the binary (ADR-003).
 
 mod actor;
+mod bank;
 mod crm;
 mod documents;
 mod invoice;
 mod journal;
+mod retention;
 
 #[cfg(test)]
 mod api_tests;
 #[cfg(test)]
 mod documents_tests;
+#[cfg(test)]
+mod retention_tests;
 
 use axum::extract::State;
 use axum::{routing::get, routing::patch, routing::post, Json, Router};
@@ -84,6 +88,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/exceptions", post(documents::raise))
         .route("/api/v1/exceptions", get(documents::list_exc))
         .route("/api/v1/exceptions", patch(documents::close_exc))
+        .route("/api/v1/retention", get(retention::get_retention))
+        .route("/api/v1/backup", post(retention::post_backup))
+        .route("/api/v1/gdpr-export", post(retention::post_gdpr_export))
+        .route("/api/v1/bank/import/preview", post(bank::preview))
         .with_state(state)
 }
 

@@ -2,7 +2,7 @@
 name: klarbog-storage-r2
 description: >-
   Object storage for Klarbog attachments (local DEV default, Cloudflare R2 EU
-  scaffold). Use when attaching documents or wiring binary upload paths.
+  SigV4 put/get). Use when attaching documents or wiring binary upload paths.
 ---
 
 # Object storage (ADR-007)
@@ -19,7 +19,7 @@ Env `KLARBOG_STORAGE` (default `local`):
 | Value | Behavior |
 |-------|----------|
 | `local` | Create `<company>/objects/` if missing; use [`LocalFsStore`] |
-| `r2` | Validate `KLARBOG_R2_*` via [`R2Config::from_env`] (no local dir) |
+| `r2` | Validate `KLARBOG_R2_*` via [`R2Config::from_env`]; use [`R2Store`] SigV4 put/get |
 
 ```rust
 use klarbog_storage::{klarbog_storage, KlarbogStorage};
@@ -27,7 +27,10 @@ use klarbog_storage::{klarbog_storage, KlarbogStorage};
 let backend = klarbog_storage(company_path)?;
 match backend {
     KlarbogStorage::Local(store) => { /* path_hint under objects/ */ }
-    KlarbogStorage::R2(cfg) => { /* keys only in metadata for now */ }
+    KlarbogStorage::R2(cfg) => {
+        let store = klarbog_storage::R2Store::new(cfg);
+        store.put("attachments/scan.pdf", &bytes).await?;
+    }
 }
 ```
 
@@ -40,7 +43,15 @@ match backend {
 - Optional: `KLARBOG_R2_JURISDICTION` (default `eu` / WEUR)
 - Override non-EU only with `KLARBOG_R2_ALLOW_NON_EU=1`
 
-`R2Store` network I/O is still a scaffold (`NotImplementedInDev`); config validation is live.
+## SigV4 I/O (live)
+
+[`R2Store::put`] and [`R2Store::get`] call the R2 S3-compatible API with **AWS SigV4** (`region=auto`, path-style `/{bucket}/{key}`). Implementation is in `klarbog-storage` (`sigv4.rs` + `reqwest`); no extra AWS SDK.
+
+- **Fail-closed non-EU**: rejected at config load and again before each request unless `KLARBOG_R2_ALLOW_NON_EU=1`.
+- **Delete** remains `NotImplementedInDev` (optional follow-up).
+- **Tests** exercise signing and key validation only — no network in `cargo test`.
+
+Stage smoke (owner creds, not CI): `KLARBOG_STORAGE=r2` + env vars, then put/get a small object under `attachments/…`.
 
 ## Document attach
 

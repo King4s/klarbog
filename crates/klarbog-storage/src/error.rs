@@ -28,6 +28,10 @@ pub enum StorageError {
     NonEuJurisdiction,
     #[error("R2 object store not implemented in DEV scaffold")]
     NotImplementedInDev,
+    #[error("R2 HTTP error: {0}")]
+    Http(String),
+    #[error("R2 request failed ({status}): {body}")]
+    R2Response { status: u16, body: String },
 }
 
 impl From<std::io::Error> for StorageError {

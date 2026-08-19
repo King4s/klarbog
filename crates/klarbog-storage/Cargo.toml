@@ -6,6 +6,10 @@ license.workspace = true
 description = "Object storage trait — local filesystem (DEV) and Cloudflare R2 EU scaffold (ADR-007)"
 
 [dependencies]
+hex = { workspace = true }
+hmac = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 

@@ -1,8 +1,7 @@
 # Active swarm status
 
-- slices **2–9 done** (through backup / GDPR / retention / templates)
-- owner add-ons: **ADR-007 Cloudflare R2 EU** (`klarbog-storage` ObjectStore + LocalFs + R2 scaffold), **ADR-008 Revolut bank** profile
-- next: optional polish done (ADR-007 wired on document attach, storage-r2 skill, csv split); signed backup + HTTP retention routes still optional
+- slices **2–9 done**; polish: HTTP retention/backup/gdpr + bank import preview + signed backup sidecar
+- owner add-ons: ADR-007 R2 SigV4 put/get live, ADR-008 Revolut
+- next: wire R2 into document attach; optional R2 delete; commit when owner asks
 - verify: VERIFY_OK
-- tip: `rust-dev` dirty; commit when owner asks
-- stop_file: **absent by default**
+- tip: `rust-dev` dirty polish + R2; stop_file absent
