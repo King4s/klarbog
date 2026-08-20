@@ -1,4 +1,4 @@
-//! DEV-only HTTP surface. Bind loopback in the binary (ADR-003).
+//! DEV-only HTTP surface. Default bind is loopback in the binary (ADR-003 / ADR-014).
 
 /// Serializes process-env mutation across Revolut/Stripe/OAuth tests (parallel VERIFY).
 #[cfg(test)]

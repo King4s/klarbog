@@ -163,3 +163,5 @@
 {"event":"wave36_ui_shell","status":"done","note":"klarbog-api /ui/ shell + docs (README INSTALL .env.example); KLARBOG_UI_DIR; ADR-012; ROADMAP 79b; next slice 80 screens","ts":"2026-08-20T12:51:53Z"}
 {"event":"wave37_ui_journal_chart","status":"done","note":"UI Journal preview→confirm_token→commit + Kontoplan GET /api/v1/rules/chart; i64 ore; mist/teal; E2E_UI_API_OK; VERIFY_OK","ts":"2026-08-20T12:58:15Z"}
 {"event":"wave38_live_e2e_scaffold","status":"done","note":"live-e2e.sh SKIP without keys; LIVE_E2E_SKIP; VERIFY_OK","ts":"2026-08-20T13:03:00Z"}
+{"event":"wave39_production_bind_gate","status":"done","note":"ADR-014 + KLARBOG_BIND/ALLOW_NON_LOOPBACK fail-closed gate; refuse tests; INSTALL/.env.example; no public deploy; VERIFY pending","ts":"2026-08-20T13:10:00Z"}
+{"event":"wave39_production_bind_gate","status":"done","note":"ADR-014 + KLARBOG_BIND/ALLOW_NON_LOOPBACK fail-closed gate; refuse tests; INSTALL/.env.example; no public deploy; VERIFY_OK","ts":"2026-08-20T13:12:00Z"}

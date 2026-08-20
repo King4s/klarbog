@@ -9,12 +9,15 @@ Branch: `rust-dev` (DEV-only).
 ## Surfaces
 
 - CLI: `klarbog`
-- API: `127.0.0.1:3195`
+- API: `127.0.0.1:3195` (default; ADR-014 gated non-loopback)
 - MCP: `klarbog-mcp` (stdio)
 
 Wave 37 UI: journal preview/commit + chart list (`wave37_ui_journal_chart`).
 
 Wave 38: `./scripts/live-e2e.sh` — SKIP exit 0 without Revolut/Stripe/R2 keys;
 loopback live smoke when set (`wave38_live_e2e_scaffold`).
+
+Wave 39: ADR-014 + `KLARBOG_BIND` / `KLARBOG_ALLOW_NON_LOOPBACK` fail-closed
+gate (`wave39_production_bind_gate`) — scaffold only; no public deploy.
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

@@ -197,7 +197,7 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 80. UI slice: status + parties + invoices (+ settings) against loopback HTTP ✅
 81. UI slice: journal preview/commit + chart list screens ✅
 82. Live E2E track (owner; after UI slices) — scaffold ✅ (wave 38)
-83. Prod track (owner; after live E2E)
+83. Prod track (owner; after live E2E) — bind gate scaffold ✅ (wave 39); public deploy still out of scope
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
@@ -210,3 +210,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 82a. `scripts/live-e2e.sh`: fail-closed SKIP without Revolut/Stripe/R2 keys; with keys, bounded loopback smoke (health, status, import preview `source=api`) — never print secrets; no prod bind ✅
 82b. Docs: INSTALL + ADR-013 + `docs/skills/live-e2e.md` ✅
+
+## Wave 39 — production bind gate (scaffold)
+
+83. ADR-014: production posture — loopback default; non-loopback only with `KLARBOG_ALLOW_NON_LOOPBACK=1` + explicit `KLARBOG_BIND`; residual risks documented; no public deploy ✅
+83b. `klarbog-api` bind gate + refuse-path tests; INSTALL / `.env.example` ✅

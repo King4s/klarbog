@@ -7,6 +7,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 39 (production bind gate scaffold)
+
+- **ADR-014:** production posture — loopback default (ADR-003); optional
+  non-loopback only when `KLARBOG_ALLOW_NON_LOOPBACK=1` **and** explicit
+  `KLARBOG_BIND`; residual risks (TLS, auth, backups) documented. No public
+  deploy.
+- `klarbog-api` bind gate in `main.rs` (fail-closed refuse path + unit tests).
+- INSTALL + `.env.example` notes; never enabled by default.
+
 ### Added — Wave 38 (live E2E scaffold)
 
 - `./scripts/live-e2e.sh`: fail-closed **SKIP** (exit 0) when Revolut / Stripe /

@@ -1,5 +1,6 @@
 # Active swarm status
 
-- **Wave 38 landed** — live E2E scaffold (SKIP without keys)
-- Next: production track (ADR + gated bind — still DEV-default)
+- **Tracks landed:** UI (36–37) → live E2E scaffold (38) → production bind gate (39)
+- Default remains DEV loopback; non-loopback needs explicit env flags (ADR-014)
+- Residual prod: TLS, stronger auth than actor headers, ops/backups — document-only for now
 - Tip VERIFY_OK

@@ -1,7 +1,26 @@
 # Install Klarbog (from source)
 
-Klarbog is **DEV software** — loopback HTTP, local SQLite, no production SLA yet.
-Build from the `rust-dev` branch unless release tags say otherwise.
+Klarbog is **DEV software** — loopback HTTP by default, local SQLite, no
+production SLA yet. Build from the `rust-dev` branch unless release tags say
+otherwise.
+
+### HTTP bind (ADR-014; fail-closed)
+
+`klarbog-api` listens on **`127.0.0.1:3195`** unless you set `KLARBOG_BIND`.
+Non-loopback bind is **opt-in only** and never the default:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KLARBOG_BIND` | unset → `127.0.0.1:3195` | Explicit `host:port` |
+| `KLARBOG_ALLOW_NON_LOOPBACK` | unset / `0` | Must be `1` **and** paired with explicit `KLARBOG_BIND` for non-loopback |
+
+Without the allow flag, a non-loopback `KLARBOG_BIND` makes the process **exit
+at startup**. The allow flag alone does not widen the listen address.
+
+**Residual risks** if you opt in: no TLS inside `klarbog-api` (terminate at a
+reverse proxy), auth is still actor headers + allowlist (not production IdP),
+and backups remain operator-owned. This gate is a scaffold — **not** a public
+deploy authorization. See [`docs/adr/ADR-014-production-posture.md`](adr/ADR-014-production-posture.md).
 
 ## Requirements
 
@@ -81,7 +100,8 @@ Required for the live path (never commit or print):
 `KLARBOG_R2_SECRET_ACCESS_KEY` / `KLARBOG_R2_BUCKET`.
 
 See [`docs/skills/live-e2e.md`](skills/live-e2e.md) and
-[`docs/adr/ADR-013-live-e2e.md`](adr/ADR-013-live-e2e.md). No production bind.
+[`docs/adr/ADR-013-live-e2e.md`](adr/ADR-013-live-e2e.md). Live E2E stays on
+loopback; production bind remains gated (ADR-014), never enabled by default.
 
 ## Data layout and isolation
 
