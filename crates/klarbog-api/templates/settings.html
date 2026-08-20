@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Indstillinger</h1>
+  <p class="lede">Firmasti gemmes i cookie <span class="money">klarbog_ui_company</span> (DEV).</p>
+  <form class="grid" method="post" action="/ui/settings">
+    <label>Firma-sti (company)
+      <input name="company" value="{{ company }}" placeholder="companies/min-aps" required />
+    </label>
+    <div class="actions">
+      <button class="primary" type="submit">Gem</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

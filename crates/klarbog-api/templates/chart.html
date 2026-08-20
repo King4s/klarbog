@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Kontoplan</h1>
+  <p class="lede">GET rules chart stub — kun læsning, ingen journal-skrivning · Rust SSR.</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span> · rule
+    <span class="money">{{ rule_known_account }}</span>{% if stub %} · stub{% endif %}</p>
+  <table class="table">
+    <thead><tr><th>Kode</th><th>Label</th><th>Range</th></tr></thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr>
+        <td class="money">{{ a.code }}</td>
+        <td>{{ a.label }}</td>
+        <td class="money">{{ a.range }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">Tom</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger.</p>
+  {% endif %}
+  {% if has_flash_err %}
+  <p class="flash err">{{ flash_err }}</p>
+  {% endif %}
+</section>
+{% endblock %}

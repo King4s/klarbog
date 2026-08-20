@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Journal</h1>
+  <p class="lede">To-fase bogføring: preview → confirm_token → commit. Beløb i øre (i64).</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger før preview/commit.</p>
+  {% endif %}
+
+  <div class="panel nested">
+    <h2>Moms-forslag</h2>
+    <p class="muted">Kun forslag — poster aldrig (ADR-011).</p>
+    <form class="grid" method="post" action="/ui/journal">
+      <input type="hidden" name="action" value="moms_suggest" />
+      <label>Brutto moms-inkl. (øre)
+        <input name="moms_gross" required inputmode="numeric" pattern="-?[0-9]+" value="{{ moms_gross }}" />
+      </label>
+      <label>Memo (skal indeholde #vat25 for forslag)
+        <input name="moms_memo" required value="{{ moms_memo }}" />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit">Hent moms-forslag</button>
+      </div>
+    </form>
+    {% if has_moms %}
+      {% if moms_suggested %}
+      <ul class="plain">
+        <li>Brutto: <span class="money">{{ moms_gross_minor }} øre</span></li>
+        <li>Netto: <span class="money">{{ moms_net_minor }} øre</span></li>
+        <li>Moms: <span class="money">{{ moms_vat_minor }} øre</span></li>
+        <li>rate_bps: <span class="money">{{ moms_rate_bps }}</span></li>
+      </ul>
+      <form method="post" action="/ui/journal" class="actions">
+        <input type="hidden" name="action" value="moms_apply" />
+        <input type="hidden" name="moms_gross" value="{{ moms_gross_minor }}" />
+        <input type="hidden" name="moms_memo" value="{{ moms_memo }}" />
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Anvend brutto på begge ben</button>
+      </form>
+      {% else %}
+      <p class="muted">Ingen forslag ({{ moms_reason }}).</p>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="panel nested">
+    <h2>Journal-entry</h2>
+    <form class="grid" method="post" action="/ui/journal">
+      <input type="hidden" name="action" value="preview" />
+      <label>Memo
+        <input name="memo" required value="{{ memo }}" />
+      </label>
+      <div class="grid two">
+        <label>Konto 1
+          <input name="account1" required value="{{ account1 }}" />
+        </label>
+        <label>Retning 1
+          <select name="direction1">
+            <option value="debit"{% if direction1 == "debit" %} selected{% endif %}>debit</option>
+            <option value="credit"{% if direction1 == "credit" %} selected{% endif %}>credit</option>
+          </select>
+        </label>
+        <label>Beløb 1 (øre)
+          <input name="amount1" required inputmode="numeric" pattern="-?[0-9]+" value="{{ amount1 }}" />
+        </label>
+      </div>
+      <div class="grid two">
+        <label>Konto 2
+          <input name="account2" required value="{{ account2 }}" />
+        </label>
+        <label>Retning 2
+          <select name="direction2">
+            <option value="debit"{% if direction2 == "debit" %} selected{% endif %}>debit</option>
+            <option value="credit"{% if direction2 == "credit" %} selected{% endif %}>credit</option>
+          </select>
+        </label>
+        <label>Beløb 2 (øre)
+          <input name="amount2" required inputmode="numeric" pattern="-?[0-9]+" value="{{ amount2 }}" />
+        </label>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Preview</button>
+      </div>
+    </form>
+  </div>
+
+  {% if has_preview %}
+  <div class="panel nested">
+    <h2>Bekræftelse klar</h2>
+    <p class="muted">confirm_token</p>
+    <p class="token money">{{ confirm_token }}</p>
+    <p class="muted">Udløber (unix ms): {{ expires_unix_ms }}</p>
+    <p class="muted">Digest: <span class="money">{{ payload_digest }}</span></p>
+    <form class="grid" method="post" action="/ui/journal">
+      <input type="hidden" name="action" value="commit" />
+      <input type="hidden" name="confirm_token" value="{{ confirm_token }}" />
+      <input type="hidden" name="memo" value="{{ memo }}" />
+      <input type="hidden" name="account1" value="{{ account1 }}" />
+      <input type="hidden" name="direction1" value="{{ direction1 }}" />
+      <input type="hidden" name="amount1" value="{{ amount1 }}" />
+      <input type="hidden" name="account2" value="{{ account2 }}" />
+      <input type="hidden" name="direction2" value="{{ direction2 }}" />
+      <input type="hidden" name="amount2" value="{{ amount2 }}" />
+      <div class="actions">
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Commit journal</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">Kør preview for at få et confirm_token.</p>
+  {% endif %}
+</section>
+{% endblock %}

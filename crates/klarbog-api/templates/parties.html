@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Parter</h1>
+  <p class="lede">CRM uden journal-skrivning · Rust SSR.</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  <table class="table">
+    <thead><tr><th>Id</th><th>Navn</th></tr></thead>
+    <tbody>
+      {% for p in parties %}
+      <tr>
+        <td class="money">{{ p.id }}</td>
+        <td>{{ p.display_name }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" class="muted">Ingen parter</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <form class="grid" method="post" action="/ui/parties" style="margin-top:1.25rem">
+    <label>Nyt partenavn
+      <input name="display_name" required placeholder="Kunde ApS" />
+    </label>
+    <div class="actions">
+      <button class="primary" type="submit">Opret part</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger.</p>
+  {% endif %}
+</section>
+{% endblock %}

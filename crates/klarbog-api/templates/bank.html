@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Bank</h1>
+  <p class="lede">Import-preview og afstem-forslag · Rust SSR.</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger.</p>
+  {% endif %}
+
+  <div class="panel nested">
+    <h2>CSV import-preview</h2>
+    <form class="grid" method="post" action="/ui/bank">
+      <input type="hidden" name="action" value="import_preview" />
+      <label>Profil
+        <select name="provider">
+          <option value="generic_dk"{% if provider == "generic_dk" %} selected{% endif %}>generic_dk</option>
+          <option value="revolut"{% if provider == "revolut" %} selected{% endif %}>revolut</option>
+          <option value="stripe"{% if provider == "stripe" %} selected{% endif %}>stripe</option>
+        </select>
+      </label>
+      <label>CSV
+        <textarea name="csv" rows="6" placeholder="Dato;Tekst;Beløb">{{ csv }}</textarea>
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Kør import-preview</button>
+      </div>
+    </form>
+  </div>
+
+  {% if has_import %}
+  <div class="panel nested">
+    <h2>Seneste import-preview</h2>
+    <p class="muted">{{ import_count }} udkast · {{ import_source }}</p>
+    <table class="table">
+      <thead><tr><th>#</th><th>Dato</th><th>Memo</th><th>DKK</th><th>Øre</th></tr></thead>
+      <tbody>
+        {% for d in drafts %}
+        <tr>
+          <td class="money">{{ d.idx }}</td>
+          <td>{{ d.date }}</td>
+          <td>{{ d.memo }}</td>
+          <td class="money">{{ d.dkk }}</td>
+          <td class="money">{{ d.minor }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="panel nested">
+    <h2>Afstem-forslag (én bankrække)</h2>
+    <form class="grid" method="post" action="/ui/bank">
+      <input type="hidden" name="action" value="reconcile_suggest" />
+      <input type="hidden" name="provider" value="{{ provider }}" />
+      <label>Dato (YYYY-MM-DD)
+        <input name="row_date" required value="{{ row_date }}" />
+      </label>
+      <label>Tekst
+        <input name="row_text" required value="{{ row_text }}" />
+      </label>
+      <label>Beløb (øre)
+        <input name="row_amount" required inputmode="numeric" pattern="-?[0-9]+" value="{{ row_amount }}" />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Hent forslag</button>
+      </div>
+    </form>
+  </div>
+
+  {% if has_suggest %}
+  <div class="panel nested">
+    <h2>Match-forslag</h2>
+    <p class="muted">{{ suggest_count }} rækker</p>
+    <table class="table">
+      <thead><tr><th>Dato</th><th>Tekst</th><th>Beløb</th><th>Bedste faktura</th><th>bps</th><th>Usikker</th></tr></thead>
+      <tbody>
+        {% for s in suggestions %}
+        <tr>
+          <td>{{ s.date }}</td>
+          <td>{{ s.text }}</td>
+          <td class="money">{{ s.amount }}</td>
+          <td class="money">{{ s.best_invoice }}</td>
+          <td class="money">{{ s.confidence_bps }}</td>
+          <td class="muted">{{ s.unsafe_reason }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

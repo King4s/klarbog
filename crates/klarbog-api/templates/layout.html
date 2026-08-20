@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }} · Klarbog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/assets/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <header class="top">
+      <div class="brand-block">
+        <p class="brand">Klarbog</p>
+        <p class="tagline">Lokalt bogholderi — Rust SSR</p>
+      </div>
+      <nav class="nav" aria-label="Hovedmenu">
+        <a class="nav-btn{% if nav_home %} is-active{% endif %}" href="/ui/">Oversigt</a>
+        <a class="nav-btn{% if nav_parties %} is-active{% endif %}" href="/ui/parties">Parter</a>
+        <a class="nav-btn{% if nav_invoices %} is-active{% endif %}" href="/ui/invoices">Fakturaer</a>
+        <a class="nav-btn{% if nav_bank %} is-active{% endif %}" href="/ui/bank">Bank</a>
+        <a class="nav-btn{% if nav_bilag %} is-active{% endif %}" href="/ui/bilag">Bilag</a>
+        <a class="nav-btn{% if nav_journal %} is-active{% endif %}" href="/ui/journal">Journal</a>
+        <a class="nav-btn{% if nav_chart %} is-active{% endif %}" href="/ui/chart">Kontoplan</a>
+        <a class="nav-btn{% if nav_settings %} is-active{% endif %}" href="/ui/settings">Indstillinger</a>
+      </nav>
+    </header>
+    <main class="main">
+      {% if has_flash_ok %}
+      <p class="flash ok" role="status">{{ flash_ok }}</p>
+      {% endif %}
+      {% if has_flash_err %}
+      <p class="flash err" role="status">{{ flash_err }}</p>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="foot">
+      <span>DEV · loopback · Askama SSR</span>
+      <span>{{ foot }}</span>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Bilag</h1>
+  <p class="lede">Dokumenter, undtagelser og retention · Rust SSR.</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  <p class="muted">Retention: {{ retain_days }} dage · purge lukkede efter {{ purge_after_days }} dage</p>
+
+  <h2 class="subhead">Dokumenter</h2>
+  <table class="table">
+    <thead><tr><th>Id</th><th>Type</th><th>Sti</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for d in documents %}
+      <tr>
+        <td class="money">{{ d.id }}</td>
+        <td>{{ d.kind }}</td>
+        <td class="money">{{ d.path_hint }}</td>
+        <td>{{ d.notes }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">Ingen bilag</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="subhead">Undtagelser</h2>
+  <table class="table">
+    <thead><tr><th>Id</th><th>Kode</th><th>Alvor</th><th>Besked</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for e in exceptions %}
+      <tr>
+        <td class="money">{{ e.id }}</td>
+        <td>{{ e.code }}</td>
+        <td>{{ e.severity }}</td>
+        <td>{{ e.message }}</td>
+        <td>{{ e.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Ingen åbne undtagelser</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <form class="grid" method="post" action="/ui/bilag" style="margin-top:1.25rem">
+    <input type="hidden" name="action" value="raise_exception" />
+    <div class="grid two">
+      <label>Kode
+        <input name="code" required placeholder="missing_attachment" />
+      </label>
+      <label>Alvor
+        <select name="severity">
+          <option value="info">info</option>
+          <option value="warn" selected>warn</option>
+          <option value="error">error</option>
+        </select>
+      </label>
+    </div>
+    <label>Besked
+      <input name="message" required placeholder="Mangler scan" />
+    </label>
+    <div class="actions">
+      <button class="primary" type="submit">Opret undtagelse</button>
+    </div>
+  </form>
+
+  <div class="panel nested">
+    <h2>Retention purge</h2>
+    <p class="muted">Lukkede undtagelser; journal urørt (ADR-010).</p>
+    <form method="post" action="/ui/bilag">
+      <label class="check">
+        <input type="checkbox" name="gc_orphan_documents" value="1"{% if gc_orphans %} checked{% endif %} />
+        gc_orphan_documents
+      </label>
+      <div class="actions" style="margin-top:0.75rem">
+        <button class="ghost" type="submit" name="action" value="purge_dry">Dry-run purge</button>
+        <button class="primary" type="submit" name="action" value="purge_confirm">Bekræft purge</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel nested">
+    <h2>Backup manifest</h2>
+    <p class="muted">Skriver manifest-sidecar — poster ikke journal.</p>
+    <form method="post" action="/ui/bilag">
+      <input type="hidden" name="action" value="backup" />
+      <div class="actions">
+        <button class="primary" type="submit">Skriv backup manifest</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger.</p>
+  {% endif %}
+</section>
+{% endblock %}

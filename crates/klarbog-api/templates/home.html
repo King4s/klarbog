@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Oversigt</h1>
+  <p class="lede">Klarbog kører lokalt. UI er Rust (Askama) på samme loopback-origin som API.</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  {% else %}
+  <p class="muted">Sæt firmasti under <a href="/ui/settings">Indstillinger</a>.</p>
+  {% endif %}
+  <div class="grid two">
+    <div>
+      <div class="muted">Mode</div>
+      <div class="stat">{{ mode }}</div>
+    </div>
+    <div>
+      <div class="muted">Bind</div>
+      <div class="stat">{{ bind }}</div>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:1rem">Allowlist</p>
+  <p class="money">{{ allowlist_root }}</p>
+  <p class="muted" style="margin-top:1rem">Plugins</p>
+  <ul>
+    {% for p in plugins %}
+    <li><strong>{{ p.id }}</strong> · {{ p.version }}</li>
+    {% else %}
+    <li class="muted">Ingen</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

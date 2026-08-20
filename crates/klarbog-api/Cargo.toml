@@ -33,6 +33,7 @@ subtle = "2"
 hmac = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
+askama = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

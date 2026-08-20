@@ -1,13 +1,18 @@
 # ADR-012: Local DEV web UI
 
 ## Status
-Accepted (wave 36 — UI track start)
+**Superseded** by [ADR-018](ADR-018-rust-ssr-ui.md) (2026-08-20 — Rust SSR UI).
+Historical acceptance: wave 36 JS static UI track.
 
 ## Context
 Klarbog already exposes loopback HTTP (`klarbog-api`), MCP, and CLI. Humans still
 need a thin GUI for day-to-day DEV inspection. The product must stay Klarbog-
 owned: screens call the existing REST API; this is **not** a port of an upstream
 React cockpit.
+
+**Amendment (2026-08-20):** owner requires **Rust end-to-end**. The JS SPA under
+`ui/` / `ui/js/` is retired in favor of Askama templates in `klarbog-api`
+(ADR-018). The decisions below remain historically true for the JS track.
 
 ## Decision
 

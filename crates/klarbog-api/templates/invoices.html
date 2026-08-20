@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Fakturaer</h1>
+  <p class="lede">Kladder og betalings-preview · Rust SSR (ingen JS).</p>
+  {% if has_company %}
+  <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  <table class="table">
+    <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th><th>Handling</th></tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td class="money">{{ inv.id }}</td>
+        <td>{{ inv.status }}</td>
+        <td class="money">{{ inv.total }}</td>
+        <td class="money">{{ inv.party_id }}</td>
+        <td class="actions-cell">
+          {% if inv.can_send %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="send" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <button class="ghost" type="submit">Sæt sent</button>
+          </form>
+          {% endif %}
+          {% if inv.can_collect %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="part_paid_preview" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="part_amount_minor" inputmode="numeric" pattern="[0-9]+" placeholder="øre" required style="width:5rem" />
+            <button class="ghost" type="submit">Delbetalt preview</button>
+          </form>
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="paid_preview" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <button class="primary" type="submit">Betalt preview</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Ingen fakturaer</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="panel nested">
+    <h2>Ny kladde</h2>
+    <p class="muted">Beløb i øre (i64). Returnerer journalforslag via API — poster ikke automatisk.</p>
+    <form class="grid" method="post" action="/ui/invoices">
+      <input type="hidden" name="action" value="create" />
+      <div class="grid two">
+        <label>Part
+          <select name="party_id" required>
+            <option value="">— vælg part —</option>
+            {% for p in parties %}
+            <option value="{{ p.id }}">{{ p.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Type
+          <select name="kind">
+            <option value="sale">sale</option>
+            <option value="purchase">purchase</option>
+          </select>
+        </label>
+      </div>
+      <label>Beskrivelse
+        <input name="description" required placeholder="Konsulentydelse" />
+      </label>
+      <label>Beløb (øre)
+        <input name="amount_minor" required inputmode="numeric" pattern="[0-9]+" placeholder="12500" />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit">Opret kladde</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">Sæt firmasti under Indstillinger.</p>
+  {% endif %}
+</section>
+{% endblock %}
