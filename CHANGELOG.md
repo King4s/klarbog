@@ -7,6 +7,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Changed — Wave 51 (UI ES-module soft-split)
+
+- Split monolithic `ui/app.js` into `ui/js/*.js` modules (shared state + per-view
+  screens); shell `app.js` only routes. No API/behavior change.
+
 ### Added — Wave 50 (UI retention purge + backup)
 
 - Bilag: **Dry-run purge** / **Bekræft purge** (`POST /api/v1/retention/purge`)

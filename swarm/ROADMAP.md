@@ -279,3 +279,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 101. Bilag UI: retention purge dry-run/confirm + optional `gc_orphan_documents`;
      backup-manifest button; journal untouched (ADR-010) ✅
+
+## Wave 51 — UI app.js ES-module soft-split
+
+102. Soft-split `ui/app.js` → `ui/js/{shared,home,parties,invoices,journal,bank,bilag,chart,settings}.js`;
+     shell `app.js` remains the router; behavior unchanged ✅

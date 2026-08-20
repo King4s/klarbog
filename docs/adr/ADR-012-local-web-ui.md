@@ -38,6 +38,8 @@ React cockpit.
 2. **Later:** journal preview / confirm UX (and bank surfaces after that).
 3. **Wave 44:** journal **moms-forslag** UI wired to
    `POST /api/v1/journal/moms-suggest` (preview only; ADR-011).
+4. **Wave 51:** static UI soft-split into ES modules under `ui/js/` (shared
+   helpers + one file per screen); `ui/app.js` is the router shell only.
 
 ## Consequences
 - `klarbog-api` gains a static-file serve path for `ui/` (env override optional;
