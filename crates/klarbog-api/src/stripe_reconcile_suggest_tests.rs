@@ -59,6 +59,7 @@ async fn defaults_to_dry_run_consume_then_suggest() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let body = serde_json::json!({ "company": company_path.to_string_lossy() });
@@ -96,6 +97,7 @@ async fn confirm_consume_persists_sidecar() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let body = serde_json::json!({

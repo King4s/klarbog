@@ -23,4 +23,7 @@ gate (`wave39_production_bind_gate`) — scaffold only; no public deploy.
 Wave 40: ADR-015 TLS edge + `docs/skills/production-checklist.md`
 (`wave40_prod_tls_checklist`).
 
+Wave 41: ADR-016 optional `KLARBOG_API_TOKEN` bearer gate
+(`wave41_api_token_gate`).
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

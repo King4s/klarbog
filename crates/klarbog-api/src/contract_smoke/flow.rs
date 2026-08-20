@@ -30,6 +30,7 @@ async fn contract_smoke() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
 

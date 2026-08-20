@@ -29,6 +29,7 @@ async fn invoice_create_and_list() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -115,6 +116,7 @@ async fn invoice_actor_denied() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let intruder = Actor::user("intruder");

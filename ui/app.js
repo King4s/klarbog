@@ -5,6 +5,7 @@ const defaultSettings = () => ({
   company: "",
   actorKind: "user",
   actorId: "ui-dev",
+  apiToken: "",
 });
 
 function loadSettings() {
@@ -39,6 +40,10 @@ async function api(settings, path, options = {}) {
   }
   headers.set("x-klarbog-actor-kind", settings.actorKind || "user");
   headers.set("x-klarbog-actor-id", settings.actorId || "ui-dev");
+  const token = (settings.apiToken || "").trim();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
   const res = await fetch(`${apiBase(settings)}${path}`, { ...options, headers });
   const text = await res.text();
   let json = null;
@@ -510,6 +515,9 @@ function renderSettings() {
             <input name="actorId" value="${escapeHtml(settings.actorId)}" required />
           </label>
         </div>
+        <label>API-token (kun hvis serveren har KLARBOG_API_TOKEN)
+          <input name="apiToken" type="password" value="${escapeHtml(settings.apiToken || "")}" autocomplete="off" placeholder="tom = ikke påkrævet" />
+        </label>
         <div class="actions">
           <button class="primary" type="submit">Gem</button>
         </div>
@@ -525,6 +533,7 @@ function renderSettings() {
       company: String(fd.get("company") || "").trim(),
       actorKind: String(fd.get("actorKind") || "user"),
       actorId: String(fd.get("actorId") || "ui-dev").trim(),
+      apiToken: String(fd.get("apiToken") || "").trim(),
     };
     saveSettings(settings);
     setFlash("ok", "Indstillinger gemt");

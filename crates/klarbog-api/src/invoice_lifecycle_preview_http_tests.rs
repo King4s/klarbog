@@ -49,6 +49,7 @@ async fn mark_paid_preview_issues_confirm_token() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -113,6 +114,7 @@ async fn mark_part_paid_preview_issues_confirm_token() {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);

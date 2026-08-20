@@ -18,6 +18,7 @@ async fn smoke_app(dir: &tempfile::TempDir) -> (axum::Router, std::path::PathBuf
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     (router(state), company_path, owner)
 }

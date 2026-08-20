@@ -41,6 +41,7 @@ async fn app_with_company() -> (axum::Router, std::path::PathBuf, Actor, tempfil
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     (router(state), company_path, owner, dir)
 }

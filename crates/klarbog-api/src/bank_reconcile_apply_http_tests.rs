@@ -48,6 +48,7 @@ async fn seeded_apply_app() -> (
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
+        api_token: None,
     };
     (router(state), dir, company_path, inv.id.to_string(), owner)
 }

@@ -29,6 +29,7 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 base64 = "0.22"
+subtle = "2"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

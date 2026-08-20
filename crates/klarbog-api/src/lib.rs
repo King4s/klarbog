@@ -5,6 +5,7 @@
 pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 mod actor;
+mod auth_token;
 mod bank;
 mod bank_reconcile;
 mod bank_reconcile_apply;
@@ -47,6 +48,7 @@ mod stripe_reconcile_apply_preview_tests;
 mod stripe_reconcile_suggest_tests;
 
 use axum::extract::State;
+use axum::middleware;
 use axum::{routing::delete, routing::get, routing::patch, routing::post, Json, Router};
 use klarbog_core::{default_registry, ConfirmStore};
 use klarbog_plugin::{Capability, Registry};
@@ -61,6 +63,8 @@ pub struct AppState {
     pub confirm: Arc<ConfirmStore>,
     pub allowlist_root: PathBuf,
     pub registry: Arc<Registry>,
+    /// When `Some` and non-empty, `/api/v1/*` requires bearer (ADR-016).
+    pub api_token: Option<Arc<str>>,
 }
 
 #[derive(Serialize)]
@@ -177,7 +181,13 @@ pub fn router(state: AppState) -> Router {
             post(revolut_oauth::oauth_refresh_handler),
         );
 
-    ui::mount_ui(api).with_state(state)
+    let state_for_mw = state.clone();
+    ui::mount_ui(api)
+        .layer(middleware::from_fn_with_state(
+            state_for_mw,
+            auth_token::api_token_middleware,
+        ))
+        .with_state(state)
 }
 
 pub fn default_allowlist_root() -> PathBuf {
@@ -186,10 +196,25 @@ pub fn default_allowlist_root() -> PathBuf {
         .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
 }
 
+fn api_token_from_env() -> Option<Arc<str>> {
+    match std::env::var("KLARBOG_API_TOKEN") {
+        Ok(v) => {
+            let t = v.trim();
+            if t.is_empty() {
+                None
+            } else {
+                Some(Arc::<str>::from(t))
+            }
+        }
+        Err(_) => None,
+    }
+}
+
 pub fn default_state() -> AppState {
     AppState {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: default_allowlist_root(),
         registry: Arc::new(default_registry()),
+        api_token: api_token_from_env(),
     }
 }

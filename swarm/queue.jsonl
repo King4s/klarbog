@@ -167,3 +167,4 @@
 {"event":"wave39_production_bind_gate","status":"done","note":"ADR-014 + KLARBOG_BIND/ALLOW_NON_LOOPBACK fail-closed gate; refuse tests; INSTALL/.env.example; no public deploy; VERIFY_OK","ts":"2026-08-20T13:12:00Z"}
 {"event":"wave40_prod_tls_checklist","status":"done","note":"ADR-015 TLS edge + production-checklist skill; INSTALL/env links; VERIFY pending","ts":"2026-08-20T13:12:00Z"}
 {"event":"wave40_prod_tls_checklist","status":"done","note":"ADR-015 + production-checklist; INSTALL/env; VERIFY_OK","ts":"2026-08-20T13:13:00Z"}
+{"event":"wave41_api_token_gate","status":"done","note":"ADR-016 KLARBOG_API_TOKEN middleware; UI settings; VERIFY_OK CONTRACT_SMOKE_OK","ts":"2026-08-20T13:40:00Z"}

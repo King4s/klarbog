@@ -23,14 +23,19 @@ Never print or commit secrets.
 - [ ] Do **not** expose non-loopback Klarbog on cleartext HTTP to untrusted networks
 - [ ] Certificates and renewals are operator-owned (not inside `klarbog-api`)
 
-## 3. Auth reality check (still DEV-shaped)
+## 3. Auth gate (ADR-016) + actor reality check
 
-- [ ] Understand that `x-klarbog-actor-kind` / `x-klarbog-actor-id` are **not** a
-      production IdP (spoofable on any network that can reach the API)
-- [ ] Company paths stay under `KLARBOG_ALLOWLIST_ROOT`
-- [ ] Actors used by UI/API exist in the company’s `policy.json`
-- [ ] Accept residual risk until a later session/OIDC gate exists — or keep the
-      API loopback-only / VPN-only
+- [ ] If the API is reachable beyond a trusted loopback/VPN: set
+      `KLARBOG_API_TOKEN` to a long random secret
+- [ ] Clients send `Authorization: Bearer …` or `x-klarbog-api-token`
+- [ ] Confirm **401** without the token when it is configured; `/health` and
+      Stripe webhook HMAC path stay exempt
+- [ ] UI: store the token under Indstillinger (localStorage only)
+- [ ] Understand that actor headers are still **not** a full IdP — bearer only
+      proves knowledge of the install secret
+- [ ] Company paths stay under `KLARBOG_ALLOWLIST_ROOT`; actors exist in
+      `policy.json`
+- [ ] OIDC / session cookies remain a later residual — or keep API loopback-only
 
 ## 4. Data isolation and backup
 
@@ -52,13 +57,14 @@ Never print or commit secrets.
 
 | Gap | Notes |
 |-----|--------|
+| OIDC / session auth | Actor headers + optional API bearer (ADR-016); no IdP yet |
 | In-process TLS | By design absent; use ADR-015 edge |
-| OIDC / session auth | Actor headers only |
 | Managed HA / multi-node | Single-process DEV model |
 | Public deploy runbook | Out of scope of bind gate + TLS docs |
 
 ## Quick references
 
+- [ADR-016 API token](../adr/ADR-016-api-token.md)
 - [ADR-014 production posture](../adr/ADR-014-production-posture.md)
 - [ADR-015 TLS edge](../adr/ADR-015-tls-edge.md)
 - [ADR-013 live E2E](../adr/ADR-013-live-e2e.md)

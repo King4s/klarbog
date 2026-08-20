@@ -221,3 +221,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 84. ADR-015: TLS terminates at reverse proxy; `klarbog-api` stays plain HTTP; prefer loopback upstream ✅
 85. `docs/skills/production-checklist.md` — operator gates (bind, TLS, auth residual, backup, live-e2e) ✅
 86. INSTALL + `.env.example` link ADR-015 + checklist ✅
+
+## Wave 41 — gated API bearer token (auth residual #1)
+
+87. ADR-016: optional `KLARBOG_API_TOKEN`; Bearer / `x-klarbog-api-token`; constant-time compare; exempt health/ui/stripe webhook ✅
+88. Middleware + tests; UI settings field; checklist/INSTALL/env ✅

@@ -961,6 +961,7 @@ dependencies = [
  "klarbog-types",
  "serde",
  "serde_json",
+ "subtle",
  "tempfile",
  "tokio",
  "tower",

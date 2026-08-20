@@ -25,7 +25,17 @@ is a scaffold — **not** a public deploy authorization.
 See:
 - [`docs/adr/ADR-014-production-posture.md`](adr/ADR-014-production-posture.md)
 - [`docs/adr/ADR-015-tls-edge.md`](adr/ADR-015-tls-edge.md)
+- [`docs/adr/ADR-016-api-token.md`](adr/ADR-016-api-token.md) — optional
+  `KLARBOG_API_TOKEN` bearer gate
 - Operator checklist: [`docs/skills/production-checklist.md`](skills/production-checklist.md)
+
+### Optional API token (ADR-016)
+
+When `KLARBOG_API_TOKEN` is set (non-empty), `/api/v1/*` requires
+`Authorization: Bearer <token>` or `x-klarbog-api-token`. Unset = DEV (no
+bearer). Exempt: `/health`, `/ui/*`, `POST /api/v1/webhooks/stripe` (HMAC).
+Actor headers remain required on company routes. Configure the same secret in
+the web UI under **Indstillinger** when the env is set.
 
 ## Requirements
 

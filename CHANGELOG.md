@@ -7,6 +7,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 41 (API bearer gate)
+
+- **ADR-016:** optional `KLARBOG_API_TOKEN` — when set, `/api/v1/*` requires
+  Bearer or `x-klarbog-api-token` (constant-time compare); unset = DEV.
+  Exempt: `/health`, `/ui/*`, Stripe webhook HMAC path.
+- Middleware + tests; UI Indstillinger field; checklist / INSTALL / `.env.example`.
+
 ### Added — Wave 40 (TLS edge / production checklist)
 
 - **ADR-015:** TLS at reverse-proxy edge; `klarbog-api` remains plain HTTP;
