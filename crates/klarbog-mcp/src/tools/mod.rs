@@ -4,6 +4,7 @@ mod auth;
 mod bank;
 mod bank_stripe_pipelines;
 mod bank_wave2;
+mod crm;
 mod helpers;
 mod invoice;
 mod journal;
@@ -34,6 +35,8 @@ pub fn handle_tool_call(
             "service": "klarbog-mcp",
             "allowlist_root": allowlist_root,
         })),
+        "crm_upsert_party" => rt.block_on(crm::crm_upsert_party(args, allowlist_root)),
+        "crm_list_parties" => rt.block_on(crm::crm_list_parties(args, allowlist_root)),
         "bank_import_preview" => rt.block_on(bank::bank_import_preview(args, allowlist_root)),
         "bank_stripe_consume" => rt.block_on(bank_wave2::bank_stripe_consume(args, allowlist_root)),
         "bank_reconcile_suggest" => {

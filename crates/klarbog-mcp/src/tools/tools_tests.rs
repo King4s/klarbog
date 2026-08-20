@@ -7,6 +7,8 @@ fn tools_list_names() {
     let tools = listed["result"]["tools"].as_array().unwrap();
     let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
     assert!(names.contains(&"klarbog_health"));
+    assert!(names.contains(&"crm_upsert_party"));
+    assert!(names.contains(&"crm_list_parties"));
     assert!(names.contains(&"bank_import_preview"));
     assert!(names.contains(&"bank_stripe_consume"));
     assert!(names.contains(&"bank_reconcile_suggest"));

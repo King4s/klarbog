@@ -60,6 +60,8 @@ Kald `tools/list`. Forvent mindst:
 | Tool | Formål |
 |------|--------|
 | `klarbog_health` | Livstegn |
+| `crm_upsert_party` | Opret/opdater part (`display_name`; valgfri `party_id`; **ingen** journal-write) |
+| `crm_list_parties` | List parter, eller én når `party_id` er sat (read-only) |
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
 | `journal_moms_post_suggestion` | Valgfrit moms-forslag fra `gross_minor` når memo har `#vat25` (net+vat i64; **poster aldrig**) |

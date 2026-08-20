@@ -118,3 +118,4 @@
 {"event": "wave19_mcp_retention_purge", "slice": 59, "status": "done", "note": "MCP retention_purge mirrors POST /retention/purge; dry-run/confirm; optional gc_orphan_documents; journal untouched; AuthZ+allowlist; VERIFY_OK", "ts": "2026-08-20T00:22:10Z"}
 {"event":"wave20_mcp_bank_reconcile_suggest","status":"done","note":"MCP bank_reconcile_suggest HTTP parity; VERIFY_OK","ts":"2026-08-20T00:25:00Z"}
 {"event":"wave21_mcp_gdpr_export","status":"done","note":"MCP gdpr_export HTTP parity; VERIFY_OK","ts":"2026-08-20T00:27:00Z"}
+{"event":"wave22_mcp_crm_parties","status":"done","note":"MCP crm_upsert_party + crm_list_parties; VERIFY_OK","ts":"2026-08-20T00:30:00Z"}

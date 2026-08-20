@@ -31,17 +31,26 @@ Headers: `x-klarbog-actor-kind`, `x-klarbog-actor-id` (actor in policy).
 {
   "company": "/path/to/company",
   "display_name": "Nordic Supply ApS",
-  "id": null
+  "party_id": null
 }
 ```
 
-Omit `id` to generate; pass existing `id` to update display name.
+Omit `party_id` to generate; pass existing `party_id` to update display name.
 
 ### List / get
 
 `GET /api/v1/crm/parties?company=<path>` — all parties.
 
-`GET /api/v1/crm/parties?company=<path>&id=<party_id>` — single party.
+`GET /api/v1/crm/parties?company=<path>&party_id=<party_id>` — single party.
+
+## MCP
+
+- `crm_upsert_party` — args: `company`, `display_name`, optional `party_id`, plus
+  `actor_kind` / `actor_id`. AuthZ + allowlist. Same envelope as HTTP; **no**
+  journal write (ADR-004).
+- `crm_list_parties` — args: `company`, optional `party_id`, actor. Without
+  `party_id` returns an array; with `party_id` returns one party (or not-ok if
+  missing).
 
 ## Rust (in-process)
 

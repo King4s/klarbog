@@ -132,7 +132,8 @@ export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$(pwd)}"
 Wire it in your AI client (Cursor, Claude Desktop, etc.) as a **stdio MCP server**
 pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
 (preview token → commit). Useful tools include `journal_moms_post_suggestion`
-(preview-only VAT split hint), `gdpr_export` (company-scoped metadata →
+(preview-only VAT split hint), `crm_upsert_party` / `crm_list_parties` (HTTP CRM
+parity; no journal write), `gdpr_export` (company-scoped metadata →
 `gdpr_export.json`; no binary blobs), `gdpr_erase_party`, `retention_purge`
 (dry-run/`confirm`; closed exceptions + optional orphan-doc GC; journal untouched),
 `bank_reconcile_suggest` / `bank_reconcile_apply` (`force` only for `user` below safe

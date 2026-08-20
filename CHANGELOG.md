@@ -141,6 +141,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 61:** MCP `gdpr_export` mirrors `POST /api/v1/gdpr-export` — company-scoped metadata (`parties`, invoices with i64 `total_minor`, `documents`, `exceptions`, retention + immutable-journal note); writes `gdpr_export.json`; no binary blobs. Prompt / INSTALL / gdpr-erase-party skill.
 
+### Added — Wave 22 (MCP CRM parties)
+
+- **Slice 62:** MCP `crm_upsert_party` + `crm_list_parties` mirror `POST`/`GET /api/v1/crm/parties` — optional `party_id` for get; empty display_name fail-closed; AuthZ deny; **no** journal write (ADR-004). Prompt / INSTALL / crm-parties skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

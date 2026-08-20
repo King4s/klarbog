@@ -130,4 +130,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 61. MCP parity: `gdpr_export` mirrors `POST /api/v1/gdpr-export` (company-scoped metadata → `gdpr_export.json`; i64 invoice totals; no binary blobs) ✅
 
+## Wave 22 — MCP CRM parties (landed)
+
+62. MCP parity: `crm_upsert_party` + `crm_list_parties` mirror `POST`/`GET /api/v1/crm/parties` (optional `party_id` get; no journal write; ADR-004) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
