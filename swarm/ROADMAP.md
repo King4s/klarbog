@@ -264,3 +264,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 98. Fakturaer UI: opret kladde (party select + kind + line amount_minor i64) →
     `POST /api/v1/invoices/drafts`; list + sent + pay previews unchanged;
     never auto-post ✅
+
+## Wave 48 — UI bank reconcile-suggest soft-split
+
+99. Bank UI: **Foreslå matches** → `POST /api/v1/bank/reconcile/suggest`;
+    show confidence_bps; **Udfyld apply** into apply-preview form; never auto-post ✅

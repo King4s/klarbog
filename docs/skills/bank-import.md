@@ -142,10 +142,11 @@ Or `row_index` + `rows` / CSV provider fields. Response `data.entry` is the jour
 
 Optional `preview: true` (default `false`): after building the entry, runs the same ConfirmStore path as `POST /api/v1/journal/preview` and adds `confirm_token`, `expires_unix_ms`, and `payload_digest` so the client can commit without a separate preview call. Still does **not** post.
 
-**Local web UI (DEV):** Bank screen has **Afstem apply (preview)** — invoice_id + row
-(`date` / `text` / `amount_minor` i64), optional `force`, always `preview:true`.
-Import drafts can **Udfyld afstem**. Commit via `/api/v1/journal/commit` or open
-Journal. Never auto-posts. Revolut remains dormant without a Business token.
+**Local web UI (DEV):** Bank screen: import preview → **Foreslå matches**
+(`POST /api/v1/bank/reconcile/suggest`) → **Udfyld apply** → apply with
+`preview:true` → ConfirmStore commit. Invoice_id + row (`date` / `text` /
+`amount_minor` i64), optional `force`. Never auto-posts. Revolut remains dormant
+without a Business token.
 
 **Unsafe matches** (confidence &lt; `SAFE_THRESHOLD_BPS`): rejected unless `force: true` **and** actor is `user` (agents/system cannot force). When applied, any open `unmatched_bank_transaction` for that bank row related-id is closed.
 

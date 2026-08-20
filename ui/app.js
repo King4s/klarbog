@@ -804,10 +804,12 @@ function idStr(v) {
   return String(v);
 }
 
-/** @type {{ drafts?: object[], errors?: string[], count?: number, source?: string, provider?: string } | null} */
+/** @type {{ drafts?: object[], errors?: string[], count?: number, source?: string, provider?: string, csv?: string } | null} */
 let bankLastResult = null;
 /** @type {{ invoice_id?: string, date?: string, text?: string, amount_minor?: string, force?: boolean } | null} */
 let bankReconcileDraft = null;
+/** @type {{ count?: number, rows?: object[], exceptions_raised?: string[] } | null} */
+let bankSuggestLast = null;
 
 async function renderBank() {
   const company = settings.company.trim();
@@ -865,6 +867,64 @@ async function renderBank() {
       </div>`;
   }
 
+  let suggestHtml = "";
+  if (bankSuggestLast) {
+    const rows = Array.isArray(bankSuggestLast.rows) ? bankSuggestLast.rows : [];
+    const matchRows = rows
+      .map((r) => {
+        const suggestions = Array.isArray(r.suggestions) ? r.suggestions : [];
+        const best = suggestions[0];
+        const sugList = suggestions
+          .map(
+            (s) =>
+              `<li><span class="money">${escapeHtml(s.invoice_id || "")}</span>
+               · ${escapeHtml(String(s.confidence_bps ?? "—"))} bps
+               · ${escapeHtml(s.party_name || s.kind || "")}</li>`,
+          )
+          .join("");
+        const fillBtn = best
+          ? `<button type="button" class="primary bank-fill-suggest"
+              data-invoice="${escapeHtml(best.invoice_id || "")}"
+              data-date="${escapeHtml(r.date || "")}"
+              data-text="${escapeHtml(r.text || "")}"
+              data-amount="${escapeHtml(String(r.amount_minor ?? ""))}"
+              data-bps="${escapeHtml(String(best.confidence_bps ?? ""))}">Udfyld apply</button>`
+          : `<span class="muted">Ingen forslag${
+              r.unsafe_match_reason
+                ? ` · ${escapeHtml(r.unsafe_match_reason)}`
+                : ""
+            }</span>`;
+        return `<tr>
+          <td class="money">${escapeHtml(String(r.row_index ?? ""))}</td>
+          <td>${escapeHtml(r.date || "")}</td>
+          <td>${escapeHtml(r.text || "")}</td>
+          <td class="money">${escapeHtml(formatDkk(r.amount_minor))}</td>
+          <td><ul class="plain">${sugList || "<li class='muted'>—</li>"}</ul>${fillBtn}</td>
+        </tr>`;
+      })
+      .join("");
+    const raised = Array.isArray(bankSuggestLast.exceptions_raised)
+      ? bankSuggestLast.exceptions_raised
+      : [];
+    suggestHtml = `
+      <div class="panel nested">
+        <h2>Afstem-forslag</h2>
+        <p class="muted">${escapeHtml(String(bankSuggestLast.count ?? rows.length))} banklinjer ·
+          safe ≥ 5000 bps · poster ikke</p>
+        ${
+          raised.length
+            ? `<p class="muted">exceptions_raised: ${raised.map((x) => escapeHtml(x)).join(", ")}</p>`
+            : ""
+        }
+        <table class="table">
+          <thead><tr><th>#</th><th>Dato</th><th>Tekst</th><th>DKK</th><th>Forslag</th></tr></thead>
+          <tbody>${
+            matchRows || `<tr><td colspan="5" class="muted">Ingen matches</td></tr>`
+          }</tbody>
+        </table>
+      </div>`;
+  }
+
   const pay = journalPending;
   const payBlock =
     pay && pay.from_bank
@@ -887,7 +947,7 @@ async function renderBank() {
     ${renderFlash()}
     <section class="panel">
       <h1>Bank</h1>
-      <p class="lede">Import-preview og afstem-apply → journalforslag. Beløb i DKK-visning; API bruger øre (i64).</p>
+      <p class="lede">Import → foreslå matches → apply preview → commit. Beløb i DKK-visning; API bruger øre (i64).</p>
       ${companyHint}
       <form id="bank-preview-form" class="grid">
         <div class="grid two">
@@ -907,15 +967,17 @@ async function renderBank() {
         </div>
         <div class="csv-block" id="bank-csv-block">
           <label>CSV (indsæt)
-            <textarea name="csv" id="bank-csv" placeholder="Dato;Tekst;Beløb&#10;19.08.2026;Kontor;-125,50"></textarea>
+            <textarea name="csv" id="bank-csv" placeholder="Dato;Tekst;Beløb&#10;19.08.2026;Kontor;-125,50">${escapeHtml(bankLastResult?.csv || "")}</textarea>
           </label>
         </div>
         <p class="muted">Firma: <span class="money">${escapeHtml(company || "—")}</span>. API kræver provider-nøgler i server-miljø.</p>
         <div class="actions">
           <button class="primary" type="submit" ${company ? "" : "disabled"}>Preview import</button>
+          <button class="ghost" type="button" id="bank-suggest-btn" ${company ? "" : "disabled"}>Foreslå matches</button>
         </div>
       </form>
       ${resultHtml}
+      ${suggestHtml}
 
       <div class="panel nested">
         <h2>Afstem apply (preview)</h2>
@@ -948,6 +1010,15 @@ async function renderBank() {
     </section>
   `;
 
+  if (bankLastResult?.source) {
+    const src = document.getElementById("bank-source");
+    if (src) src.value = bankLastResult.source;
+  }
+  if (bankLastResult?.provider) {
+    const prov = document.querySelector('#bank-preview-form select[name="provider"]');
+    if (prov) prov.value = bankLastResult.provider;
+  }
+
   const sourceSel = document.getElementById("bank-source");
   const csvBlock = document.getElementById("bank-csv-block");
   const syncCsv = () => {
@@ -965,6 +1036,26 @@ async function renderBank() {
         amount_minor: btn.dataset.amount || "",
       };
       setFlash("ok", `Udkast #${btn.dataset.idx} udfyldt — sæt invoice_id og kør Afstem preview`);
+      await renderBank();
+    });
+  });
+
+  document.querySelectorAll(".bank-fill-suggest").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const bps = Number(btn.dataset.bps || "0");
+      bankReconcileDraft = {
+        invoice_id: btn.dataset.invoice || "",
+        date: btn.dataset.date || "",
+        text: btn.dataset.text || "",
+        amount_minor: btn.dataset.amount || "",
+        force: bps > 0 && bps < 5000,
+      };
+      setFlash(
+        "ok",
+        `Match ${btn.dataset.invoice} udfyldt (${btn.dataset.bps} bps)${
+          bankReconcileDraft.force ? " — force sat (under 5000)" : ""
+        }`,
+      );
       await renderBank();
     });
   });
@@ -994,6 +1085,7 @@ async function renderBank() {
         count: data.count,
         source: data.source || source,
         provider: data.provider || provider,
+        csv,
       };
       setFlash("ok", `Preview OK · ${bankLastResult.count ?? bankLastResult.drafts.length} udkast`);
       await renderBank();
@@ -1004,7 +1096,55 @@ async function renderBank() {
         count: 0,
         source,
         provider,
+        csv,
       };
+      setFlash("err", e.message);
+      await renderBank();
+    }
+  });
+
+  document.getElementById("bank-suggest-btn")?.addEventListener("click", async () => {
+    if (!company) {
+      setFlash("err", "Firmasti mangler");
+      await renderBank();
+      return;
+    }
+    const form = document.getElementById("bank-preview-form");
+    const fd = new FormData(form);
+    const source = String(fd.get("source") || "csv");
+    const provider = String(fd.get("provider") || "generic_dk");
+    const csv = String(fd.get("csv") || "");
+    const body = {
+      company,
+      source,
+      provider,
+      currency: "DKK",
+      raise_exceptions: true,
+    };
+    if (source === "csv") body.csv = csv;
+    try {
+      const env = await api(settings, "/api/v1/bank/reconcile/suggest", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const data = env.data || {};
+      bankSuggestLast = {
+        count: data.count,
+        rows: Array.isArray(data.rows) ? data.rows : [],
+        exceptions_raised: Array.isArray(data.exceptions_raised) ? data.exceptions_raised : [],
+      };
+      bankLastResult = {
+        ...(bankLastResult || {}),
+        source,
+        provider,
+        csv,
+      };
+      setFlash(
+        "ok",
+        `Forslag OK · ${bankSuggestLast.count ?? bankSuggestLast.rows.length} linjer (poster ikke)`,
+      );
+      await renderBank();
+    } catch (e) {
       setFlash("err", e.message);
       await renderBank();
     }

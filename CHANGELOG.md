@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 48 (UI bank reconcile-suggest)
+
+- Bank: **Foreslå matches** → `POST /api/v1/bank/reconcile/suggest`; table with
+  confidence_bps; **Udfyld apply** into apply-preview (force when &lt; 5000 bps);
+  never auto-posts.
+
 ### Added — Wave 47 (UI invoice draft create)
 
 - Fakturaer: **Ny kladde** form (party select, sale/purchase, one line
