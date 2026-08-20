@@ -125,6 +125,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 57:** MCP negative-path — `journal_moms_post_suggestion` with unsupported memo VAT (`vat:12`) returns envelope **not ok** (fail-closed; i64; no suggestion payload).
 
+### Added — Wave 18 (MCP moms-suggest negative gross)
+
+- **Slice 58:** MCP negative-path — `journal_moms_post_suggestion` with negative `gross_minor` returns envelope **not ok** (fail-closed; i64; no suggestion payload).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

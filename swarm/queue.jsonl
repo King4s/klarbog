@@ -113,3 +113,4 @@
 {"event":"wave16_moms_suggest_unsupported_rate","slice":56,"status":"done","note":"HTTP moms-suggest unsupported memo vat:12 → 400; i64; soft<300; no sister names; VERIFY pending","ts":"2026-08-20T00:14:00Z"}
 {"event":"wave16_moms_suggest_unsupported_rate","slice":56,"status":"done","note":"HTTP moms-suggest unsupported memo vat:12 → 400; i64; soft<300; no sister names; VERIFY_OK","ts":"2026-08-20T00:14:30Z"}
 {"event":"wave17_mcp_moms_unsupported_rate","status":"done","note":"MCP moms-suggest vat:12 fail-closed; VERIFY_OK","ts":"2026-08-20T00:16:00Z"}
+{"event":"wave18_mcp_moms_negative_gross","status":"done","note":"MCP moms-suggest gross_minor:-1 fail-closed; VERIFY_OK","ts":"2026-08-20T00:18:00Z"}

@@ -12,6 +12,6 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 17: MCP moms-suggest unsupported memo VAT (`vat:12`) → envelope not ok.
+Wave 18: MCP moms-suggest negative `gross_minor` → envelope not ok.
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

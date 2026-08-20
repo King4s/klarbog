@@ -114,4 +114,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 57. MCP parity: `journal_moms_post_suggestion` with unsupported memo VAT (`vat:12`) → envelope **not ok** (fail-closed; i64 gross untouched; never suggests) ✅
 
+## Wave 18 — MCP moms-suggest negative gross (landed)
+
+58. MCP parity: `journal_moms_post_suggestion` with negative `gross_minor` → envelope **not ok** (fail-closed; i64; never suggests) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
