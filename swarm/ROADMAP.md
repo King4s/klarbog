@@ -269,3 +269,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 99. Bank UI: **Foreslå matches** → `POST /api/v1/bank/reconcile/suggest`;
     show confidence_bps; **Udfyld apply** into apply-preview form; never auto-post ✅
+
+## Wave 49 — UI GDPR party erase soft-split
+
+100. Parter UI: GDPR dry-run / confirm (`POST /api/v1/gdpr/erase-party`) +
+     export; show `journal_refs_retained`; journal never mutated ✅

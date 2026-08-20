@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 49 (UI GDPR party erase)
+
+- Parter: **GDPR dry-run** / **Bekræft erase** + optional delete documents;
+  shows `journal_refs_retained`; **GDPR-eksport** button; journal never mutated
+  (ADR-010).
+
 ### Added — Wave 48 (UI bank reconcile-suggest)
 
 - Bank: **Foreslå matches** → `POST /api/v1/bank/reconcile/suggest`; table with

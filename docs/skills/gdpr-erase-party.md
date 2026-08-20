@@ -42,3 +42,10 @@ documents when `delete_documents: true`.
 1. Call without `confirm` first; inspect `journal_refs_retained`.
 2. Do not attempt to scrub the ledger — retention/accounting wins.
 3. Only confirm after the operator accepts the retained journal refs.
+
+## Local web UI (DEV)
+
+Parter (`/ui/` → Parter): per-party **GDPR dry-run**, then **Bekræft erase**
+(optional delete documents). Shows `journal_refs_retained` and
+display_name before/after. **GDPR-eksport** calls `POST /api/v1/gdpr-export`.
+Journal is never rewritten from the UI.
