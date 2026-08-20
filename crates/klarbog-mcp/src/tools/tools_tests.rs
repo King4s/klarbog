@@ -9,6 +9,12 @@ fn tools_list_names() {
     assert!(names.contains(&"klarbog_health"));
     assert!(names.contains(&"crm_upsert_party"));
     assert!(names.contains(&"crm_list_parties"));
+    assert!(names.contains(&"documents_attach"));
+    assert!(names.contains(&"documents_list"));
+    assert!(names.contains(&"documents_delete"));
+    assert!(names.contains(&"exceptions_raise"));
+    assert!(names.contains(&"exceptions_list"));
+    assert!(names.contains(&"exceptions_set_open"));
     assert!(names.contains(&"bank_import_preview"));
     assert!(names.contains(&"bank_stripe_consume"));
     assert!(names.contains(&"bank_reconcile_suggest"));

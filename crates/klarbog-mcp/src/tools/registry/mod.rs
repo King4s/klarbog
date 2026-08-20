@@ -1,6 +1,7 @@
 //! MCP tools/list schema registry.
 
 mod bank;
+mod documents;
 mod ledger_ops;
 
 use serde_json::{json, Value};
@@ -8,6 +9,7 @@ use serde_json::{json, Value};
 pub fn tools_list() -> Value {
     let mut tools = Vec::new();
     tools.extend(core_tools());
+    tools.extend(documents::tools());
     tools.extend(bank::tools());
     tools.extend(ledger_ops::tools());
     json!({

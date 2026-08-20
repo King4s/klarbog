@@ -149,6 +149,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 63:** Soft-split `klarbog-mcp` tools registry — `registry.rs` → `registry/{mod,bank,ledger_ops}.rs` (non-blank under soft 300; schemas unchanged).
 
+### Added — Wave 24 (MCP documents + exceptions)
+
+- **Slice 64:** MCP `documents_attach` / `documents_list` / `documents_delete` + `exceptions_raise` / `exceptions_list` / `exceptions_set_open` mirror HTTP `/api/v1/documents` and `/api/v1/exceptions` — AuthZ + allowlist; relative `path_hint`; optional `content_base64`; **no** journal write (ADR-004/007). Prompt / INSTALL / documents-exceptions skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

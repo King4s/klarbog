@@ -62,6 +62,12 @@ Kald `tools/list`. Forvent mindst:
 | `klarbog_health` | Livstegn |
 | `crm_upsert_party` | Opret/opdater part (`display_name`; valgfri `party_id`; **ingen** journal-write) |
 | `crm_list_parties` | List parter, eller én når `party_id` er sat (read-only) |
+| `documents_attach` | Bilags-metadata (+ valgfri `content_base64`; relativ `path_hint`; **ingen** journal-write) |
+| `documents_list` | List bilag, eller ét når `document_id` er sat (read-only) |
+| `documents_delete` | Slet bilags-metadata (`delete_object` default true; **ingen** journal-write) |
+| `exceptions_raise` | Opret åben undtagelse (`code`/`severity`/`message`; valgfri `related_ids`) |
+| `exceptions_list` | List undtagelser (`open_only` default true), eller én når `exception_id` er sat |
+| `exceptions_set_open` | Sæt `open` (luk med `open:false`; **ingen** journal-write) |
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
 | `journal_moms_post_suggestion` | Valgfrit moms-forslag fra `gross_minor` når memo har `#vat25` (net+vat i64; **poster aldrig**) |

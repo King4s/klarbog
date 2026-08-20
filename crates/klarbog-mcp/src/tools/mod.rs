@@ -5,6 +5,7 @@ mod bank;
 mod bank_stripe_pipelines;
 mod bank_wave2;
 mod crm;
+mod documents;
 mod helpers;
 mod invoice;
 mod journal;
@@ -37,6 +38,12 @@ pub fn handle_tool_call(
         })),
         "crm_upsert_party" => rt.block_on(crm::crm_upsert_party(args, allowlist_root)),
         "crm_list_parties" => rt.block_on(crm::crm_list_parties(args, allowlist_root)),
+        "documents_attach" => rt.block_on(documents::documents_attach(args, allowlist_root)),
+        "documents_list" => rt.block_on(documents::documents_list(args, allowlist_root)),
+        "documents_delete" => rt.block_on(documents::documents_delete(args, allowlist_root)),
+        "exceptions_raise" => rt.block_on(documents::exceptions_raise(args, allowlist_root)),
+        "exceptions_list" => rt.block_on(documents::exceptions_list(args, allowlist_root)),
+        "exceptions_set_open" => rt.block_on(documents::exceptions_set_open(args, allowlist_root)),
         "bank_import_preview" => rt.block_on(bank::bank_import_preview(args, allowlist_root)),
         "bank_stripe_consume" => rt.block_on(bank_wave2::bank_stripe_consume(args, allowlist_root)),
         "bank_reconcile_suggest" => {

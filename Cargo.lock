@@ -1025,12 +1025,14 @@ name = "klarbog-mcp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "chrono",
  "klarbog-core",
  "klarbog-journal",
  "klarbog-plugin",
  "klarbog-plugin-bank",
  "klarbog-plugin-crm",
+ "klarbog-plugin-documents",
  "klarbog-plugin-invoice",
  "klarbog-plugin-retention",
  "klarbog-plugin-rules-dk",

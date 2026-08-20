@@ -11,20 +11,29 @@ description: >-
 
 - Register receipt/scan metadata linked to `party_id` or `invoice_id`.
 - Raise workflow exceptions (missing receipt, amount mismatch) and close when resolved.
-- Slice 7: JSON metadata in company dir; optional binary via `content` / HTTP `content_base64` (ADR-007).
+- Slice 7: JSON metadata in company dir; optional binary via `content` / HTTP/MCP `content_base64` (ADR-007).
 
 ## Plugin facts
 
 - Crate: `klarbog-plugin-documents`
 - Files: `<company>/documents.json`, `<company>/exceptions.json`
 - Capabilities: `Read`, `CrmWrite` — **no** `JournalWrite`
-- `path_hint` must be relative (pathguard rejects absolute paths)
+- `path_hint` must be relative (pathguard rejects absolute paths and `..`)
 
-## HTTP (DEV)
+## MCP (parity with HTTP)
 
-### Attach document
+| Tool | Mirrors |
+|------|---------|
+| `documents_attach` | `POST /api/v1/documents` |
+| `documents_list` | `GET /api/v1/documents` (`document_id` optional get) |
+| `documents_delete` | `DELETE /api/v1/documents` (`delete_object` default true) |
+| `exceptions_raise` | `POST /api/v1/exceptions` |
+| `exceptions_list` | `GET /api/v1/exceptions` (`exception_id` optional get; `open_only` default true) |
+| `exceptions_set_open` | `PATCH /api/v1/exceptions` (`open:false` closes) |
 
-`POST /api/v1/documents`
+Common args: `company`, `actor_kind`, `actor_id`. AuthZ + allowlist. **Never** posts journal.
+
+### Attach example (MCP)
 
 ```json
 {
@@ -32,40 +41,37 @@ description: >-
   "kind": "receipt",
   "path_hint": "2026/01/receipt-001.pdf",
   "party_id": "pty_...",
-  "invoice_id": null,
   "notes": "Fuel station",
-  "content_base64": "<optional base64 bytes>"
+  "content_base64": "<optional base64 bytes>",
+  "actor_kind": "user",
+  "actor_id": "owner"
 }
 ```
 
 `kind`: `receipt` | `invoice_scan` | `other`.
 
-### List documents
-
-`GET /api/v1/documents?company=<path>`
-
-### Raise exception
-
-`POST /api/v1/exceptions`
+### Raise example (MCP)
 
 ```json
 {
   "company": "/path/to/company",
-  "severity": "warn",
   "code": "missing_receipt",
+  "severity": "warn",
   "message": "No receipt for expense 6000-42",
-  "document_id": null,
-  "party_id": "pty_..."
+  "related_ids": ["doc_..."],
+  "actor_kind": "user",
+  "actor_id": "owner"
 }
 ```
 
 `severity`: `info` | `warn` | `error`.
 
-### List / get / close
+## HTTP (DEV)
 
-- `GET /api/v1/exceptions?company=<path>`
-- `GET /api/v1/exceptions?company=<path>&id=<exc_id>`
-- `PATCH /api/v1/exceptions` with `{"company", "id", "open": false}` to close
+Same bodies as MCP (without actor fields — use `x-klarbog-actor-*` headers).
+
+- `POST` / `GET` / `DELETE` `/api/v1/documents`
+- `POST` / `GET` / `PATCH` `/api/v1/exceptions`
 
 ## Rust (in-process)
 
@@ -78,21 +84,27 @@ use klarbog_plugin_documents::{
 let doc = attach_document(
     company,
     DocumentKind::Receipt,
-    "scans/x.pdf",
+    "scans/x.pdf".into(),
     Some(party_id),
     None,
     None,
     Some(pdf_bytes),
 )
 .await?;
-let exc = raise_exception(company, ExceptionSeverity::Warn, "missing_receipt", "...", None, Some(party_id))?;
+let exc = raise_exception(
+    company,
+    "missing_receipt".into(),
+    ExceptionSeverity::Warn,
+    "No receipt".into(),
+    vec![doc.id.to_string()],
+)?;
 set_exception_open(company, &exc.id, false)?;
 ```
 
 ## ObjectStore (ADR-007)
 
 - `klarbog-storage`: `LocalFsStore` for DEV; `R2Store` for stage/prod (EU, fail-closed without creds).
-- When `content` is provided, bytes are stored at `path_hint` under `<company>/objects/` (local) or R2 bucket key.
+- When `content` / `content_base64` is provided, bytes are stored at `path_hint` under `<company>/objects/` (local) or R2 bucket key.
 - Agents should use relative `path_hint`; host resolves against company storage root.
 
 ## Retention purge (MCP / HTTP)
@@ -110,5 +122,5 @@ Default is dry-run. Purge never touches confirmed journal entries.
 1. Ensure party (and invoice if linked) exist.
 2. Use relative `path_hint` only.
 3. Raise exceptions for human review — do not auto-post journal fixes.
-4. Close exceptions when evidence is attached or issue resolved.
+4. Close exceptions when evidence is attached or issue resolved (`exceptions_set_open` with `open:false`).
 5. After grace: preview `retention_purge` before `confirm: true`.

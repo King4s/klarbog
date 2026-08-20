@@ -138,4 +138,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 63. Soft-split `klarbog-mcp/src/tools/registry.rs` → `registry/{mod,bank,ledger_ops}.rs` (non-blank under soft 300; tool schemas unchanged) ✅
 
+## Wave 24 — MCP documents + exceptions (landed)
+
+64. MCP parity: `documents_attach` / `documents_list` / `documents_delete` + `exceptions_raise` / `exceptions_list` / `exceptions_set_open` mirror HTTP documents/exceptions (no journal write; ADR-004/007) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
