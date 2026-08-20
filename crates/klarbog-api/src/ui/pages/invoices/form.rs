@@ -26,6 +26,8 @@ pub struct InvoiceActionForm {
     pub amount_minor: Option<String>,
     pub invoice_id: Option<String>,
     pub part_amount_minor: Option<String>,
+    pub entry_json: Option<String>,
+    pub confirm_token: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

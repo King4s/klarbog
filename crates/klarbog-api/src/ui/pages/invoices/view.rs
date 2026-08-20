@@ -32,6 +32,10 @@ pub(super) struct InvoicesTemplate {
     pub company: String,
     pub invoices: Vec<InvoiceRow>,
     pub parties: Vec<PartyOption>,
+    pub has_pending: bool,
+    pub pending_label: String,
+    pub pending_entry_json: String,
+    pub pending_token: String,
 }
 
 pub(super) async fn load_page(
@@ -60,6 +64,10 @@ pub(super) async fn load_page(
         company: company.to_string(),
         invoices: Vec::new(),
         parties: Vec::new(),
+        has_pending: false,
+        pending_label: String::new(),
+        pending_entry_json: String::new(),
+        pending_token: String::new(),
     };
     if company.is_empty() {
         return base;

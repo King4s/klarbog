@@ -3,7 +3,8 @@
 use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
-use klarbog_core::journal_preview;
+use klarbog_core::{journal_commit, journal_preview};
+use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
     create_draft_from_new, mark_paid_preview, mark_part_paid_preview, patch_status, InvoiceConfig,
     InvoiceId, InvoiceKind, InvoiceStatus, NewLine,
@@ -14,6 +15,53 @@ use super::super::common::{authorize_company, company_from, html_ok, ACTOR};
 use super::form::InvoiceActionForm;
 use super::view::load_page;
 use crate::AppState;
+
+/// Journal-preview the payment entry and render a pending-commit panel
+/// carrying the serialized entry + confirm token (digest-bound, fail-closed).
+async fn preview_with_pending(
+    state: &AppState,
+    company: &str,
+    actor: &Actor,
+    invoice_id: &klarbog_plugin_invoice::InvoiceId,
+    entry: klarbog_journal::JournalEntry,
+    kind_label: &str,
+) -> Response {
+    let preview = journal_preview(
+        &state.allowlist_root,
+        std::path::Path::new(company),
+        &entry,
+        actor,
+        &state.confirm,
+        &state.registry,
+    )
+    .await;
+    match preview {
+        Ok(p) => {
+            let entry_json = match serde_json::to_string(&entry) {
+                Ok(j) => j,
+                Err(e) => {
+                    return html_ok(load_page(state, company, String::new(), e.to_string()).await);
+                }
+            };
+            let mut page = load_page(
+                state,
+                company,
+                format!(
+                    "{kind_label} preview for {invoice_id} · memo {}",
+                    entry.memo
+                ),
+                String::new(),
+            )
+            .await;
+            page.has_pending = true;
+            page.pending_label = format!("{kind_label} · {invoice_id} · {}", entry.memo);
+            page.pending_entry_json = entry_json;
+            page.pending_token = p.confirm_token.token;
+            html_ok(page)
+        }
+        Err(e) => html_ok(load_page(state, company, String::new(), e.to_string()).await),
+    }
+}
 
 pub async fn invoices_post(
     State(state): State<AppState>,
@@ -104,32 +152,7 @@ pub async fn invoices_post(
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
             match mark_paid_preview(&path, &id, &actor, &InvoiceConfig::default()) {
                 Ok((inv, entry)) => {
-                    let preview = journal_preview(
-                        &state.allowlist_root,
-                        std::path::Path::new(&company),
-                        &entry,
-                        &actor,
-                        &state.confirm,
-                        &state.registry,
-                    )
-                    .await;
-                    match preview {
-                        Ok(p) => html_ok(
-                            load_page(
-                                &state,
-                                &company,
-                                format!(
-                                    "Betalt preview for {} · token {} · memo {}",
-                                    inv.id, p.confirm_token.token, entry.memo
-                                ),
-                                String::new(),
-                            )
-                            .await,
-                        ),
-                        Err(e) => {
-                            html_ok(load_page(&state, &company, String::new(), e.to_string()).await)
-                        }
-                    }
+                    preview_with_pending(&state, &company, &actor, &inv.id, entry, "Betalt").await
                 }
                 Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
             }
@@ -152,33 +175,49 @@ pub async fn invoices_post(
             };
             match mark_part_paid_preview(&path, &id, amount, &actor, &InvoiceConfig::default()) {
                 Ok((inv, entry)) => {
-                    let preview = journal_preview(
-                        &state.allowlist_root,
-                        std::path::Path::new(&company),
-                        &entry,
-                        &actor,
-                        &state.confirm,
-                        &state.registry,
-                    )
-                    .await;
-                    match preview {
-                        Ok(p) => html_ok(
+                    preview_with_pending(&state, &company, &actor, &inv.id, entry, "Delbetalt")
+                        .await
+                }
+                Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
+            }
+        }
+        "commit_payment" => {
+            let token = form.confirm_token.unwrap_or_default();
+            let entry: JournalEntry =
+                match serde_json::from_str(form.entry_json.unwrap_or_default().trim()) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        return html_ok(
                             load_page(
                                 &state,
                                 &company,
-                                format!(
-                                    "Delbetalt preview for {} · token {} · memo {}",
-                                    inv.id, p.confirm_token.token, entry.memo
-                                ),
                                 String::new(),
+                                format!("Ugyldig entry_json: {e}"),
                             )
                             .await,
-                        ),
-                        Err(e) => {
-                            html_ok(load_page(&state, &company, String::new(), e.to_string()).await)
-                        }
+                        );
                     }
-                }
+                };
+            match journal_commit(
+                &state.allowlist_root,
+                std::path::Path::new(&company),
+                entry,
+                &actor,
+                token.trim(),
+                &state.confirm,
+                &state.registry,
+            )
+            .await
+            {
+                Ok(r) => html_ok(
+                    load_page(
+                        &state,
+                        &company,
+                        format!("Betaling bogført · posted {}", r.posted.id),
+                        String::new(),
+                    )
+                    .await,
+                ),
                 Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
             }
         }

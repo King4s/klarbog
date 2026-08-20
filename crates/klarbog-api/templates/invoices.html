@@ -5,6 +5,18 @@
   <p class="lede">Kladder og betalings-preview · Rust SSR (ingen JS).</p>
   {% if has_company %}
   <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+  {% if has_pending %}
+  <div class="panel nested">
+    <h2>Afventer bogføring</h2>
+    <p class="muted">{{ pending_label }}</p>
+    <form method="post" action="/ui/invoices">
+      <input type="hidden" name="action" value="commit_payment" />
+      <input type="hidden" name="entry_json" value="{{ pending_entry_json }}" />
+      <input type="hidden" name="confirm_token" value="{{ pending_token }}" />
+      <button class="primary" type="submit">Bekræft betaling (commit)</button>
+    </form>
+  </div>
+  {% endif %}
   <table class="table">
     <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th><th>Handling</th></tr></thead>
     <tbody>

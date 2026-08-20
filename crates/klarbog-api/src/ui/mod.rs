@@ -86,4 +86,42 @@ mod tests {
             "SSR UI must not load the retired JS SPA"
         );
     }
+
+    /// The invoice commit flow carries the journal entry as JSON through the
+    /// form; the confirm token is digest-bound, so the serde round-trip must
+    /// preserve `payload_digest` exactly or commit would fail closed.
+    #[test]
+    fn ui_entry_json_roundtrip_preserves_digest() {
+        use klarbog_core::payload_digest;
+        use klarbog_journal::{Direction, JournalEntry, Leg};
+        use klarbog_types::{Actor, Currency, MinorAmount};
+
+        let entry = JournalEntry {
+            as_of: chrono::Utc::now(),
+            memo: "invoice:inv_x:payment æøå".into(),
+            actor: Actor::user("ui-dev"),
+            legs: vec![
+                Leg {
+                    account: "5800".into(),
+                    direction: Direction::Debit,
+                    amount: MinorAmount::from_minor(12_500),
+                    currency: Currency::new("DKK").unwrap(),
+                    party_id: None,
+                },
+                Leg {
+                    account: "1000".into(),
+                    direction: Direction::Credit,
+                    amount: MinorAmount::from_minor(12_500),
+                    currency: Currency::new("DKK").unwrap(),
+                    party_id: None,
+                },
+            ],
+        };
+        let company = std::path::Path::new("/tmp/co");
+        let before = payload_digest(company, &entry).unwrap();
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: JournalEntry = serde_json::from_str(&json).unwrap();
+        let after = payload_digest(company, &back).unwrap();
+        assert_eq!(before, after, "entry JSON round-trip must keep the digest");
+    }
 }
