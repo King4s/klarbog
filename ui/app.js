@@ -728,36 +728,48 @@ function idStr(v) {
 
 /** @type {{ drafts?: object[], errors?: string[], count?: number, source?: string, provider?: string } | null} */
 let bankLastResult = null;
+/** @type {{ invoice_id?: string, date?: string, text?: string, amount_minor?: string, force?: boolean } | null} */
+let bankReconcileDraft = null;
 
 async function renderBank() {
   const company = settings.company.trim();
   const companyHint = company
     ? ""
     : `<p class="muted">Sæt firmasti under Indstillinger før preview.</p>`;
+  const rd = bankReconcileDraft || {};
 
   let resultHtml = "";
   if (bankLastResult) {
     const drafts = Array.isArray(bankLastResult.drafts) ? bankLastResult.drafts : [];
     const errors = Array.isArray(bankLastResult.errors) ? bankLastResult.errors : [];
     const draftRows = drafts
-      .map((d) => {
+      .map((d, idx) => {
         const minor =
           typeof d.amount_minor === "number"
             ? d.amount_minor
             : typeof d.amount?.units === "number"
               ? d.amount.units
               : null;
+        const memo = d.memo || d.text || "";
+        const date = d.date || d.booking_date || "";
         return `<tr>
-          <td>${escapeHtml(d.memo || "")}</td>
+          <td class="money">${idx}</td>
+          <td>${escapeHtml(date)}</td>
+          <td>${escapeHtml(memo)}</td>
           <td class="money">${escapeHtml(formatDkk(minor))}</td>
           <td class="money">${escapeHtml(minor == null ? "—" : String(minor))}</td>
+          <td class="actions-cell">
+            <button type="button" class="ghost bank-fill-row" data-idx="${idx}"
+              data-date="${escapeHtml(date)}" data-text="${escapeHtml(memo)}"
+              data-amount="${escapeHtml(minor == null ? "" : String(minor))}">Udfyld afstem</button>
+          </td>
         </tr>`;
       })
       .join("");
     const errList = errors.map((e) => `<li>${escapeHtml(e)}</li>`).join("");
     resultHtml = `
       <div class="panel nested">
-        <h2>Seneste preview</h2>
+        <h2>Seneste import-preview</h2>
         <p class="muted">${escapeHtml(String(bankLastResult.count ?? drafts.length))} udkast ·
           ${escapeHtml(bankLastResult.source || "—")} /
           ${escapeHtml(bankLastResult.provider || "—")}</p>
@@ -767,19 +779,37 @@ async function renderBank() {
             : ""
         }
         <table class="table">
-          <thead><tr><th>Memo</th><th>DKK</th><th>Øre (i64)</th></tr></thead>
+          <thead><tr><th>#</th><th>Dato</th><th>Memo</th><th>DKK</th><th>Øre</th><th></th></tr></thead>
           <tbody>${
-            draftRows || `<tr><td colspan="3" class="muted">Ingen udkast</td></tr>`
+            draftRows || `<tr><td colspan="6" class="muted">Ingen udkast</td></tr>`
           }</tbody>
         </table>
       </div>`;
   }
 
+  const pay = journalPending;
+  const payBlock =
+    pay && pay.from_bank
+      ? `<div class="panel nested">
+        <h2>Afstem-preview klar</h2>
+        <p class="muted">Faktura <span class="money">${escapeHtml(pay.from_bank)}</span> — poster ikke før commit.</p>
+        <p class="muted">confirm_token</p>
+        <p class="token money">${escapeHtml(pay.confirm_token)}</p>
+        <p class="muted">Udløber (unix ms): ${escapeHtml(String(pay.expires_unix_ms ?? "—"))}</p>
+        <p class="muted">Digest: <span class="money">${escapeHtml(pay.payload_digest || "—")}</span></p>
+        <div class="actions">
+          <button class="primary" type="button" id="bank-journal-commit" ${company ? "" : "disabled"}>Commit journal</button>
+          <button class="ghost" type="button" id="bank-goto-journal">Åbn Journal</button>
+          <button class="ghost" type="button" id="bank-clear-preview">Ryd token</button>
+        </div>
+      </div>`
+      : `<p class="muted">Afstem apply med <span class="money">preview:true</span> giver ConfirmStore-token (ingen auto-post).</p>`;
+
   app.innerHTML = `
     ${renderFlash()}
     <section class="panel">
       <h1>Bank</h1>
-      <p class="lede">Import-preview — ingen journal-post. Beløb vises i DKK; API bruger øre (i64).</p>
+      <p class="lede">Import-preview og afstem-apply → journalforslag. Beløb i DKK-visning; API bruger øre (i64).</p>
       ${companyHint}
       <form id="bank-preview-form" class="grid">
         <div class="grid two">
@@ -792,7 +822,7 @@ async function renderBank() {
           <label>Provider
             <select name="provider">
               <option value="generic_dk" selected>generic_dk</option>
-              <option value="revolut">revolut</option>
+              <option value="revolut">revolut (dormant uden token)</option>
               <option value="stripe">stripe</option>
             </select>
           </label>
@@ -808,6 +838,35 @@ async function renderBank() {
         </div>
       </form>
       ${resultHtml}
+
+      <div class="panel nested">
+        <h2>Afstem apply (preview)</h2>
+        <p class="muted">POST /api/v1/bank/reconcile/apply med preview:true — journalforslag, aldrig auto-post.</p>
+        <form id="bank-reconcile-form" class="grid">
+          <label>invoice_id
+            <input name="invoice_id" required placeholder="inv_…" value="${escapeHtml(rd.invoice_id || "")}" />
+          </label>
+          <div class="grid two">
+            <label>Dato (YYYY-MM-DD)
+              <input name="date" required placeholder="2026-05-20" value="${escapeHtml(rd.date || "2026-05-20")}" />
+            </label>
+            <label>amount_minor (øre)
+              <input name="amount_minor" required inputmode="numeric" pattern="-?[0-9]+" value="${escapeHtml(rd.amount_minor || "50000")}" />
+            </label>
+          </div>
+          <label>Tekst
+            <input name="text" required placeholder="Customer payment …" value="${escapeHtml(rd.text || "")}" />
+          </label>
+          <label class="check">
+            <input type="checkbox" name="force" ${rd.force ? "checked" : ""} />
+            force (kun user under safe-threshold)
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit" ${company ? "" : "disabled"}>Afstem preview</button>
+          </div>
+        </form>
+      </div>
+      ${payBlock}
     </section>
   `;
 
@@ -818,6 +877,19 @@ async function renderBank() {
   };
   sourceSel?.addEventListener("change", syncCsv);
   syncCsv();
+
+  document.querySelectorAll(".bank-fill-row").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      bankReconcileDraft = {
+        ...(bankReconcileDraft || {}),
+        date: btn.dataset.date || "",
+        text: btn.dataset.text || "",
+        amount_minor: btn.dataset.amount || "",
+      };
+      setFlash("ok", `Udkast #${btn.dataset.idx} udfyldt — sæt invoice_id og kør Afstem preview`);
+      await renderBank();
+    });
+  });
 
   document.getElementById("bank-preview-form")?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -859,7 +931,100 @@ async function renderBank() {
       await renderBank();
     }
   });
+
+  document.getElementById("bank-reconcile-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!company) {
+      setFlash("err", "Firmasti mangler");
+      await renderBank();
+      return;
+    }
+    const fd = new FormData(ev.target);
+    try {
+      const invoice_id = String(fd.get("invoice_id") || "").trim();
+      const date = String(fd.get("date") || "").trim();
+      const text = String(fd.get("text") || "").trim();
+      const amount_minor = parseMinor(fd.get("amount_minor"), "amount_minor");
+      const force = Boolean(fd.get("force"));
+      if (!invoice_id) throw new Error("invoice_id kræves");
+      if (!date || !text) throw new Error("dato og tekst kræves");
+      bankReconcileDraft = {
+        invoice_id,
+        date,
+        text,
+        amount_minor: String(amount_minor),
+        force,
+      };
+      const env = await api(settings, "/api/v1/bank/reconcile/apply", {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          invoice_id,
+          preview: true,
+          force,
+          currency: "DKK",
+          row: { date, text, amount_minor },
+        }),
+      });
+      const data = env.data || {};
+      if (!data.confirm_token || !data.entry) {
+        throw new Error("Mangler confirm_token eller entry i afstem-preview");
+      }
+      journalPending = {
+        entry: data.entry,
+        confirm_token: String(data.confirm_token),
+        expires_unix_ms: data.expires_unix_ms,
+        payload_digest: data.payload_digest,
+        from_bank: invoice_id,
+      };
+      setFlash(
+        "ok",
+        `Afstem preview OK · confidence_bps=${data.confidence_bps ?? "—"} · forced=${data.forced === true}`,
+      );
+      await renderBank();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderBank();
+    }
+  });
+
+  document.getElementById("bank-clear-preview")?.addEventListener("click", async () => {
+    journalPending = null;
+    setFlash("ok", "Token ryddet");
+    await renderBank();
+  });
+
+  document.getElementById("bank-goto-journal")?.addEventListener("click", async () => {
+    view = "journal";
+    setActiveNav();
+    await renderJournal();
+  });
+
+  document.getElementById("bank-journal-commit")?.addEventListener("click", async () => {
+    if (!company || !journalPending) return;
+    try {
+      const env = await api(settings, "/api/v1/journal/commit", {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          entry: journalPending.entry,
+          confirm_token: journalPending.confirm_token,
+        }),
+      });
+      const data = env.data || {};
+      journalPending = null;
+      setFlash(
+        "ok",
+        `Posted ${data.id || "ok"} · digest ${String(data.digest || "").slice(0, 16)}…`,
+      );
+      await renderBank();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderBank();
+    }
+  });
 }
+
 
 async function renderBilag() {
   const company = settings.company.trim();

@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 46 (UI bank reconcile-apply preview)
+
+- Bank screen: **Afstem apply (preview)** → `POST /api/v1/bank/reconcile/apply`
+  with `preview:true`; fill row from import drafts; ConfirmStore token + optional
+  journal commit; never auto-posts.
+
 ### Added — Wave 45 (UI invoice payment preview)
 
 - Fakturaer screen: **Sæt sent**, **Delbetalt preview**, **Betalt preview**

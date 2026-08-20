@@ -287,6 +287,13 @@ ul.plain {
   padding: 0.35rem 0.55rem;
 }
 
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
 .panel.nested h2,
 h2.subhead {
   margin: 1.25rem 0 0.35rem;

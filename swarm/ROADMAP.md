@@ -252,3 +252,9 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 96. Fakturaer UI: mark-paid / mark-part-paid with `preview:true` → ConfirmStore
     token + journal_entry; optional commit or open Journal; never auto-post ✅
+
+## Wave 46 — UI bank reconcile-apply preview soft-split
+
+97. Bank UI: reconcile/apply `preview:true` form (invoice_id + row i64) →
+    ConfirmStore token; fill from import drafts; commit or open Journal;
+    never auto-post; Revolut still dormant ✅
