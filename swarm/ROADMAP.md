@@ -134,4 +134,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 62. MCP parity: `crm_upsert_party` + `crm_list_parties` mirror `POST`/`GET /api/v1/crm/parties` (optional `party_id` get; no journal write; ADR-004) ✅
 
+## Wave 23 — MCP registry soft-split (landed)
+
+63. Soft-split `klarbog-mcp/src/tools/registry.rs` → `registry/{mod,bank,ledger_ops}.rs` (non-blank under soft 300; tool schemas unchanged) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

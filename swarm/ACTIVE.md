@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 22 landed** — MCP CRM parties (`crm_upsert_party` / `crm_list_parties`)
-- Tip VERIFY_OK; registry soft-warn ~320 — soft-split next
+- **Wave 23 landed** — soft-split MCP `registry` under linegate
+- Tip VERIFY_OK; continue HTTP–MCP parity or next soft-split
 - No sister-product names in public tree

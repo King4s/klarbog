@@ -119,3 +119,5 @@
 {"event":"wave20_mcp_bank_reconcile_suggest","status":"done","note":"MCP bank_reconcile_suggest HTTP parity; VERIFY_OK","ts":"2026-08-20T00:25:00Z"}
 {"event":"wave21_mcp_gdpr_export","status":"done","note":"MCP gdpr_export HTTP parity; VERIFY_OK","ts":"2026-08-20T00:27:00Z"}
 {"event":"wave22_mcp_crm_parties","status":"done","note":"MCP crm_upsert_party + crm_list_parties; VERIFY_OK","ts":"2026-08-20T00:30:00Z"}
+{"event":"wave23_mcp_registry_soft_split","slice":63,"status":"done","note":"registry.rs→registry/{mod,bank,ledger_ops}; soft<300; schemas unchanged; VERIFY pending","ts":"2026-08-20T00:32:00Z"}
+{"event":"wave23_mcp_registry_soft_split","slice":63,"status":"done","note":"registry.rs→registry/{mod,bank,ledger_ops}; soft 54/138/149; schemas unchanged; VERIFY_OK","ts":"2026-08-20T00:33:00Z"}

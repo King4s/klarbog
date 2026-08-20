@@ -145,6 +145,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 62:** MCP `crm_upsert_party` + `crm_list_parties` mirror `POST`/`GET /api/v1/crm/parties` — optional `party_id` for get; empty display_name fail-closed; AuthZ deny; **no** journal write (ADR-004). Prompt / INSTALL / crm-parties skill.
 
+### Added — Wave 23 (MCP registry soft-split)
+
+- **Slice 63:** Soft-split `klarbog-mcp` tools registry — `registry.rs` → `registry/{mod,bank,ledger_ops}.rs` (non-blank under soft 300; schemas unchanged).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
