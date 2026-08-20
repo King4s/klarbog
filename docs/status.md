@@ -10,7 +10,6 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 27: MCP `revolut_oauth_start` + `revolut_oauth_callback` (HTTP OAuth
-parity; never echo tokens). Product AI prompt:
-`docs/agent-setup/prompt.md`.
+Wave 28: MCP `klarbog_status` (HTTP `/api/v1/status` parity;
+`bind=stdio`). Product AI prompt: `docs/agent-setup/prompt.md`.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

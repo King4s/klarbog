@@ -7,6 +7,7 @@ fn tools_list_names() {
     let tools = listed["result"]["tools"].as_array().unwrap();
     let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
     assert!(names.contains(&"klarbog_health"));
+    assert!(names.contains(&"klarbog_status"));
     assert!(names.contains(&"crm_upsert_party"));
     assert!(names.contains(&"crm_list_parties"));
     assert!(names.contains(&"documents_attach"));
@@ -53,4 +54,26 @@ fn health_via_handler() {
         &rt,
     );
     assert!(env.ok);
+}
+
+#[test]
+fn status_includes_allowlist_and_plugins() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let store = ConfirmStore::default();
+    let registry = default_registry();
+    let root = Path::new("/tmp/klarbog-status-test");
+    let env = handle_tool_call("klarbog_status", &json!({}), &store, root, &registry, &rt);
+    assert!(env.ok);
+    let data = env.data.expect("status data");
+    assert_eq!(data["mode"], "dev");
+    assert_eq!(data["bind"], "stdio");
+    assert_eq!(
+        data["allowlist_root"].as_str().unwrap(),
+        root.to_str().unwrap()
+    );
+    let plugins = data["plugins"].as_array().expect("plugins");
+    let ids: Vec<&str> = plugins.iter().filter_map(|p| p["id"].as_str()).collect();
+    assert!(ids.contains(&"meta"));
+    assert!(ids.contains(&"crm"));
+    assert!(ids.contains(&"rules-dk"));
 }

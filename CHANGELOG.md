@@ -165,6 +165,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 67:** MCP `revolut_oauth_start` + `revolut_oauth_callback` mirror HTTP `/api/v1/revolut/oauth/start|callback` — AuthZ + allowlist; store under `secrets/revolut.json`; responses never include raw tokens (`revolut_oauth_refresh` already present). Prompt / INSTALL / bank-import skill / ADR-008.
 
+### Added — Wave 28 (MCP status)
+
+- **Slice 68:** MCP `klarbog_status` mirrors `GET /api/v1/status` — `mode`, `allowlist_root`, plugin roster (`id`/`version`/`capabilities`); `bind=stdio` (HTTP uses loopback). Prompt / INSTALL.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

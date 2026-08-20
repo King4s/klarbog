@@ -12,7 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 27: MCP `revolut_oauth_start` + `revolut_oauth_callback` (HTTP
-parity with refresh; never echo tokens).
+Wave 28: MCP `klarbog_status` (HTTP `/api/v1/status` parity —
+mode/allowlist/plugins; `bind=stdio`).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

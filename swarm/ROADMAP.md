@@ -154,4 +154,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 67. MCP parity: `revolut_oauth_start` + `revolut_oauth_callback` mirror HTTP OAuth scaffold (AuthZ; never echo tokens; refresh already present) ✅
 
+## Wave 28 — MCP status (landed)
+
+68. MCP parity: `klarbog_status` mirrors `GET /api/v1/status` (mode, allowlist_root, plugins; `bind=stdio`) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

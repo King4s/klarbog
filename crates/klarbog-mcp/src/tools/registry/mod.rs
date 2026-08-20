@@ -28,6 +28,11 @@ fn core_tools() -> Vec<Value> {
             "inputSchema": { "type": "object", "properties": {} }
         }),
         json!({
+            "name": "klarbog_status",
+            "description": "Status / allowlist / plugin roster (mirrors GET /api/v1/status; bind=stdio)",
+            "inputSchema": { "type": "object", "properties": {} }
+        }),
+        json!({
             "name": "crm_upsert_party",
             "description": "Upsert CRM party (display_name; optional party_id). No journal write (ADR-004).",
             "inputSchema": {

@@ -37,6 +37,7 @@ pub fn handle_tool_call(
             "service": "klarbog-mcp",
             "allowlist_root": allowlist_root,
         })),
+        "klarbog_status" => Envelope::ok(helpers::status_payload(allowlist_root, registry)),
         "crm_upsert_party" => rt.block_on(crm::crm_upsert_party(args, allowlist_root)),
         "crm_list_parties" => rt.block_on(crm::crm_list_parties(args, allowlist_root)),
         "documents_attach" => rt.block_on(documents::documents_attach(args, allowlist_root)),

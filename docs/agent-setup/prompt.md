@@ -60,6 +60,7 @@ Kald `tools/list`. Forvent mindst:
 | Tool | Formål |
 |------|--------|
 | `klarbog_health` | Livstegn |
+| `klarbog_status` | Status / allowlist / plugins (samme form som HTTP; `bind=stdio`) |
 | `crm_upsert_party` | Opret/opdater part (`display_name`; valgfri `party_id`; **ingen** journal-write) |
 | `crm_list_parties` | List parter, eller én når `party_id` er sat (read-only) |
 | `documents_attach` | Bilags-metadata (+ valgfri `content_base64`; relativ `path_hint`; **ingen** journal-write) |
