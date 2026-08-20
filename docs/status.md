@@ -10,5 +10,5 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 19: MCP `retention_purge` parity. Product AI prompt: `docs/agent-setup/prompt.md`.
+Wave 20: MCP `bank_reconcile_suggest` parity. Product AI prompt: `docs/agent-setup/prompt.md`.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

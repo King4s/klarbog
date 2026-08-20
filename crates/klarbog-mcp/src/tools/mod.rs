@@ -36,6 +36,9 @@ pub fn handle_tool_call(
         })),
         "bank_import_preview" => rt.block_on(bank::bank_import_preview(args, allowlist_root)),
         "bank_stripe_consume" => rt.block_on(bank_wave2::bank_stripe_consume(args, allowlist_root)),
+        "bank_reconcile_suggest" => {
+            rt.block_on(bank_wave2::bank_reconcile_suggest(args, allowlist_root))
+        }
         "bank_reconcile_apply" => {
             rt.block_on(bank_wave2::bank_reconcile_apply(args, allowlist_root))
         }

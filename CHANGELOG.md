@@ -133,6 +133,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 59:** MCP `retention_purge` mirrors `POST /api/v1/retention/purge` — dry-run unless `confirm: true`; optional `gc_orphan_documents`; closed-exception purge; journal untouched (ADR-010). Prompt / INSTALL / documents-exceptions skill + ADR-010 note.
 
+### Added — Wave 20 (MCP bank reconcile suggest)
+
+- **Slice 60:** MCP `bank_reconcile_suggest` mirrors `POST /api/v1/bank/reconcile/suggest` — `rows` or CSV/provider; `raise_exceptions` default true; AuthZ + allowlist; **no** journal post. Prompt / INSTALL / bank-import skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

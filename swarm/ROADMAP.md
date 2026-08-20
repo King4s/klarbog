@@ -122,4 +122,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 59. MCP parity: `retention_purge` mirrors `POST /api/v1/retention/purge` (dry-run/`confirm`; optional `gc_orphan_documents`; journal untouched) ✅
 
+## Wave 20 — MCP bank reconcile suggest (landed)
+
+60. MCP parity: `bank_reconcile_suggest` mirrors `POST /api/v1/bank/reconcile/suggest` (`rows` or CSV/provider; `raise_exceptions`; no journal post) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

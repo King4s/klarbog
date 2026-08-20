@@ -1,6 +1,8 @@
 //! Tests for wave2 bank MCP tools.
 
-use super::{bank_reconcile_apply, bank_stripe_consume, revolut_oauth_refresh};
+use super::{
+    bank_reconcile_apply, bank_reconcile_suggest, bank_stripe_consume, revolut_oauth_refresh,
+};
 use klarbog_core::init_company;
 use klarbog_plugin_bank::{
     ingest_stripe_webhook, save_revolut_tokens, sign_test_payload, RevolutStoredTokens,
@@ -65,6 +67,62 @@ async fn mcp_stripe_consume_confirm_persists() {
     assert!(env.ok);
     assert_eq!(env.data.unwrap()["dry_run"], false);
     assert!(company_path.join(STRIPE_WEBHOOKS_CONSUMED).exists());
+}
+
+#[tokio::test]
+async fn mcp_reconcile_suggest_with_parsed_rows() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&company_path, None, "Nordic Supply".into()).unwrap();
+    create_draft_from_new(
+        &company_path,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Widgets".into(),
+            amount_minor: 50_000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    let args = json!({
+        "company": company_path.to_string_lossy(),
+        "rows": [{
+            "date": "2026-05-20",
+            "text": "Customer payment Nordic Supply consulting",
+            "amount_minor": 50000
+        }],
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let env = bank_reconcile_suggest(&args, dir.path()).await;
+    assert!(env.ok);
+    let data = env.data.unwrap();
+    assert_eq!(data["count"], 1);
+    assert_eq!(data["rows"][0]["suggestions"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn mcp_reconcile_suggest_authz_denied() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let args = json!({
+        "company": company_path.to_string_lossy(),
+        "rows": [{
+            "date": "2026-05-20",
+            "text": "x",
+            "amount_minor": 100
+        }],
+        "actor_kind": "user",
+        "actor_id": "intruder",
+    });
+    let env = bank_reconcile_suggest(&args, dir.path()).await;
+    assert!(!env.ok);
+    assert!(env.errors[0].contains("actor not in policy"));
 }
 
 #[tokio::test]

@@ -109,6 +109,8 @@ Capability: **Read only**. Never posts journal entries from the bank plugin.
 
 `POST /api/v1/bank/reconcile/suggest` with `company` + `rows` (or CSV/provider). Scores open invoice drafts vs bank lines (`amount_minor` + text tokens). Safe bar: `SAFE_THRESHOLD_BPS` (5000 = 50%). Below that → no suggestion; may raise `unmatched_bank_transaction`.
 
+MCP: `bank_reconcile_suggest` — same args (`company`, `rows?` or `provider`/`source`/`csv`, `raise_exceptions?` default true, actor). AuthZ + allowlist. Still **no** journal post.
+
 ### Stripe consume → suggest (one-shot)
 
 `POST /api/v1/bank/stripe/reconcile-suggest` with `{company, confirm_consume?, limit?}`. Runs queue consume then reconcile suggest. Default dry-run consume; `confirm_consume:true` persists `queue.consumed` then suggests. Helper: `suggest_from_stripe_consume`. **No** auto journal post.

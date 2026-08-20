@@ -45,6 +45,36 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "bank_reconcile_suggest",
+                    "description": "Suggest bank row ↔ open invoice matches (rows or CSV/provider). Optional raise_exceptions; never posts journal.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "rows": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "date": {"type": "string"},
+                                        "text": {"type": "string"},
+                                        "amount_minor": {"type": "integer"}
+                                    },
+                                    "required": ["date", "text", "amount_minor"]
+                                }
+                            },
+                            "provider": {"type": "string", "enum": ["generic_dk", "revolut", "stripe"]},
+                            "source": {"type": "string", "enum": ["api", "csv"]},
+                            "csv": {"type": "string"},
+                            "currency": {"type": "string"},
+                            "raise_exceptions": {"type": "boolean"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "bank_reconcile_apply",
                     "description": "Apply bank row ↔ invoice match as journal preview suggestion (no post). force requires user actor below safe threshold.",
                     "inputSchema": {

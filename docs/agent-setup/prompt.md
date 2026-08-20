@@ -67,6 +67,7 @@ Kald `tools/list`. Forvent mindst:
 | `bank_stripe_consume` | Forbrug Stripe webhook-kø → bank-udkast (`confirm`; ingen journal-post) |
 | `bank_stripe_reconcile_suggest` | Stripe consume → reconcile-forslag (`confirm_consume`; **ingen** auto-post) |
 | `bank_stripe_reconcile_apply_preview` | Stripe consume → unik safe apply + ConfirmStore preview (**ingen** auto-commit) |
+| `bank_reconcile_suggest` | Match banklinjer ↔ åbne fakturaer (`rows` eller CSV/provider; **ingen** post) |
 | `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold) |
 | `revolut_oauth_refresh` | Refresh Revolut access-token (returnerer aldrig tokens) |
 | `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |

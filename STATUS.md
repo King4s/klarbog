@@ -12,6 +12,6 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 19: MCP `retention_purge` (HTTP parity; dry-run/`confirm`; journal untouched).
+Wave 20: MCP `bank_reconcile_suggest` (HTTP parity; rows or CSV/provider; no journal post).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.
