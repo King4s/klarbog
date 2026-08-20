@@ -90,7 +90,8 @@ journal-preview-commit.
 
 ## Local web UI (DEV)
 
-Fakturaer (`/ui/` → Fakturaer): list drafts, patch to `sent`, then
+Fakturaer (`/ui/` → Fakturaer): **Ny kladde** (party select + kind + line
+`amount_minor` i64), list drafts, patch to `sent`, then
 **Delbetalt preview** / **Betalt preview** with `preview: true`. Shows
 `confirm_token` and can commit via `/api/v1/journal/commit` or open Journal.
 Never auto-posts.

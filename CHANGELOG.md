@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 47 (UI invoice draft create)
+
+- Fakturaer: **Ny kladde** form (party select, sale/purchase, one line
+  `amount_minor` i64) → `POST /api/v1/invoices/drafts`; suggestion only, never
+  auto-posts.
+
 ### Added — Wave 46 (UI bank reconcile-apply preview)
 
 - Bank screen: **Afstem apply (preview)** → `POST /api/v1/bank/reconcile/apply`

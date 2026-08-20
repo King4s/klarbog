@@ -255,11 +255,26 @@ async function renderParties() {
 async function renderInvoices() {
   const company = settings.company.trim();
   let body = `<p class="muted">Sæt firmasti under Indstillinger.</p>`;
+  let partyOptions = `<option value="">— vælg part —</option>`;
+
   if (company) {
     try {
       const q = new URLSearchParams({ company });
-      const env = await api(settings, `/api/v1/invoices/drafts?${q}`);
-      const invoices = Array.isArray(env.data) ? env.data : env.data?.invoices || [];
+      const [invEnv, partyEnv] = await Promise.all([
+        api(settings, `/api/v1/invoices/drafts?${q}`),
+        api(settings, `/api/v1/crm/parties?${q}`),
+      ]);
+      const invoices = Array.isArray(invEnv.data) ? invEnv.data : invEnv.data?.invoices || [];
+      const parties = Array.isArray(partyEnv.data)
+        ? partyEnv.data
+        : partyEnv.data?.parties || [];
+      partyOptions += parties
+        .map((p) => {
+          const id = p.party_id || p.id || "";
+          const name = p.display_name || id;
+          return `<option value="${escapeHtml(id)}">${escapeHtml(name)} (${escapeHtml(id)})</option>`;
+        })
+        .join("");
       const rows = invoices
         .map((inv) => {
           const id = inv.invoice_id || inv.id || "";
@@ -293,6 +308,34 @@ async function renderInvoices() {
           <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th><th>Handling</th></tr></thead>
           <tbody>${rows || `<tr><td colspan="5" class="muted">Ingen fakturaer</td></tr>`}</tbody>
         </table>
+
+        <div class="panel nested">
+          <h2>Ny kladde</h2>
+          <p class="muted">POST /api/v1/invoices/drafts — beløb i øre (i64). Returnerer journalforslag; poster ikke.</p>
+          <form id="invoice-draft-form" class="grid">
+            <div class="grid two">
+              <label>Part
+                <select name="party_id" required>${partyOptions}</select>
+              </label>
+              <label>Type
+                <select name="kind">
+                  <option value="sale" selected>sale</option>
+                  <option value="purchase">purchase</option>
+                </select>
+              </label>
+            </div>
+            <label>Linje-beskrivelse
+              <input name="description" required placeholder="Consulting" value="Consulting" />
+            </label>
+            <label>amount_minor (øre)
+              <input name="amount_minor" required inputmode="numeric" pattern="-?[0-9]+" value="12500" />
+            </label>
+            <div class="actions">
+              <button class="primary" type="submit">Opret kladde</button>
+            </div>
+          </form>
+        </div>
+
         <div class="panel nested">
           <h2>Delbetaling (øre)</h2>
           <p class="muted">Bruges af «Delbetalt preview». Beløb skal være &gt; 0 og &lt; resterende (i64).</p>
@@ -328,11 +371,46 @@ async function renderInvoices() {
     ${renderFlash()}
     <section class="panel">
       <h1>Fakturaer</h1>
-      <p class="lede">Beløb i kroner (visning); API bruger øre (i64). Betaling → journalforslag, aldrig auto-post.</p>
+      <p class="lede">Beløb i kroner (visning); API bruger øre (i64). Kladde + betaling → journalforslag, aldrig auto-post.</p>
       ${body}
       ${payBlock}
     </section>
   `;
+
+  document.getElementById("invoice-draft-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!company) return;
+    const fd = new FormData(ev.target);
+    try {
+      const party_id = String(fd.get("party_id") || "").trim();
+      const kind = String(fd.get("kind") || "sale");
+      const description = String(fd.get("description") || "").trim();
+      const amount_minor = parseMinor(fd.get("amount_minor"), "amount_minor");
+      if (!party_id) throw new Error("Vælg en part");
+      if (!description) throw new Error("Beskrivelse kræves");
+      if (amount_minor <= 0) throw new Error("amount_minor skal være > 0");
+      const env = await api(settings, "/api/v1/invoices/drafts", {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          party_id,
+          kind,
+          lines: [{ description, amount_minor, currency: "DKK" }],
+        }),
+      });
+      const data = env.data || {};
+      const inv = data.invoice || {};
+      const id = inv.invoice_id || inv.id || "?";
+      setFlash(
+        "ok",
+        `Kladde ${id} oprettet · total ${formatDkk(inv.total_minor ?? amount_minor)} (journalforslag uden post)`,
+      );
+      await renderInvoices();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderInvoices();
+    }
+  });
 
   document.querySelectorAll(".inv-send").forEach((btn) => {
     btn.addEventListener("click", async () => {

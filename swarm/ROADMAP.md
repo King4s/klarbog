@@ -258,3 +258,9 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 97. Bank UI: reconcile/apply `preview:true` form (invoice_id + row i64) →
     ConfirmStore token; fill from import drafts; commit or open Journal;
     never auto-post; Revolut still dormant ✅
+
+## Wave 47 — UI invoice draft create soft-split
+
+98. Fakturaer UI: opret kladde (party select + kind + line amount_minor i64) →
+    `POST /api/v1/invoices/drafts`; list + sent + pay previews unchanged;
+    never auto-post ✅
