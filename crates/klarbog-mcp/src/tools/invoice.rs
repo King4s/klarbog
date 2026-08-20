@@ -263,5 +263,8 @@ pub async fn invoice_mark_part_paid_preview(
 }
 
 #[cfg(test)]
+#[path = "invoice_preview_tests.rs"]
+mod preview_tests;
+#[cfg(test)]
 #[path = "invoice_tests.rs"]
 mod tests;

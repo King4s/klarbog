@@ -184,4 +184,10 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 75. Verify wave33 `bank_http_tests` + `bank_http_env_tests` soft-split (soft <300; behavior unchanged; VERIFY_OK) ✅
 
+## Wave 35 — soft linegate headroom (landed)
+
+76. Soft-split `klarbog-mcp` `invoice_tests.rs` (291 non-blank) → `invoice_tests` + `invoice_preview_tests` via `#[path]` on `invoice.rs` (under soft 300; coverage unchanged) ✅
+77. Offline `contract_smoke`: mark-paid / mark-part-paid `preview:true` → ConfirmStore fields; default has none; soft <300; `CONTRACT_SMOKE_OK` ✅
+78. Rules-dk chart stub HTTP/MCP surface: `GET /api/v1/rules/chart` + `rules_chart_list` (read-only codes+labels; AuthZ; no journal write) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

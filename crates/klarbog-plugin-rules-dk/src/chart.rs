@@ -13,6 +13,8 @@
 //! Digits outside this stub still validate as account strings; rules-dk only
 //! emits optional hint [`RULE_KNOWN_ACCOUNT`] (`dk.bookkeeping.known_account`).
 
+use serde::Serialize;
+
 /// Bank (invoice / payment suggestion default).
 pub const DK_CHART_BANK: i64 = 1_000;
 /// Accounts receivable.
@@ -26,6 +28,51 @@ pub const DK_CHART_EXPENSE_MAX: i64 = 6_999;
 
 /// Applied-rule id when a digit account is outside the stub allowlist (hint only).
 pub const RULE_KNOWN_ACCOUNT: &str = "dk.bookkeeping.known_account";
+
+/// One stub chart row for HTTP/MCP read surfaces (codes + labels).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ChartStubEntry {
+    /// Code or inclusive range string (`1000`, `4000-6999`).
+    pub code: String,
+    /// Human label (English DEV stub).
+    pub label: &'static str,
+    /// Inclusive range start when `code` is a band.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min: Option<i64>,
+    /// Inclusive range end when `code` is a band.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<i64>,
+}
+
+/// Read-only list of documented stub codes + labels (no journal I/O).
+pub fn chart_stub_entries() -> Vec<ChartStubEntry> {
+    vec![
+        ChartStubEntry {
+            code: DK_CHART_BANK.to_string(),
+            label: "Bank",
+            min: None,
+            max: None,
+        },
+        ChartStubEntry {
+            code: DK_CHART_AR.to_string(),
+            label: "Accounts receivable",
+            min: None,
+            max: None,
+        },
+        ChartStubEntry {
+            code: DK_CHART_AP.to_string(),
+            label: "Accounts payable",
+            min: None,
+            max: None,
+        },
+        ChartStubEntry {
+            code: format!("{DK_CHART_EXPENSE_MIN}-{DK_CHART_EXPENSE_MAX}"),
+            label: "Expense band",
+            min: Some(DK_CHART_EXPENSE_MIN),
+            max: Some(DK_CHART_EXPENSE_MAX),
+        },
+    ]
+}
 
 /// True when `n` is in the documented expense stub band.
 #[inline]
@@ -65,5 +112,18 @@ mod tests {
     fn non_digit_not_known() {
         assert!(!is_known_dk_account("6abc"));
         assert!(!is_known_dk_account(""));
+    }
+
+    #[test]
+    fn chart_stub_entries_codes_and_labels() {
+        let entries = chart_stub_entries();
+        assert_eq!(entries.len(), 4);
+        assert_eq!(entries[0].code, "1000");
+        assert_eq!(entries[0].label, "Bank");
+        assert_eq!(entries[1].code, "1500");
+        assert_eq!(entries[2].code, "4400");
+        assert_eq!(entries[3].code, "4000-6999");
+        assert_eq!(entries[3].min, Some(DK_CHART_EXPENSE_MIN));
+        assert_eq!(entries[3].max, Some(DK_CHART_EXPENSE_MAX));
     }
 }

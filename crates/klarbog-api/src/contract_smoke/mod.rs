@@ -1,8 +1,9 @@
-//! Offline HTTP contract smoke (slice 35 + 39 + wave8).
+//! Offline HTTP contract smoke (slice 35 + 39 + wave8 + wave35).
 //!
 //! Uses axum `oneshot` against a temp company — no TCP bind, no network.
 
 mod flow;
+mod invoice_preview;
 mod moms_currency;
 mod oauth;
 

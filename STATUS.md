@@ -15,4 +15,6 @@ Branch: `rust-dev` (DEV-only).
 Wave 33 demo Revolut (`wave33_demo_revolut` / ROADMAP 28): `klarbog demo`
 offline CSV + API fail-closed without live keys.
 
+Wave 35 soft-split: MCP `invoice_tests` + `invoice_preview_tests` (ROADMAP 76).
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

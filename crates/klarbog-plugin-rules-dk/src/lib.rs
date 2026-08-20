@@ -5,8 +5,8 @@ mod moms_post_suggestion;
 mod vat_split;
 
 pub use chart::{
-    is_expense_account_code, is_known_dk_account, DK_CHART_AP, DK_CHART_AR, DK_CHART_BANK,
-    DK_CHART_EXPENSE_MAX, DK_CHART_EXPENSE_MIN, RULE_KNOWN_ACCOUNT,
+    chart_stub_entries, is_expense_account_code, is_known_dk_account, ChartStubEntry, DK_CHART_AP,
+    DK_CHART_AR, DK_CHART_BANK, DK_CHART_EXPENSE_MAX, DK_CHART_EXPENSE_MIN, RULE_KNOWN_ACCOUNT,
 };
 pub use moms_post_suggestion::{
     memo_requests_vat25, moms_post_suggestion, MomsPostSuggestion, MomsPostSuggestionError,

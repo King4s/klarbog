@@ -111,6 +111,10 @@ async fn contract_smoke() {
     .await;
     assert_eq!(st, StatusCode::OK);
     assert_eq!(part["invoice"]["status"], "part_paid");
+    // default (no preview): suggestion only — no ConfirmStore fields
+    assert!(part.get("confirm_token").is_none());
+    assert!(part.get("expires_unix_ms").is_none());
+    assert!(part.get("payload_digest").is_none());
     // after part_paid (2500 of 10000), mark-paid must suggest remaining 7500
     let (st, paid) = json_req(
         app.clone(),
@@ -126,6 +130,9 @@ async fn contract_smoke() {
     .await;
     assert_eq!(st, StatusCode::OK);
     assert_eq!(paid["invoice"]["status"], "paid");
+    assert!(paid.get("confirm_token").is_none());
+    assert!(paid.get("expires_unix_ms").is_none());
+    assert!(paid.get("payload_digest").is_none());
     let remaining_leg = &paid["journal_entry"]["legs"][0]["amount"];
     let remaining_units = remaining_leg
         .as_i64()

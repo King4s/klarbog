@@ -208,5 +208,18 @@ pub fn tools() -> Vec<Value> {
                 "required": ["company", "gross_minor", "memo", "actor_kind", "actor_id"]
             }
         }),
+        json!({
+            "name": "rules_chart_list",
+            "description": "DEV rules-dk chart stub (codes + labels). Mirrors GET /api/v1/rules/chart; read-only — no journal write.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "actor_kind", "actor_id"]
+            }
+        }),
     ]
 }

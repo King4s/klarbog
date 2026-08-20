@@ -38,6 +38,7 @@ fn tools_list_names() {
     assert!(names.contains(&"journal_post_preview"));
     assert!(names.contains(&"journal_post_commit"));
     assert!(names.contains(&"journal_moms_post_suggestion"));
+    assert!(names.contains(&"rules_chart_list"));
 }
 
 #[test]

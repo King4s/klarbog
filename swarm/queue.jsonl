@@ -149,3 +149,12 @@
 {"event":"wave32_invoice_mark_paid_confirm_preview","slice":73,"status":"done","note":"HTTP+MCP mark-paid/mark-part-paid preview:true → ConfirmStore; soft-split preview http_tests; default suggestion-only; no auto journal commit; i64; VERIFY_OK","ts":"2026-08-20T12:04:11Z"}
 {"event": "wave33_demo_revolut", "slice": 28, "status": "done", "note": "klarbog demo offline wave2/3: Revolut CSV import_preview (no skip TODO), API without live keys fail-closed Config; CHANGELOG; ROADMAP 28; VERIFY_OK", "ts": "2026-08-20T12:04:35Z"}
 {"event":"wave33_demo_revolut","status":"done","note":"demo offline Revolut CSV; VERIFY_OK landed","ts":"2026-08-20T12:04:00Z"}
+{"event":"wave35_swarm_dispatch","note":"owner next swarm: invoice_tests soft-split, contract_smoke mark-paid preview, chart stub surface, stash hygiene","ts":"2026-08-20T12:09:00Z"}
+{"event":"wave35_stash_hygiene","status":"done","note":"git stash list empty (no refs/stash); tip b74975e; nothing to drop; VERIFY_OK","ts":"2026-08-20T12:11:56Z"}
+{"event":"wave35_contract_smoke_invoice_preview","status":"done","note":"contract_smoke mark-paid+mark-part-paid preview:true → ConfirmStore fields; default none; invoice_preview.rs soft<300; scripts/contract-smoke.sh; i64; VERIFY_OK CONTRACT_SMOKE_OK","ts":"2026-08-20T12:12:59Z"}
+{"event":"wave35_invoice_tests_soft_split","slice":76,"status":"done","note":"MCP invoice_tests soft-split \u2192 invoice_tests + invoice_preview_tests via #[path]; under soft 300; coverage unchanged; VERIFY pending","ts":"2026-08-20T12:13:16Z"}
+{"event":"wave35_rules_chart_surface","status":"done","note":"HTTP GET /api/v1/rules/chart + MCP rules_chart_list; AuthZ; no journal; prompt/INSTALL/skill; VERIFY pending","ts":"2026-08-20T12:15:00Z"}
+{"event":"wave35_invoice_tests_soft_split","slice":76,"status":"done","note":"MCP invoice_tests soft-split \u2192 invoice_tests + invoice_preview_tests via #[path]; soft 118/184; coverage unchanged; VERIFY_OK","ts":"2026-08-20T12:15:37Z"}
+{"event":"wave35_rules_chart_surface","status":"done","note":"HTTP GET /api/v1/rules/chart + MCP rules_chart_list; AuthZ; no journal; prompt/INSTALL/skill; no sister names; VERIFY_OK","ts":"2026-08-20T12:16:00Z"}
+{"event":"wave35_invoice_tests_soft_split","status":"done","note":"VERIFY_OK landed","ts":"2026-08-20T12:15:30Z"}
+{"event":"wave35_rules_chart_surface","status":"done","note":"VERIFY_OK landed","ts":"2026-08-20T12:15:30Z"}

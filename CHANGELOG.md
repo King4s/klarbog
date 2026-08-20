@@ -209,6 +209,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - Verified wave33 bank import HTTP soft-split (`bank_http_tests` + `bank_http_env_tests` via `#[path]` on `bank.rs`); soft <300; coverage unchanged; VERIFY_OK.
 
+### Added — Wave 35 (contract_smoke invoice ConfirmStore preview)
+
+- Offline `contract_smoke`: mark-paid / mark-part-paid `preview: true` asserts
+  ConfirmStore `confirm_token` / `expires_unix_ms` / `payload_digest`; default
+  path asserts none. Module `contract_smoke/invoice_preview.rs` (soft <300).
+  `scripts/contract-smoke.sh` comment updated.
+
+### Changed — Wave 35 (soft linegate headroom)
+
+- **Slice 76:** Soft-split `klarbog-mcp` `invoice_tests.rs` (291 non-blank) →
+  CRUD/AuthZ tests + `invoice_preview_tests.rs` (mark-paid ConfirmStore previews);
+  both under soft 300; behavior unchanged.
+
+### Added — Wave 35 (rules chart stub surface)
+
+- HTTP `GET /api/v1/rules/chart` and MCP `rules_chart_list` expose rules-dk DEV
+  chart stub (codes + labels); AuthZ/allowlist like other read tools; **no**
+  journal write. Prompt / INSTALL / journal-preview-commit skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

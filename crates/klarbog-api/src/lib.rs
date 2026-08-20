@@ -18,6 +18,7 @@ mod moms_suggest;
 mod retention;
 mod retention_erase;
 mod revolut_oauth;
+mod rules_chart;
 mod stripe_consume;
 mod stripe_reconcile_apply_preview;
 mod stripe_reconcile_suggest;
@@ -112,6 +113,7 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/journal/moms-suggest",
             post(moms_suggest::moms_suggest),
         )
+        .route("/api/v1/rules/chart", get(rules_chart::rules_chart))
         .route("/api/v1/crm/parties", post(crm::upsert))
         .route("/api/v1/crm/parties", get(crm::list))
         .route("/api/v1/invoices/drafts", post(invoice::create_draft))

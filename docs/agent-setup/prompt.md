@@ -72,6 +72,7 @@ Kald `tools/list`. Forvent mindst:
 | `journal_post_preview` | Fase 1: valider + confirm-token (ingen skrivning) |
 | `journal_post_commit` | Fase 2: skriv med token |
 | `journal_moms_post_suggestion` | Valgfrit moms-forslag fra `gross_minor` når memo har `#vat25` (net+vat i64; **poster aldrig**) |
+| `rules_chart_list` | DEV chart-stub (koder + labels; samme payload som HTTP; **ingen** journal-write) |
 | `bank_import_preview` | Bank/betalingsrails → **udkast** (API for Revolut/Stripe; CSV for GenericDk / offline) |
 | `bank_stripe_consume` | Forbrug Stripe webhook-kø → bank-udkast (`confirm`; ingen journal-post) |
 | `bank_stripe_reconcile_suggest` | Stripe consume → reconcile-forslag (`confirm_consume`; **ingen** auto-post) |
@@ -133,6 +134,7 @@ x-klarbog-actor-id: owner
 | POST | `/api/v1/journal/preview` | Fase 1 |
 | POST | `/api/v1/journal/commit` | Fase 2 |
 | POST | `/api/v1/journal/moms-suggest` | Valgfrit moms-forslag (`gross_minor` + memo `#vat25`; preview only) |
+| GET | `/api/v1/rules/chart` | DEV chart-stub (koder + labels; read-only; `?company=`) |
 | POST/GET | `/api/v1/crm/parties` | Parter |
 | POST/GET | `/api/v1/invoices/drafts` | Fakturakladder |
 | PATCH | `/api/v1/invoices/status` | Faktura-status (`draft\|sent\|part_paid\|paid\|void`) |

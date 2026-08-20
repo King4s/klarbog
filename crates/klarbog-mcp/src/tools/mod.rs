@@ -17,6 +17,7 @@ mod journal;
 mod moms_suggest;
 mod registry;
 mod retention;
+mod rules_chart;
 
 pub use helpers::default_allowlist_root;
 pub use registry::tools_list;
@@ -115,6 +116,7 @@ pub fn handle_tool_call(
             args,
             allowlist_root,
         )),
+        "rules_chart_list" => rt.block_on(rules_chart::rules_chart_list(args, allowlist_root)),
         other => Envelope::err([format!("unknown tool: {other}")]),
     }
 }
