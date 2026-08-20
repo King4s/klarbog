@@ -95,6 +95,7 @@
     <form class="grid" method="post" action="/ui/journal">
       <input type="hidden" name="action" value="commit" />
       <input type="hidden" name="confirm_token" value="{{ confirm_token }}" />
+      <input type="hidden" name="entry_json" value="{{ entry_json }}" />
       <input type="hidden" name="memo" value="{{ memo }}" />
       <input type="hidden" name="account1" value="{{ account1 }}" />
       <input type="hidden" name="direction1" value="{{ direction1 }}" />

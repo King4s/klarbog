@@ -29,6 +29,7 @@ pub(super) struct JournalFields {
     pub confirm_token: String,
     pub expires_unix_ms: String,
     pub payload_digest: String,
+    pub entry_json: String,
 }
 
 impl Default for JournalFields {
@@ -54,6 +55,7 @@ impl Default for JournalFields {
             confirm_token: String::new(),
             expires_unix_ms: String::new(),
             payload_digest: String::new(),
+            entry_json: String::new(),
         }
     }
 }
@@ -71,6 +73,8 @@ pub struct JournalActionForm {
     pub moms_gross: String,
     pub moms_memo: String,
     pub confirm_token: String,
+    #[serde(default)]
+    pub entry_json: String,
 }
 
 fn parse_direction(s: &str) -> Direction {

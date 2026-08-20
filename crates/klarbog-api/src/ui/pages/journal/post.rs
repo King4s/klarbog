@@ -116,6 +116,20 @@ pub async fn journal_post(
                     fields.confirm_token = p.confirm_token.token.clone();
                     fields.expires_unix_ms = p.confirm_token.expires_unix_ms.to_string();
                     fields.payload_digest = p.payload_digest;
+                    // Carry the exact previewed entry to commit: rebuilding from
+                    // form fields would stamp a new as_of and break the digest.
+                    fields.entry_json = match serde_json::to_string(&entry) {
+                        Ok(j) => j,
+                        Err(e) => {
+                            return html_ok(journal_page(
+                                &state,
+                                company,
+                                fields_from_form(&form),
+                                String::new(),
+                                e.to_string(),
+                            ));
+                        }
+                    };
                     html_ok(journal_page(
                         &state,
                         company,
@@ -145,7 +159,10 @@ pub async fn journal_post(
                     "confirm_token kræves — kør preview først.".into(),
                 ));
             }
-            match build_entry(&form) {
+            let entry: Result<klarbog_journal::JournalEntry, String> =
+                serde_json::from_str(form.entry_json.trim())
+                    .map_err(|e| format!("Ugyldig entry_json ({e}) — kør preview igen."));
+            match entry {
                 Ok(entry) => match journal_commit(
                     &state.allowlist_root,
                     std::path::Path::new(&company),

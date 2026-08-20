@@ -125,4 +125,135 @@ mod tests {
         let after = payload_digest(company, &back).unwrap();
         assert_eq!(before, after, "entry JSON round-trip must keep the digest");
     }
+
+    /// Regression: the journal UI must commit the *previewed* entry (carried as
+    /// entry_json), not rebuild it from form fields — rebuilding stamps a fresh
+    /// `as_of` and the digest-bound token fails closed ("payload mismatch").
+    #[tokio::test]
+    async fn ui_journal_preview_then_commit_posts() {
+        use crate::AppState;
+        use klarbog_core::{default_registry, init_company, ConfirmStore};
+        use klarbog_types::Actor;
+        use std::sync::Arc;
+
+        let dir = tempfile::tempdir().unwrap();
+        let company_path = dir.path().join("co");
+        init_company(&company_path, "Demo", &Actor::user("ui-dev"))
+            .await
+            .unwrap();
+        let state = AppState {
+            confirm: Arc::new(ConfirmStore::default()),
+            allowlist_root: dir.path().to_path_buf(),
+            registry: Arc::new(default_registry()),
+            api_token: None,
+            session_secret: None,
+            session_cookie_secure: false,
+        };
+        let app = router(state);
+        let cookie = format!(
+            "{}={}",
+            super::pages::common::COMPANY_COOKIE,
+            company_path.to_string_lossy()
+        );
+        let form =
+            "memo=udgift%20%23vat25%20%23receipt&account1=6000&direction1=debit&amount1=12500\
+                    &account2=5800&direction2=credit&amount2=12500\
+                    &moms_gross=12500&moms_memo=x&confirm_token=";
+
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/ui/journal")
+                    .header("cookie", &cookie)
+                    .header("content-type", "application/x-www-form-urlencoded")
+                    .body(Body::from(format!("action=preview&{form}")))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let html = String::from_utf8(
+            axum::body::to_bytes(res.into_body(), 1024 * 1024)
+                .await
+                .unwrap()
+                .to_vec(),
+        )
+        .unwrap();
+        let flash = html
+            .lines()
+            .filter(|l| l.contains("flash"))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        let token = extract_input_value(&html, "confirm_token")
+            .unwrap_or_else(|| panic!("token in preview page; flash: {flash}"));
+        let entry_json =
+            extract_input_value(&html, "entry_json").expect("entry_json in preview page");
+        assert!(!token.is_empty() && !entry_json.is_empty());
+
+        let body = format!(
+            "action=commit&{form}{}&entry_json={}",
+            urlencoding_encode(&token),
+            urlencoding_encode(&entry_json)
+        );
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/ui/journal")
+                    .header("cookie", &cookie)
+                    .header("content-type", "application/x-www-form-urlencoded")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let html = String::from_utf8(
+            axum::body::to_bytes(res.into_body(), 1024 * 1024)
+                .await
+                .unwrap()
+                .to_vec(),
+        )
+        .unwrap();
+        assert!(
+            html.contains("Commit ok"),
+            "commit must post via previewed entry_json, got: {}",
+            html.lines()
+                .filter(|l| l.contains("flash"))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        );
+    }
+
+    /// Pull `value="..."` for a named hidden input and HTML-unescape it.
+    fn extract_input_value(html: &str, name: &str) -> Option<String> {
+        let needle = format!("name=\"{name}\" value=\"");
+        let start = html.find(&needle)? + needle.len();
+        let end = start + html[start..].find('"')?;
+        Some(
+            html[start..end]
+                .replace("&quot;", "\"")
+                .replace("&#34;", "\"")
+                .replace("&#x27;", "'")
+                .replace("&#39;", "'")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&"),
+        )
+    }
+
+    fn urlencoding_encode(s: &str) -> String {
+        let mut out = String::with_capacity(s.len() * 3);
+        for b in s.bytes() {
+            match b {
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                    out.push(b as char)
+                }
+                _ => out.push_str(&format!("%{b:02X}")),
+            }
+        }
+        out
+    }
 }

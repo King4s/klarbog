@@ -48,6 +48,7 @@ pub(super) struct JournalTemplate {
     pub confirm_token: String,
     pub expires_unix_ms: String,
     pub payload_digest: String,
+    pub entry_json: String,
 }
 
 pub(super) fn journal_page(
@@ -95,6 +96,7 @@ pub(super) fn journal_page(
         confirm_token: fields.confirm_token,
         expires_unix_ms: fields.expires_unix_ms,
         payload_digest: fields.payload_digest,
+        entry_json: fields.entry_json,
     }
 }
 

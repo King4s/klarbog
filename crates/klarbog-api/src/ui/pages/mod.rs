@@ -3,7 +3,7 @@
 mod bank;
 mod bilag;
 mod chart;
-mod common;
+pub(super) mod common;
 mod home;
 mod invoices;
 mod journal;
