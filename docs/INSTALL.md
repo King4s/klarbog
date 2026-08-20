@@ -105,6 +105,18 @@ curl -sS http://127.0.0.1:3195/health
 # {"ok":true,"service":"klarbog-api",...}
 ```
 
+### Local web UI (ADR-012)
+
+Same process serves a human GUI (not a Rentemester port):
+
+```text
+http://127.0.0.1:3195/ui/
+```
+
+Set company path + actor under **Indstillinger** (stored in `localStorage`).
+Override asset root with `KLARBOG_UI_DIR` if the binary is moved away from the
+repo `ui/` tree.
+
 Optional client env:
 
 | Variable | Default |

@@ -158,3 +158,5 @@
 {"event":"wave35_rules_chart_surface","status":"done","note":"HTTP GET /api/v1/rules/chart + MCP rules_chart_list; AuthZ; no journal; prompt/INSTALL/skill; no sister names; VERIFY_OK","ts":"2026-08-20T12:16:00Z"}
 {"event":"wave35_invoice_tests_soft_split","status":"done","note":"VERIFY_OK landed","ts":"2026-08-20T12:15:30Z"}
 {"event":"wave35_rules_chart_surface","status":"done","note":"VERIFY_OK landed","ts":"2026-08-20T12:15:30Z"}
+{"event":"wave36_ui_adr","slice":79,"status":"done","note":"ADR-012 local DEV web UI: klarbog-api same-origin static ui/; Klarbog-owned screens; loopback ADR-003; i64 ore/DKK display helpers; progressive status/parties/invoices; journal preview later; ROADMAP wave36 stub","ts":"2026-08-20T12:46:57Z"}
+{"event":"wave36_ui_shell","status":"done","note":"ADR-012 + ui/ shell served at /ui/; status/parties/invoices/settings; VERIFY_OK","ts":"2026-08-20T12:52:00Z"}

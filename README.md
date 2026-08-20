@@ -27,6 +27,7 @@ Klarbog er et **lokalt / privat** bogføringssystem til dansk regnskab, bygget s
 |-----------|--------|--------|
 | **MCP** | `klarbog-mcp` | AI-tools (journal, bank, faktura, CRM, dokumenter, retention, …) |
 | **HTTP** | `klarbog-api` | REST på `127.0.0.1:3195` |
+| **UI** | (serveres af API) | Menneske-GUI på `http://127.0.0.1:3195/ui/` (ADR-012) |
 | **CLI** | `klarbog` | init, demo, backup, retention, GDPR-export |
 
 Giv enhver AI **én prompt-fil**, så den selv lærer at snakke med din installation:
@@ -54,6 +55,9 @@ cargo build --workspace
 ./scripts/verify.sh          # forvent: VERIFY_OK
 ./scripts/contract-smoke.sh  # offline HTTP-kontrakt (valgfrit)
 cargo run -p klarbog-cli -- demo
+# UI (samme process som API):
+cargo run -p klarbog-api
+# åbn http://127.0.0.1:3195/ui/
 ```
 
 Env-skabelon (ingen secrets): [`.env.example`](.env.example)  

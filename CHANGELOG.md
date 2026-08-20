@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 36 (local web UI)
+
+- **ADR-012:** DEV web UI served by `klarbog-api` at `/ui/` (static `ui/`).
+- First screens: oversigt, parter, fakturaer, indstillinger (actor headers + company path).
+- Distinct Klarbog visual (cool mist / teal) — not a Rentemester cockpit port.
+
 ### Added — slices 0–9 (core ledger)
 
 - **Slice 0:** Rust workspace scaffold, swarm layout, ADR-001..005 (money, plugins, dev isolation, CRM boundary, swarm).

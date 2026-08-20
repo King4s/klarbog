@@ -23,6 +23,7 @@ mod stripe_consume;
 mod stripe_reconcile_apply_preview;
 mod stripe_reconcile_suggest;
 mod stripe_webhook;
+mod ui;
 
 #[cfg(test)]
 mod api_tests;
@@ -104,7 +105,7 @@ async fn status(State(state): State<AppState>) -> Json<Envelope<Value>> {
 }
 
 pub fn router(state: AppState) -> Router {
-    Router::new()
+    let api = Router::new()
         .route("/health", get(health))
         .route("/api/v1/status", get(status))
         .route("/api/v1/journal/preview", post(journal::preview))
@@ -174,8 +175,9 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/revolut/oauth/refresh",
             post(revolut_oauth::oauth_refresh_handler),
-        )
-        .with_state(state)
+        );
+
+    ui::mount_ui(api).with_state(state)
 }
 
 pub fn default_allowlist_root() -> PathBuf {
