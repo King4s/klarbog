@@ -50,6 +50,9 @@ description: >-
   `status` (`draft`|`sent`|`part_paid`|`paid`|`void`), actor. **No** journal write.
 - `invoice_mark_part_paid_preview` / `invoice_mark_paid_preview` — payment ledger
   previews (still **no** `JournalWrite`; post via journal-preview-commit).
+  Optional `preview: true` issues ConfirmStore `confirm_token` /
+  `expires_unix_ms` / `payload_digest` (same path as `journal_post_preview`);
+  default remains suggestion-only.
 
 ## Journal suggestion (Rust)
 
@@ -74,13 +77,16 @@ Payments persist on the invoice as `payments: [{unix_ms, amount_minor, currency}
 Remaining = total − sum(payments) (i64 minor units only).
 
 - `POST /api/v1/invoices/mark-part-paid` — amount must be `> 0` and `< remaining`;
-  records the payment; overpay rejected.
+  records the payment; overpay rejected. Optional `preview: true` → ConfirmStore
+  token (default suggestion-only; never auto-commits journal).
 - `POST /api/v1/invoices/mark-paid` — journal suggestion for **remaining** (not always
   full total); rejects when remaining is 0; records the settling payment.
+  Optional `preview: true` → ConfirmStore token (same contract; never auto-commits).
 
 MCP: `invoice_create_draft`, `invoice_list`, `invoice_patch_status`,
-`invoice_mark_part_paid_preview`, `invoice_mark_paid_preview`. Still **no**
-`JournalWrite` — post suggestions via journal-preview-commit.
+`invoice_mark_part_paid_preview`, `invoice_mark_paid_preview` (optional
+`preview:true` → ConfirmStore). Still **no** `JournalWrite` — post suggestions via
+journal-preview-commit.
 
 ## Validation
 

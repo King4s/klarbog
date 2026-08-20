@@ -1,6 +1,8 @@
 //! Invoice MCP tools — drafts, status, mark-paid previews (no journal write).
 
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
+use klarbog_core::{journal_preview, ConfirmStore};
+use klarbog_plugin::Registry;
 use klarbog_plugin_invoice::{
     create_draft_from_new, get_invoice, journal_suggestion, list_invoices, mark_paid_preview,
     mark_part_paid_preview, patch_status, InvoiceConfig, InvoiceError, InvoiceId, InvoiceKind,
@@ -135,7 +137,13 @@ pub async fn invoice_patch_status(args: &Value, allowlist_root: &Path) -> Envelo
     }
 }
 
-pub async fn invoice_mark_paid_preview(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+/// Mirror POST /api/v1/invoices/mark-paid — suggestion; optional ConfirmStore (`preview`).
+pub async fn invoice_mark_paid_preview(
+    args: &Value,
+    allowlist_root: &Path,
+    store: &ConfirmStore,
+    registry: &Registry,
+) -> Envelope<Value> {
     let actor = match parse_actor(args) {
         Ok(a) => a,
         Err(e) => return Envelope::err([e]),
@@ -148,22 +156,51 @@ pub async fn invoice_mark_paid_preview(args: &Value, allowlist_root: &Path) -> E
         Ok(id) => id,
         Err(e) => return Envelope::err([e]),
     };
+    let preview = args
+        .get("preview")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    match mark_paid_preview(&path, &invoice_id, &actor, &InvoiceConfig::default()) {
-        Ok((invoice, journal_entry)) => Envelope::ok(json!({
-            "invoice": invoice,
-            "journal_entry": journal_entry,
-        })),
-        Err(e) => map_invoice(e),
+    let (invoice, journal_entry) =
+        match mark_paid_preview(&path, &invoice_id, &actor, &InvoiceConfig::default()) {
+            Ok(v) => v,
+            Err(e) => return map_invoice(e),
+        };
+    let mut data = json!({
+        "invoice": invoice,
+        "journal_entry": &journal_entry,
+    });
+    if !preview {
+        return Envelope::ok(data);
     }
+    let confirm = match journal_preview(
+        allowlist_root,
+        &company,
+        &journal_entry,
+        &actor,
+        store,
+        registry,
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    data["confirm_token"] = Value::String(confirm.confirm_token.token.clone());
+    data["expires_unix_ms"] = json!(confirm.confirm_token.expires_unix_ms);
+    data["payload_digest"] = Value::String(confirm.payload_digest);
+    Envelope::ok_with_rules(data, confirm.applied_rules)
 }
 
+/// Mirror POST /api/v1/invoices/mark-part-paid — suggestion; optional ConfirmStore (`preview`).
 pub async fn invoice_mark_part_paid_preview(
     args: &Value,
     allowlist_root: &Path,
+    store: &ConfirmStore,
+    registry: &Registry,
 ) -> Envelope<Value> {
     let actor = match parse_actor(args) {
         Ok(a) => a,
@@ -181,24 +218,50 @@ pub async fn invoice_mark_part_paid_preview(
         Some(a) => a,
         None => return Envelope::err(["missing amount_minor"]),
     };
+    let preview = args
+        .get("preview")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    match mark_part_paid_preview(
+    let (invoice, journal_entry) = match mark_part_paid_preview(
         &path,
         &invoice_id,
         amount_minor,
         &actor,
         &InvoiceConfig::default(),
     ) {
-        Ok((invoice, journal_entry)) => Envelope::ok(json!({
-            "invoice": invoice,
-            "journal_entry": journal_entry,
-        })),
-        Err(e) => map_invoice(e),
+        Ok(v) => v,
+        Err(e) => return map_invoice(e),
+    };
+    let mut data = json!({
+        "invoice": invoice,
+        "journal_entry": &journal_entry,
+    });
+    if !preview {
+        return Envelope::ok(data);
     }
+    let confirm = match journal_preview(
+        allowlist_root,
+        &company,
+        &journal_entry,
+        &actor,
+        store,
+        registry,
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    data["confirm_token"] = Value::String(confirm.confirm_token.token.clone());
+    data["expires_unix_ms"] = json!(confirm.confirm_token.expires_unix_ms);
+    data["payload_digest"] = Value::String(confirm.payload_digest);
+    Envelope::ok_with_rules(data, confirm.applied_rules)
 }
+
 
 #[cfg(test)]
 #[path = "invoice_tests.rs"]

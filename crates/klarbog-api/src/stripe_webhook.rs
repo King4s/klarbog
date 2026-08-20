@@ -99,11 +99,9 @@ mod http_tests {
     use klarbog_plugin_bank::sign_test_payload;
     use klarbog_types::{Actor, Envelope};
     use serde_json::Value;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use tempfile::tempdir;
     use tower::ServiceExt;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     const PAYOUT_FIXTURE: &str =
         include_str!("../../klarbog-plugin-bank/tests/fixtures/stripe_webhook_payout_paid.json");
@@ -111,6 +109,7 @@ mod http_tests {
 
     #[tokio::test]
     async fn stripe_webhook_accepts_signed_fixture() {
+        let _lock = crate::ENV_TEST_LOCK.lock().await;
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");
@@ -127,10 +126,7 @@ mod http_tests {
             "/api/v1/webhooks/stripe?company={}",
             company_path.to_string_lossy()
         );
-        let _guard = {
-            let _env = ENV_LOCK.lock().unwrap();
-            EnvGuard::set("KLARBOG_STRIPE_WEBHOOK_SECRET", TEST_SECRET)
-        };
+        let _guard = EnvGuard::set("KLARBOG_STRIPE_WEBHOOK_SECRET", TEST_SECRET);
         let res = app
             .oneshot(
                 Request::builder()
@@ -158,8 +154,8 @@ mod http_tests {
     }
 
     #[tokio::test]
-    #[allow(clippy::await_holding_lock)]
     async fn stripe_webhook_missing_secret_is_503() {
+        let _lock = crate::ENV_TEST_LOCK.lock().await;
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");
@@ -174,10 +170,9 @@ mod http_tests {
             "/api/v1/webhooks/stripe?company={}",
             company_path.to_string_lossy()
         );
-        let status = {
-            let _env = ENV_LOCK.lock().unwrap();
-            let _guard = EnvGuard::unset("KLARBOG_STRIPE_WEBHOOK_SECRET");
-            app.oneshot(
+        let _guard = EnvGuard::unset("KLARBOG_STRIPE_WEBHOOK_SECRET");
+        let status = app
+            .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri(&uri)
@@ -187,8 +182,7 @@ mod http_tests {
             )
             .await
             .unwrap()
-            .status()
-        };
+            .status();
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     }
 

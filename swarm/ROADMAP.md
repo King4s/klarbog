@@ -166,4 +166,13 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 70. Soft-split `klarbog-plugin-bank` Revolut OAuth tests — `revolut_tests.rs` (298) → `revolut_test_support` + `revolut_tests` + `revolut_refresh_tests` (under soft 300; behavior unchanged) ✅
 
+## Wave 31 — soft linegate headroom (landed)
+
+71. Soft-split `klarbog-plugin-retention/src/erase.rs` (290) → `erase_tests.rs` (under soft 300; journal immutable / erase behavior unchanged) ✅
+
+
+## Wave 32 — OAuth/MCP env-lock hardening (landed)
+
+72. Env-mutating Revolut/Stripe/OAuth MCP+API+plugin tests hold crate-wide `ENV_TEST_LOCK` (tokio Mutex) until after async calls complete; stripe webhook premature unlock fixed ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

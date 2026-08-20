@@ -127,6 +127,7 @@ mod tests {
 
     #[tokio::test]
     async fn preview_revolut_api_missing_env() {
+        let _lock = super::super::ENV_TEST_LOCK.lock().await;
         let dir = tempdir().unwrap();
         let owner = Actor::user("owner");
         let company_path = dir.path().join("co");

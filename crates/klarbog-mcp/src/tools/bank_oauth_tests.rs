@@ -5,10 +5,6 @@ use klarbog_core::init_company;
 use klarbog_types::Actor;
 use serde_json::json;
 use tempfile::tempdir;
-use tokio::sync::Mutex;
-
-static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
-
 struct EnvGuard {
     key: &'static str,
     prev: Option<String>,
@@ -52,7 +48,7 @@ fn set_oauth_env() -> Vec<EnvGuard> {
 
 #[tokio::test]
 async fn mcp_oauth_start_returns_auth_url_without_secrets() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
@@ -79,7 +75,7 @@ async fn mcp_oauth_start_returns_auth_url_without_secrets() {
 
 #[tokio::test]
 async fn mcp_oauth_start_fail_closed_without_config() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let _clear = [
         EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_ID"),
         EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_SECRET"),
@@ -102,7 +98,7 @@ async fn mcp_oauth_start_fail_closed_without_config() {
 
 #[tokio::test]
 async fn mcp_oauth_callback_missing_code_fail_closed() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
@@ -126,7 +122,7 @@ async fn mcp_oauth_callback_missing_code_fail_closed() {
 
 #[tokio::test]
 async fn mcp_oauth_callback_blank_code_fail_closed() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
@@ -149,7 +145,7 @@ async fn mcp_oauth_callback_blank_code_fail_closed() {
 
 #[tokio::test]
 async fn mcp_oauth_start_actor_denied() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");

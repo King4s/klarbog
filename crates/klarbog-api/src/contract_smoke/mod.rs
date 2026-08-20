@@ -12,8 +12,7 @@ use klarbog_types::{Actor, ActorKind, Envelope};
 use serde_json::Value;
 use tower::ServiceExt;
 
-/// Serializes env mutation across oauth fail-closed smoke (slice 39).
-static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+pub(super) use crate::ENV_TEST_LOCK;
 
 const PAYOUT_FIXTURE: &str =
     include_str!("../../../klarbog-plugin-bank/tests/fixtures/stripe_webhook_payout_paid.json");

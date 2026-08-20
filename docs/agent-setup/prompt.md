@@ -84,8 +84,8 @@ Kald `tools/list`. Forvent mindst:
 | `invoice_create_draft` | Opret fakturakladde (`kind` sale\|purchase; `lines[].amount_minor` i64) → journalforslag (**poster aldrig**) |
 | `invoice_list` | List fakturaer, eller én når `invoice_id` er sat (read-only) |
 | `invoice_patch_status` | Sæt status (`draft\|sent\|part_paid\|paid\|void`; **ingen** journal-write) |
-| `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |
-| `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag |
+| `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag; valgfri `preview:true` → ConfirmStore-token |
+| `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag; valgfri `preview:true` → ConfirmStore-token |
 | `retention_get` | Læs retention-politik |
 | `retention_purge` | Purge lukkede undtagelser (dry-run/`confirm`; valgfri orphan-doc GC; journal urørt) |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
@@ -136,8 +136,8 @@ x-klarbog-actor-id: owner
 | POST/GET | `/api/v1/crm/parties` | Parter |
 | POST/GET | `/api/v1/invoices/drafts` | Fakturakladder |
 | PATCH | `/api/v1/invoices/status` | Faktura-status (`draft\|sent\|part_paid\|paid\|void`) |
-| POST | `/api/v1/invoices/mark-paid` | Betalt → journalforslag (fuldt beløb) |
-| POST | `/api/v1/invoices/mark-part-paid` | Delbetaling (`amount_minor`) → forslag |
+| POST | `/api/v1/invoices/mark-paid` | Betalt → journalforslag (resterende); valgfri `preview:true` → confirm-token |
+| POST | `/api/v1/invoices/mark-part-paid` | Delbetaling (`amount_minor`) → forslag; valgfri `preview:true` → confirm-token |
 | POST | `/api/v1/bank/import/preview` | Bank/API → udkast (`source` + `provider`) |
 | POST | `/api/v1/bank/reconcile/suggest` | Match banklinjer ↔ åbne fakturaer |
 | POST | `/api/v1/bank/reconcile/apply` | Anvend match → journalforslag; valgfri `preview:true` → confirm-token |
@@ -234,7 +234,7 @@ klarbog gdpr-erase-party --company "$KLARBOG_COMPANY" --party-id <id>   # dry-ru
 ## Domæne — kort
 
 - **CRM:** parter i `parties.json`; ledger bruger kun `party_id` (ingen journal-write fra CRM-plugin).
-- **Faktura:** kladder + betalings-ledger (remaining = total − summerede delbetalinger); `mark-part-paid` / `mark-paid` giver journalforslag med `party_id` — post via journal to-fase.
+- **Faktura:** kladder + betalings-ledger (remaining = total − summerede delbetalinger); `mark-part-paid` / `mark-paid` giver journalforslag med `party_id`; valgfri `preview:true` → ConfirmStore-token — post via journal to-fase (aldrig auto-commit).
 - **Dokumenter:** metadata + `path_hint` (relativ, ingen `..`); binære filer via object store.
 - **Lagring:** default lokal disk under firmaet; valgfrit **Cloudflare R2 (EU)** via `KLARBOG_STORAGE=r2` og `KLARBOG_R2_*` (fail-closed uden for EU).
 - **Regler (DK-dev):** memo påkrævet, kontonummer kun cifre, **chart stub** (`1000` bank, `1500` AR, `4400` AP, udgift `4000`–`6999`; bank-CSV ofte `5800`/`6100`), valgfri hint `dk.bookkeeping.known_account` (blokerer ikke), moms-hint `dk.vat.rate` fra memo (`vat:25`/`moms:0`/`25%`), `dk.vat.split_hint` (i64+bps, 25%/0), `dk.expense.receipt_required` blokerer udgiftsdebet (4000–6999) uden `party_id` og uden `#receipt`/`document_id:` i memo; `dk.expense.receipt_hint` når `party_id` findes men receipt-signal mangler.

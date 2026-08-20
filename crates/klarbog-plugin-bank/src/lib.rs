@@ -1,6 +1,10 @@
 //! Bank import plugin — API-primary for Revolut/Stripe; CSV fallback (ADR-006/008/009).
 //! Read-only: never posts to the ledger.
 
+/// Serializes process-env mutation across Revolut/Stripe/OAuth plugin tests (parallel VERIFY).
+#[cfg(test)]
+pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 mod amount;
 mod api;
 mod config;

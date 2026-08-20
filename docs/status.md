@@ -10,6 +10,7 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 30: soft-split Revolut OAuth tests under soft 300.
+Wave 31: soft-split retention erase tests under soft 300
+(`erase.rs` → `erase_tests.rs`; journal immutable).
 Product AI prompt: `docs/agent-setup/prompt.md`.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

@@ -177,6 +177,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 70:** Soft-split `klarbog-plugin-bank` Revolut OAuth unit tests — `oauth/revolut_tests.rs` (298 non-blank) → `revolut_test_support` + `revolut_tests` (start/exchange) + `revolut_refresh_tests` (refresh/resolve); OAuth behavior unchanged.
 
+### Changed — Wave 31 (soft linegate headroom)
+
+- **Slice 71:** Soft-split `klarbog-plugin-retention/src/erase.rs` (290 non-blank) → `erase_tests.rs` via `#[path]`; journal immutable / erase behavior unchanged.
+
+### Fixed — Wave 32 (OAuth/MCP env-lock)
+
+- **Slice 72:** Crate-wide `ENV_TEST_LOCK` held through async Revolut/Stripe/OAuth MCP+API+plugin tests; stripe webhook test no longer drops lock before await (parallel VERIFY flake).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

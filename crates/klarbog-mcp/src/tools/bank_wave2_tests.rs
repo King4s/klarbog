@@ -209,6 +209,7 @@ async fn mcp_reconcile_apply_preview_issues_confirm_token() {
 
 #[tokio::test]
 async fn mcp_revolut_refresh_fail_closed_no_tokens_in_body() {
+    let _lock = super::super::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");

@@ -121,6 +121,7 @@ mod tests {
 
     #[test]
     fn revolut_from_env_requires_token() {
+        let _lock = crate::ENV_TEST_LOCK.blocking_lock();
         let _guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
         let err = RevolutApiConfig::from_env().unwrap_err();
         assert_eq!(

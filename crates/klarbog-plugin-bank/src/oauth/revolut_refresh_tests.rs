@@ -115,6 +115,7 @@ async fn refresh_provider_http_error_preserves_secrets() {
 
 #[tokio::test]
 async fn resolve_fail_closed_when_expired_without_refresh() {
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     std::fs::create_dir_all(&company).unwrap();
@@ -138,6 +139,7 @@ async fn resolve_fail_closed_when_expired_without_refresh() {
 
 #[tokio::test]
 async fn resolve_refreshes_when_access_expired() {
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     std::fs::create_dir_all(&company).unwrap();
@@ -157,6 +159,7 @@ async fn resolve_refreshes_when_access_expired() {
 
 #[tokio::test]
 async fn resolve_skips_network_when_access_valid() {
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     std::fs::create_dir_all(&company).unwrap();

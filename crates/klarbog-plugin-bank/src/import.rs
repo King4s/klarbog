@@ -131,6 +131,7 @@ mod tests {
 
     #[tokio::test]
     async fn api_revolut_requires_env() {
+        let _lock = crate::ENV_TEST_LOCK.lock().await;
         let _guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
         let cfg = BankImportConfig::default();
         let err = import_preview(
@@ -148,6 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn api_revolut_uses_company_stored_token_when_env_missing() {
+        let _lock = crate::ENV_TEST_LOCK.lock().await;
         let dir = tempfile::tempdir().unwrap();
         let company = dir.path().join("co");
         std::fs::create_dir_all(&company).unwrap();

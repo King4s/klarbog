@@ -1,5 +1,9 @@
 //! DEV-only HTTP surface. Bind loopback in the binary (ADR-003).
 
+/// Serializes process-env mutation across Revolut/Stripe/OAuth tests (parallel VERIFY).
+#[cfg(test)]
+pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 mod actor;
 mod bank;
 mod bank_reconcile;

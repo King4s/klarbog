@@ -135,12 +135,13 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "invoice_mark_paid_preview",
-            "description": "Mark invoice paid for remaining balance (payment ledger) and return payment journal suggestion with party_id (no post). Rejects when remaining is 0.",
+            "description": "Mark invoice paid for remaining balance (payment ledger) and return payment journal suggestion with party_id (no post). Optional preview:true issues ConfirmStore token. Rejects when remaining is 0.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "company": {"type": "string"},
                     "invoice_id": {"type": "string"},
+                    "preview": {"type": "boolean"},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}
                 },
@@ -149,13 +150,14 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "invoice_mark_part_paid_preview",
-            "description": "Record partial payment on invoice ledger (amount_minor >0 and < remaining), set part_paid, return journal suggestion with party_id (no post). Overpay rejected.",
+            "description": "Record partial payment on invoice ledger (amount_minor >0 and < remaining), set part_paid, return journal suggestion with party_id (no post). Optional preview:true issues ConfirmStore token. Overpay rejected.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "company": {"type": "string"},
                     "invoice_id": {"type": "string"},
                     "amount_minor": {"type": "integer"},
+                    "preview": {"type": "boolean"},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}
                 },

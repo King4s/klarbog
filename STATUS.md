@@ -12,7 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 30: soft-split Revolut OAuth unit tests
-(`revolut_test_support` + exchange + refresh modules; was 298 soft).
+Wave 32: OAuth/MCP env-lock hardening
+(crate-wide ENV_TEST_LOCK held through await; stripe premature unlock fixed).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

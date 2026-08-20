@@ -67,6 +67,7 @@ fn queues_under_company_dir() {
 
 #[test]
 fn config_from_env_requires_secret() {
+    let _lock = crate::ENV_TEST_LOCK.blocking_lock();
     let _guard = EnvGuard::unset("KLARBOG_STRIPE_WEBHOOK_SECRET");
     let err = StripeWebhookConfig::from_env().unwrap_err();
     assert_eq!(

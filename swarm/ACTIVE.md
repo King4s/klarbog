@@ -1,6 +1,5 @@
 # Active swarm status
 
-- **Wave 30 landed** — soft-split Revolut OAuth unit tests (headroom)
-- **Plateau:** HTTP/MCP product parity largely complete; tip VERIFY_OK
-- Next: real product (UI / live E2E with keys) on owner request — avoid inventing thin negatives
-- No sister-product names in public tree
+- **Owner: swarm again** — VERIFY_OK on WIP tip
+- Landed in WIP: erase + bank_reconcile_apply soft-splits; oauth ENV_LOCK; invoice mark-paid ConfirmStore (HTTP)
+- In flight: MCP invoice preview polish; bank_http_tests split; demo Revolut

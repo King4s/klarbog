@@ -1,5 +1,9 @@
 //! MCP tool registry and dispatch.
 
+/// Serializes process-env mutation across Revolut/Stripe/OAuth MCP tests (parallel VERIFY).
+#[cfg(test)]
+pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 mod auth;
 mod bank;
 mod bank_oauth;
@@ -83,13 +87,20 @@ pub fn handle_tool_call(
         "invoice_create_draft" => rt.block_on(invoice::invoice_create_draft(args, allowlist_root)),
         "invoice_list" => rt.block_on(invoice::invoice_list(args, allowlist_root)),
         "invoice_patch_status" => rt.block_on(invoice::invoice_patch_status(args, allowlist_root)),
-        "invoice_mark_paid_preview" => {
-            rt.block_on(invoice::invoice_mark_paid_preview(args, allowlist_root))
-        }
-        "invoice_mark_part_paid_preview" => rt.block_on(invoice::invoice_mark_part_paid_preview(
+        "invoice_mark_paid_preview" => rt.block_on(invoice::invoice_mark_paid_preview(
             args,
             allowlist_root,
+            store,
+            registry,
         )),
+        "invoice_mark_part_paid_preview" => {
+            rt.block_on(invoice::invoice_mark_part_paid_preview(
+                args,
+                allowlist_root,
+                store,
+                registry,
+            ))
+        }
         "journal_post_preview" => rt.block_on(journal::journal_post_preview(
             args,
             allowlist_root,

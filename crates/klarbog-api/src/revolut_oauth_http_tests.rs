@@ -9,10 +9,7 @@ use klarbog_types::{Actor, ActorKind, Envelope};
 use serde_json::Value;
 use std::sync::Arc;
 use tempfile::tempdir;
-use tokio::sync::Mutex;
 use tower::ServiceExt;
-
-static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
 
 fn actor_headers(actor: &Actor) -> (&'static str, String) {
     let kind = match actor.kind {
@@ -50,7 +47,7 @@ async fn app_with_company() -> (axum::Router, std::path::PathBuf, Actor, tempfil
 
 #[tokio::test]
 async fn oauth_start_returns_auth_url() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let (app, company_path, owner, _dir) = app_with_company().await;
     let (kind, id) = actor_headers(&owner);
@@ -87,7 +84,7 @@ async fn oauth_start_returns_auth_url() {
 
 #[tokio::test]
 async fn oauth_start_missing_config_is_fail_closed() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let (app, company_path, owner, _dir) = app_with_company().await;
     let _guard = EnvGuard::unset("KLARBOG_REVOLUT_CLIENT_ID");
     let (kind, id) = actor_headers(&owner);
@@ -112,7 +109,7 @@ async fn oauth_start_missing_config_is_fail_closed() {
 
 #[tokio::test]
 async fn oauth_refresh_fail_closed_without_refresh_token() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let (app, company_path, owner, _dir) = app_with_company().await;
     save_revolut_tokens(
@@ -152,7 +149,7 @@ async fn oauth_refresh_fail_closed_without_refresh_token() {
 
 #[tokio::test]
 async fn oauth_refresh_unauthorized_actor_forbidden() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let _env = set_oauth_env();
     let (app, company_path, _owner, _dir) = app_with_company().await;
     let stranger = Actor::user("stranger");

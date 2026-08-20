@@ -6,10 +6,7 @@ use klarbog_types::{Actor, ActorKind, Envelope};
 use serde_json::Value;
 use std::sync::Arc;
 use tempfile::tempdir;
-use tokio::sync::Mutex;
 use tower::ServiceExt;
-
-static ENV_TEST_LOCK: Mutex<()> = Mutex::const_new(());
 
 const FIXTURE: &str =
     "Dato;Tekst;Beløb\n19.08.2026;Office supplies;-125,50\n20.08.2026;Customer payment;500,00\n";
@@ -72,7 +69,7 @@ async fn bank_preview_generic_dk_csv() {
 
 #[tokio::test]
 async fn bank_preview_revolut_api_missing_env() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
@@ -119,7 +116,7 @@ async fn bank_preview_revolut_api_missing_env() {
 
 #[tokio::test]
 async fn bank_preview_stripe_api_missing_env() {
-    let _lock = ENV_TEST_LOCK.lock().await;
+    let _lock = crate::ENV_TEST_LOCK.lock().await;
     let dir = tempdir().unwrap();
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");

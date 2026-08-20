@@ -130,3 +130,12 @@
 {"event":"wave29_invoice_lib_soft_split","status":"done","note":"invoice lib tests→tests.rs; VERIFY_OK","ts":"2026-08-20T00:58:00Z"}
 {"event":"wave30_revolut_oauth_tests_soft_split","slice":70,"status":"done","note":"revolut_tests 298→support+exchange+refresh; VERIFY pending","ts":"2026-08-20T01:00:00Z"}
 {"event":"wave30_revolut_oauth_tests_soft_split","slice":70,"status":"done","note":"revolut_tests 298→support+exchange+refresh; soft 82/62/168; VERIFY_OK","ts":"2026-08-20T01:05:00Z"}
+{"event":"wave31_dispatch","note":"owner vider: soft-splits + invoice ConfirmStore preview + oauth env lock","ts":"2026-08-20T11:51:00Z"}
+{"event":"wave31_soft_split_erase","slice":71,"status":"done","note":"erase.rs 290→erase_tests; soft under 300; journal immutable; VERIFY pending","ts":"2026-08-20T11:55:00Z"}
+{"event":"wave31_soft_split_bank_reconcile_apply","status":"done","note":"bank_reconcile_apply.rs\u2192+http_tests via #[path]; soft 290\u2192165/126 (<300); i64; VERIFY_OK","ts":"2026-08-20T11:58:25Z"}
+{"event":"wave32_oauth_env_lock","status":"done","note":"crate-wide ENV_TEST_LOCK held through await for Revolut/Stripe/OAuth MCP+API+plugin tests; stripe premature unlock fixed; VERIFY pending","ts":"2026-08-20T11:59:17Z"}
+{"event":"wave31_soft_split_bank_reconcile_apply","status":"blocked","note":"split landed; VERIFY failed \u2014 see /tmp/klarbog_verify_w31e.txt","ts":"2026-08-20T11:59:19Z"}
+{"event":"wave31_soft_split_erase","slice":71,"status":"done","note":"erase.rs 290→erase+erase_tests soft 87/204; journal immutable; no sister names; VERIFY_OK","ts":"2026-08-20T12:00:00Z"}
+{"event":"wave31_soft_split_bank_reconcile_apply","status":"done","note":"bank_reconcile_apply.rs\u2192+http_tests via #[path] (bank.rs pattern); soft 290\u2192165/126 (<300); i64; VERIFY_OK","ts":"2026-08-20T11:59:55Z"}
+{"event":"wave32_oauth_env_lock","status":"done","note":"crate-wide ENV_TEST_LOCK through await (api/mcp/plugin-bank); stripe premature unlock fixed; VERIFY_OK","ts":"2026-08-20T12:00:06Z"}
+{"event":"swarm_resume","note":"owner swarm; VERIFY_OK dirty tree; parallel: invoice MCP, bank_http split, demo","ts":"2026-08-20T12:00:00Z"}

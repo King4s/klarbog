@@ -114,7 +114,8 @@ Optional client env:
 
 REST surface (v1): journal preview/commit + optional `moms-suggest` (`#vat25`
 net+vat i64 legs, never posts); CRM parties; invoice drafts / status /
-mark-paid / mark-part-paid (payment ledger remaining); bank import preview;
+mark-paid / mark-part-paid (payment ledger remaining; optional `preview` →
+confirm-token); bank import preview;
 reconcile suggest/apply (`preview` → confirm-token); Stripe webhook + consume +
 reconcile-suggest; reconcile-apply-preview; Revolut OAuth start/callback/refresh; documents (+ delete);
 exceptions; retention / purge / backup; GDPR export + party erase. See
@@ -137,7 +138,7 @@ pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
 (preview-only VAT split hint), `crm_upsert_party` / `crm_list_parties` (HTTP CRM
 parity; no journal write), `invoice_create_draft` / `invoice_list` /
 `invoice_patch_status` plus mark-paid previews (HTTP invoice lifecycle parity;
-suggestions only — no journal write), `documents_attach` / `documents_list` /
+optional `preview:true` → ConfirmStore token; suggestions only — no journal write), `documents_attach` / `documents_list` /
 `documents_delete` and `exceptions_raise` / `exceptions_list` / `exceptions_set_open`
 (HTTP documents + exceptions parity; no journal write), `gdpr_export`
 (company-scoped metadata → `gdpr_export.json`; no binary blobs), `gdpr_erase_party`,
