@@ -35,6 +35,10 @@ pub struct BankActionForm {
     pub force: String,
     #[serde(default)]
     pub row_index: String,
+    #[serde(default)]
+    pub entry_json: String,
+    #[serde(default)]
+    pub confirm_token: String,
 }
 
 pub(super) fn parse_provider(raw: &str) -> BankProfile {

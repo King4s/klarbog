@@ -40,8 +40,13 @@ pub(super) struct BankTemplate {
     pub has_suggest: bool,
     pub suggest_count: String,
     pub suggestions: Vec<SuggestRow>,
+    pub has_pending: bool,
+    pub pending_label: String,
+    pub pending_entry_json: String,
+    pub pending_token: String,
 }
 
+#[derive(Default)]
 pub(super) struct BankView {
     pub company: String,
     pub provider: String,
@@ -54,6 +59,9 @@ pub(super) struct BankView {
     pub suggestions: Vec<SuggestRow>,
     pub flash_ok: String,
     pub flash_err: String,
+    pub pending_label: String,
+    pub pending_entry_json: String,
+    pub pending_token: String,
 }
 
 pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
@@ -87,6 +95,10 @@ pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
         has_suggest: !v.suggestions.is_empty(),
         suggest_count: v.suggestions.len().to_string(),
         suggestions: v.suggestions,
+        has_pending: !v.pending_token.is_empty(),
+        pending_label: v.pending_label,
+        pending_entry_json: v.pending_entry_json,
+        pending_token: v.pending_token,
     }
 }
 
@@ -97,15 +109,10 @@ pub async fn bank_get(State(state): State<AppState>, headers: HeaderMap) -> Resp
         BankView {
             company,
             provider: "generic_dk".into(),
-            csv: String::new(),
             row_date: "2026-05-20".into(),
             row_text: "Customer payment".into(),
             row_amount: "50000".into(),
-            drafts: Vec::new(),
-            import_source: String::new(),
-            suggestions: Vec::new(),
-            flash_ok: String::new(),
-            flash_err: String::new(),
+            ..Default::default()
         },
     ))
 }

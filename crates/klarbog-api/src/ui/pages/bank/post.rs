@@ -4,7 +4,7 @@ use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
 use chrono::{DateTime, NaiveDate, Utc};
-use klarbog_core::journal_preview;
+use klarbog_core::{journal_commit, journal_preview};
 use klarbog_plugin_bank::{
     apply_match, default_source_for_rail, import_preview, suggest_matches, BankImportConfig,
     BankRow,
@@ -36,11 +36,9 @@ pub async fn bank_post(
                 row_date: form.row_date.clone(),
                 row_text: form.row_text.clone(),
                 row_amount: form.row_amount.clone(),
-                drafts: Vec::new(),
-                import_source: String::new(),
-                suggestions: Vec::new(),
                 flash_ok,
                 flash_err,
+                ..Default::default()
             },
         )
     };
@@ -103,9 +101,8 @@ pub async fn bank_post(
                             row_amount: form.row_amount,
                             drafts: draft_rows,
                             import_source: format!("{source:?}"),
-                            suggestions: Vec::new(),
                             flash_ok: "Import-preview ok".into(),
-                            flash_err: String::new(),
+                            ..Default::default()
                         },
                     ))
                 }
@@ -161,11 +158,9 @@ pub async fn bank_post(
                             row_date: form.row_date,
                             row_text: form.row_text,
                             row_amount: form.row_amount,
-                            drafts: Vec::new(),
-                            import_source: String::new(),
                             suggestions,
                             flash_ok: "Afstem-forslag klar".into(),
-                            flash_err: String::new(),
+                            ..Default::default()
                         },
                     ))
                 }
@@ -209,20 +204,67 @@ pub async fn bank_post(
                     )
                     .await
                     {
-                        Ok(p) => html_ok(empty(
-                            format!(
-                                "Apply-preview ok · inv {} · {} bps{} · token {} · memo {}",
-                                invoice_id,
-                                applied.confidence_bps,
-                                if applied.forced { " (forced)" } else { "" },
-                                p.confirm_token.token,
-                                applied.entry.memo
-                            ),
-                            String::new(),
-                        )),
+                        Ok(p) => {
+                            let entry_json = match serde_json::to_string(&applied.entry) {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    return html_ok(empty(String::new(), e.to_string()));
+                                }
+                            };
+                            html_ok(bank_page(
+                                &state,
+                                BankView {
+                                    company,
+                                    provider: provider_s,
+                                    csv: form.csv,
+                                    row_date: form.row_date,
+                                    row_text: form.row_text,
+                                    row_amount: form.row_amount,
+                                    flash_ok: format!(
+                                        "Apply-preview ok · inv {} · {} bps{}",
+                                        invoice_id,
+                                        applied.confidence_bps,
+                                        if applied.forced { " (forced)" } else { "" },
+                                    ),
+                                    pending_label: format!(
+                                        "inv {} · {}",
+                                        invoice_id, applied.entry.memo
+                                    ),
+                                    pending_entry_json: entry_json,
+                                    pending_token: p.confirm_token.token,
+                                    ..Default::default()
+                                },
+                            ))
+                        }
                         Err(e) => html_ok(empty(String::new(), e.to_string())),
                     }
                 }
+                Err(e) => html_ok(empty(String::new(), e.to_string())),
+            }
+        }
+        "commit_apply" => {
+            let entry: klarbog_journal::JournalEntry =
+                match serde_json::from_str(form.entry_json.trim()) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        return html_ok(empty(String::new(), format!("Ugyldig entry_json: {e}")));
+                    }
+                };
+            match journal_commit(
+                &state.allowlist_root,
+                std::path::Path::new(&company),
+                entry,
+                &actor,
+                form.confirm_token.trim(),
+                &state.confirm,
+                &state.registry,
+            )
+            .await
+            {
+                Ok(r) => html_ok(empty(
+                    format!("Afstemning bogført · posted {}", r.posted.id),
+                    String::new(),
+                )),
                 Err(e) => html_ok(empty(String::new(), e.to_string())),
             }
         }

@@ -70,6 +70,20 @@
     </form>
   </div>
 
+  {% if has_pending %}
+  <div class="panel nested">
+    <h2>Afventer bogføring</h2>
+    <p class="muted">{{ pending_label }}</p>
+    <form method="post" action="/ui/bank">
+      <input type="hidden" name="action" value="commit_apply" />
+      <input type="hidden" name="provider" value="{{ provider }}" />
+      <input type="hidden" name="entry_json" value="{{ pending_entry_json }}" />
+      <input type="hidden" name="confirm_token" value="{{ pending_token }}" />
+      <button class="primary" type="submit">Bekræft afstemning (commit)</button>
+    </form>
+  </div>
+  {% endif %}
+
   {% if has_suggest %}
   <div class="panel nested">
     <h2>Match-forslag</h2>
