@@ -110,4 +110,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 56. Thin negative-path: `POST /api/v1/journal/moms-suggest` with unsupported memo VAT (`vat:12`) → **400** (HTTP maps `MomsPostSuggestionError::Memo`; i64 gross untouched; never suggests) ✅
 
+## Wave 17 — MCP moms-suggest fail-closed (landed)
+
+57. MCP parity: `journal_moms_post_suggestion` with unsupported memo VAT (`vat:12`) → envelope **not ok** (fail-closed; i64 gross untouched; never suggests) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

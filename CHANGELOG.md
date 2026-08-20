@@ -121,6 +121,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 56:** HTTP negative-path — `POST /api/v1/journal/moms-suggest` with unsupported memo VAT (`vat:12`) returns **400** (fail-closed; no suggestion payload).
 
+### Added — Wave 17 (MCP moms-suggest fail-closed)
+
+- **Slice 57:** MCP negative-path — `journal_moms_post_suggestion` with unsupported memo VAT (`vat:12`) returns envelope **not ok** (fail-closed; i64; no suggestion payload).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

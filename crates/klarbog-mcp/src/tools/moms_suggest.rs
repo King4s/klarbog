@@ -96,4 +96,23 @@ mod tests {
         assert!(env.ok);
         assert_eq!(env.data.unwrap()["suggested"], false);
     }
+
+    /// Wave17: unsupported memo VAT is fail-closed (envelope not ok; never suggests).
+    #[tokio::test]
+    async fn mcp_moms_suggest_unsupported_memo_rate_is_err() {
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company = dir.path().join("co");
+        init_company(&company, "Demo", &owner).await.unwrap();
+        let args = json!({
+            "company": company.to_string_lossy(),
+            "gross_minor": 12_500_i64,
+            "memo": "supplies vat:12",
+            "actor_kind": "user",
+            "actor_id": "owner",
+        });
+        let env = journal_moms_post_suggestion(&args, dir.path()).await;
+        assert!(!env.ok);
+        assert!(env.data.is_none());
+    }
 }
