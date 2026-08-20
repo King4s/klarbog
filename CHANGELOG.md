@@ -7,6 +7,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 40 (TLS edge / production checklist)
+
+- **ADR-015:** TLS at reverse-proxy edge; `klarbog-api` remains plain HTTP;
+  prefer loopback upstream; never publish non-loopback without a TLS edge.
+- Operator skill: [`docs/skills/production-checklist.md`](docs/skills/production-checklist.md).
+- INSTALL + `.env.example` link ADR-015 and the checklist.
+
 ### Added — Wave 39 (production bind gate scaffold)
 
 - **ADR-014:** production posture — loopback default (ADR-003); optional

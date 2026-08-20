@@ -37,7 +37,7 @@ Otherwise:
 
 | Risk | Why it remains |
 |------|----------------|
-| **No TLS in-process** | Binding non-loopback without a reverse proxy / TLS edge exposes plain HTTP (credentials, actor headers, company paths). Operators must terminate TLS elsewhere. |
+| **No TLS in-process** | Binding non-loopback without a reverse proxy / TLS edge exposes plain HTTP (credentials, actor headers, company paths). Operators must terminate TLS elsewhere — see [ADR-015](ADR-015-tls-edge.md). |
 | **Auth is still DEV-shaped** | Actor headers + path allowlist are not a production identity system (no OIDC session gate, CSRF hardening for browsers on shared networks, etc.). |
 | **Backups** | Company SQLite / object stores need an operator-owned backup plan; Klarbog CLI backup helpers are DEV aids, not a production DR guarantee. |
 | **Mis-set env** | `KLARBOG_ALLOW_NON_LOOPBACK=1` + broad `KLARBOG_BIND` can expose the API on LAN/WAN. Never enable by default; document in INSTALL / `.env.example` as commented-out only. |

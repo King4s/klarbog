@@ -1,6 +1,6 @@
 # Active swarm status
 
-- **Tracks landed:** UI (36–37) → live E2E scaffold (38) → production bind gate (39)
-- Default remains DEV loopback; non-loopback needs explicit env flags (ADR-014)
-- Residual prod: TLS, stronger auth than actor headers, ops/backups — document-only for now
+- **Wave 40 landed** — ADR-015 TLS edge + production checklist skill
+- Prefer loopback Klarbog behind HTTPS reverse proxy; no in-process TLS
+- Next residuals: stronger auth; backup/DR depth; more UI as needed
 - Tip VERIFY_OK

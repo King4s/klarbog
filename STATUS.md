@@ -20,4 +20,7 @@ loopback live smoke when set (`wave38_live_e2e_scaffold`).
 Wave 39: ADR-014 + `KLARBOG_BIND` / `KLARBOG_ALLOW_NON_LOOPBACK` fail-closed
 gate (`wave39_production_bind_gate`) — scaffold only; no public deploy.
 
+Wave 40: ADR-015 TLS edge + `docs/skills/production-checklist.md`
+(`wave40_prod_tls_checklist`).
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

@@ -18,9 +18,14 @@ Without the allow flag, a non-loopback `KLARBOG_BIND` makes the process **exit
 at startup**. The allow flag alone does not widen the listen address.
 
 **Residual risks** if you opt in: no TLS inside `klarbog-api` (terminate at a
-reverse proxy), auth is still actor headers + allowlist (not production IdP),
-and backups remain operator-owned. This gate is a scaffold — **not** a public
-deploy authorization. See [`docs/adr/ADR-014-production-posture.md`](adr/ADR-014-production-posture.md).
+reverse proxy — [ADR-015](adr/ADR-015-tls-edge.md)), auth is still actor headers
++ allowlist (not production IdP), and backups remain operator-owned. This gate
+is a scaffold — **not** a public deploy authorization.
+
+See:
+- [`docs/adr/ADR-014-production-posture.md`](adr/ADR-014-production-posture.md)
+- [`docs/adr/ADR-015-tls-edge.md`](adr/ADR-015-tls-edge.md)
+- Operator checklist: [`docs/skills/production-checklist.md`](skills/production-checklist.md)
 
 ## Requirements
 

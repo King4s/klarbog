@@ -215,3 +215,9 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 83. ADR-014: production posture — loopback default; non-loopback only with `KLARBOG_ALLOW_NON_LOOPBACK=1` + explicit `KLARBOG_BIND`; residual risks documented; no public deploy ✅
 83b. `klarbog-api` bind gate + refuse-path tests; INSTALL / `.env.example` ✅
+
+## Wave 40 — TLS edge docs (prod residual #1)
+
+84. ADR-015: TLS terminates at reverse proxy; `klarbog-api` stays plain HTTP; prefer loopback upstream ✅
+85. `docs/skills/production-checklist.md` — operator gates (bind, TLS, auth residual, backup, live-e2e) ✅
+86. INSTALL + `.env.example` link ADR-015 + checklist ✅

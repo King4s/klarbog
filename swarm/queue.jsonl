@@ -165,3 +165,5 @@
 {"event":"wave38_live_e2e_scaffold","status":"done","note":"live-e2e.sh SKIP without keys; LIVE_E2E_SKIP; VERIFY_OK","ts":"2026-08-20T13:03:00Z"}
 {"event":"wave39_production_bind_gate","status":"done","note":"ADR-014 + KLARBOG_BIND/ALLOW_NON_LOOPBACK fail-closed gate; refuse tests; INSTALL/.env.example; no public deploy; VERIFY pending","ts":"2026-08-20T13:10:00Z"}
 {"event":"wave39_production_bind_gate","status":"done","note":"ADR-014 + KLARBOG_BIND/ALLOW_NON_LOOPBACK fail-closed gate; refuse tests; INSTALL/.env.example; no public deploy; VERIFY_OK","ts":"2026-08-20T13:12:00Z"}
+{"event":"wave40_prod_tls_checklist","status":"done","note":"ADR-015 TLS edge + production-checklist skill; INSTALL/env links; VERIFY pending","ts":"2026-08-20T13:12:00Z"}
+{"event":"wave40_prod_tls_checklist","status":"done","note":"ADR-015 + production-checklist; INSTALL/env; VERIFY_OK","ts":"2026-08-20T13:13:00Z"}
