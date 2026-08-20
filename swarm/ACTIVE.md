@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 9 landed** — ADR-011 + skill for moms-suggest (preview-only, i64)
-- Soft linegate clear; continue bank/oauth or packaging polish on request
+- **Wave 10 landed** — bank/oauth fail-closed tests + contract-smoke stripe missing-env
+- Tip VERIFY_OK / CONTRACT_SMOKE_OK; continue polish on request
 - No sister-product names; skip scratch wave*/status markers

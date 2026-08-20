@@ -109,6 +109,55 @@ async fn bank_preview_revolut_api_missing_env() {
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = std::str::from_utf8(bytes.as_ref()).unwrap();
+    assert!(!body_str.contains("\"access_token\""));
+    assert!(!body_str.contains("\"refresh_token\""));
+}
+
+#[tokio::test]
+async fn bank_preview_stripe_api_missing_env() {
+    let _lock = ENV_TEST_LOCK.lock().await;
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+    };
+    let app = router(state);
+    let (kind, id) = actor_headers(&owner);
+    let _guard = EnvGuard::unset("KLARBOG_STRIPE_SECRET_KEY");
+    let body = serde_json::json!({
+        "company": company_path.to_string_lossy(),
+        "provider": "stripe",
+        "source": "api",
+        "currency": "DKK",
+    });
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/bank/import/preview")
+                .header("content-type", "application/json")
+                .header("x-klarbog-actor-kind", kind)
+                .header("x-klarbog-actor-id", &id)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = std::str::from_utf8(bytes.as_ref()).unwrap();
+    assert!(!body_str.contains("\"secret_key\""));
+    assert!(!body_str.contains("sk_"));
 }
 
 #[tokio::test]

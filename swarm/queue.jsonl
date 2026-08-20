@@ -100,3 +100,4 @@
 {"event": "stripe_apply_exception_close", "slice": 46, "status": "done", "note": "apply_preview_from_stripe_consume closes unmatched_bank_transaction via apply_match; test unique_safe_apply_closes_prior_unmatched_exception; skill+ADR note; no auto journal commit; VERIFY_OK", "ts": "2026-08-19T23:55:39Z"}
 {"event":"wave8_contract_smoke_moms_currency","status":"done","note":"contract_smoke moms-suggest + Revolut mixed CSV→400; VERIFY_OK CONTRACT_SMOKE_OK","ts":"2026-08-20T00:00:00Z"}
 {"event":"wave9_moms_suggest_adr_skill","slice":49,"status":"done","note":"ADR-011 + docs/skills/moms-suggest.md; preview-only i64; journal skill cross-link; VERIFY_OK","ts":"2026-08-20T00:00:00Z"}
+{"event":"wave10_bank_oauth_fail_closed","status":"done","note":"oauth/stripe missing-env fail-closed; contract_smoke stripe import missing key; VERIFY_OK","ts":"2026-08-20T00:03:00Z"}

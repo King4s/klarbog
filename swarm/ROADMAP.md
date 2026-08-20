@@ -82,4 +82,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 49. ADR-011 + dedicated `docs/skills/moms-suggest.md` (preview-only i64; no auto-post) ✅
 
+## Wave 10 — bank/oauth fail-closed tests (landed)
+
+50. Strengthen fail-closed bank/oauth: blank refresh, provider HTTP error preserves secrets, expired-without-refresh resolve, Stripe API import missing env (HTTP + contract-smoke) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

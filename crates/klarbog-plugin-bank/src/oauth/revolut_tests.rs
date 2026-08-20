@@ -175,6 +175,71 @@ async fn refresh_fail_closed_without_refresh_token() {
 }
 
 #[tokio::test]
+async fn refresh_fail_closed_on_blank_refresh_token() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    std::fs::create_dir_all(&company).unwrap();
+    seed_tokens(&company, Some("   "), Some(1));
+    let client = MockClient {
+        last_body: Arc::new(Mutex::new(None)),
+        response: "{}".into(),
+        status: 200,
+    };
+    let err = refresh_access_token_with_client(&client, &test_oauth_cfg(), &company)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, RevolutOAuthError::MissingRefresh));
+    assert!(client.last_body.lock().unwrap().is_none());
+}
+
+#[tokio::test]
+async fn refresh_provider_http_error_preserves_secrets() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    std::fs::create_dir_all(&company).unwrap();
+    seed_tokens(&company, Some("rt-keep"), Some(1));
+    let client = MockClient {
+        last_body: Arc::new(Mutex::new(None)),
+        response: r#"{"error":"invalid_grant","access_token":"should-not-store"}"#.into(),
+        status: 401,
+    };
+    let err = refresh_access_token_with_client(&client, &test_oauth_cfg(), &company)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, RevolutOAuthError::Refresh(_)));
+    let msg = err.to_string();
+    assert!(!msg.contains("rt-keep"));
+    assert!(!msg.contains("old-access"));
+    assert!(!msg.contains("should-not-store"));
+    let stored = load_revolut_tokens(&company).unwrap();
+    assert_eq!(stored.access_token, "old-access");
+    assert_eq!(stored.refresh_token.as_deref(), Some("rt-keep"));
+}
+
+#[tokio::test]
+async fn resolve_fail_closed_when_expired_without_refresh() {
+    let dir = tempdir().unwrap();
+    let company = dir.path().join("co");
+    std::fs::create_dir_all(&company).unwrap();
+    seed_tokens(&company, None, Some(1));
+    let _token = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
+    let _oauth = set_oauth_env();
+    let client = MockClient {
+        last_body: Arc::new(Mutex::new(None)),
+        response: r#"{"access_token":"at-leak","refresh_token":"rt-leak","expires_in":60}"#.into(),
+        status: 200,
+    };
+    let err = from_env_or_company_secrets_refreshed(&client, &company)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, RevolutOAuthError::MissingRefresh));
+    assert!(client.last_body.lock().unwrap().is_none());
+    let stored = load_revolut_tokens(&company).unwrap();
+    assert_eq!(stored.access_token, "old-access");
+    assert!(stored.refresh_token.is_none());
+}
+
+#[tokio::test]
 async fn resolve_refreshes_when_access_expired() {
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");

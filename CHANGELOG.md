@@ -93,6 +93,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **ADR-011 + skill:** moms post suggestion is preview-only, i64 inclusive 25% split, no auto-post. See [`docs/adr/ADR-011-moms-suggest.md`](docs/adr/ADR-011-moms-suggest.md) and [`docs/skills/moms-suggest.md`](docs/skills/moms-suggest.md).
 
+### Added — Wave 10 (fail-closed tests)
+
+- **Slice 50:** Bank/oauth fail-closed regressions — blank `refresh_token`, provider HTTP error preserves company secrets (errors never echo tokens), expired access without refresh fails closed (no network), Stripe API import missing `KLARBOG_STRIPE_SECRET_KEY` → **503** (HTTP + contract-smoke).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
