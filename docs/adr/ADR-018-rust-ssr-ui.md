@@ -31,3 +31,21 @@ this migration autonomously.
 - `mount_ui` serves Askama routes (plus optional CSS), not an SPA `index.html`.
 - New screens land as Rust handlers + templates, not `ui/js/*.js`.
 - Offline VERIFY continues to cover HTML smoke (brand + key routes).
+
+## Two-phase commit pattern (added 2026-08-21)
+The confirm token from `journal_preview` is bound to a digest of the exact
+`JournalEntry` (including `as_of`). SSR pages must therefore **never rebuild**
+the entry from form fields at commit time — a fresh `as_of` changes the digest
+and the token fails closed ("payload mismatch"; this shipped as a live-only bug
+in the journal page). Pattern for every preview→commit flow (journal, invoice
+payment, bank apply):
+1. Preview serializes the exact entry to JSON into a hidden `entry_json` field
+   alongside `confirm_token`.
+2. Commit deserializes `entry_json` and passes it to `journal_commit`
+   unchanged. Serde round-trip preserves the digest
+   (`ui_entry_json_roundtrip_preserves_digest`).
+3. Tampering with `entry_json` is harmless: the digest no longer matches the
+   token and commit fails closed.
+
+`scripts/ui-smoke.sh` (CI: `rust-dev.yml`) exercises all three flows against a
+real server precisely because unit tests missed the rebuild bug.
