@@ -113,9 +113,13 @@ Capability: **Read only**. Never posts journal entries from the bank plugin.
 
 `POST /api/v1/bank/stripe/reconcile-suggest` with `{company, confirm_consume?, limit?}`. Runs queue consume then reconcile suggest. Default dry-run consume; `confirm_consume:true` persists `queue.consumed` then suggests. Helper: `suggest_from_stripe_consume`. **No** auto journal post.
 
+MCP: `bank_stripe_reconcile_suggest` — same args (`company`, `confirm_consume?`, `limit?`, `raise_exceptions?`, actor). AuthZ + allowlist. Still **no** journal post.
+
 ### Stripe consume → apply preview (one-shot opt-in)
 
 `POST /api/v1/bank/stripe/reconcile-apply-preview` with `{company, confirm_consume?, force?, limit?}`. Consume → suggest → when **exactly one** best suggestion is ≥ `SAFE_THRESHOLD_BPS`, runs `apply_match` and issues a ConfirmStore `confirm_token` (same path as reconcile apply `preview:true`). Successful apply closes any open `unmatched_bank_transaction` for that bank row (same as reconcile apply). Otherwise returns suggestions with `applied: null`. Helper: `apply_preview_from_stripe_consume`. Still **no** auto journal commit.
+
+MCP: `bank_stripe_reconcile_apply_preview` — same args (`company`, `confirm_consume?`, `force?`, `limit?`, actor). Unique safe match → ConfirmStore preview; otherwise suggestions only. Still **no** auto journal commit.
 
 ### Apply → preview suggestion only
 

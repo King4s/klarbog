@@ -65,6 +65,8 @@ Kald `tools/list`. Forvent mindst:
 | `journal_moms_post_suggestion` | Valgfrit moms-forslag fra `gross_minor` når memo har `#vat25` (net+vat i64; **poster aldrig**) |
 | `bank_import_preview` | Bank/betalingsrails → **udkast** (API for Revolut/Stripe; CSV for GenericDk / offline) |
 | `bank_stripe_consume` | Forbrug Stripe webhook-kø → bank-udkast (`confirm`; ingen journal-post) |
+| `bank_stripe_reconcile_suggest` | Stripe consume → reconcile-forslag (`confirm_consume`; **ingen** auto-post) |
+| `bank_stripe_reconcile_apply_preview` | Stripe consume → unik safe apply + ConfirmStore preview (**ingen** auto-commit) |
 | `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold) |
 | `revolut_oauth_refresh` | Refresh Revolut access-token (returnerer aldrig tokens) |
 | `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |
@@ -83,13 +85,12 @@ Typiske argumenter: `company` (absolut sti), `actor_kind`, `actor_id`, plus tool
 4. `journal_post_commit` med **samme** `entry` + token.
 5. Ved fejl: ret entry, ny preview (gammelt token er brugt/ugyldigt).
 
-**Bank**
-
 **Bank / betalinger**
 
 - `generic_dk`: semikolon-CSV.
 - `revolut` / `stripe`: **fuld API** (`source: "api"` + env-nøgler). CSV kun som nød/offline (`source: "csv"`).
 - Resultatet er **udkast** — post kun via journal preview/commit hvis brugeren beder om det.
+- Stripe webhook-kø: `bank_stripe_consume` → valgfrit one-shot `bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview` (samme kontrakt som HTTP; se skill `bank-import`).
 
 Env: `KLARBOG_REVOLUT_API_TOKEN`, `KLARBOG_STRIPE_SECRET_KEY` (print aldrig).
 

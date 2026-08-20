@@ -109,6 +109,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **`.env.example`:** Klarbog-native `KLARBOG_*` template (allowlist, Revolut, Stripe, R2, package-dev); no upstream product env names or host paths. README / INSTALL / DEVELOPER link the template + `package-dev.sh`.
 
+### Added — Wave 14 (MCP docs sync)
+
+- **Slice 54:** Public MCP allowlist parity — `bank_stripe_reconcile_suggest` + `bank_stripe_reconcile_apply_preview` in [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) tools table, [`docs/skills/bank-import.md`](docs/skills/bank-import.md), and INSTALL (same contracts as HTTP; no auto journal post).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

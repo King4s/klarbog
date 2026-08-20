@@ -132,9 +132,11 @@ export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$(pwd)}"
 Wire it in your AI client (Cursor, Claude Desktop, etc.) as a **stdio MCP server**
 pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
 (preview token → commit). Useful tools include `journal_moms_post_suggestion`
-(preview-only VAT split hint), `gdpr_erase_party`, and `bank_reconcile_apply`
-(`force` only for `user` below safe threshold — see
-[`docs/skills/bank-import.md`](skills/bank-import.md)).
+(preview-only VAT split hint), `gdpr_erase_party`, `bank_reconcile_apply`
+(`force` only for `user` below safe threshold), and Stripe pipelines
+`bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview`
+(consume → suggest / unique-safe ConfirmStore preview; no auto journal post —
+see [`docs/skills/bank-import.md`](skills/bank-import.md)).
 
 **End-user AI instructions:** give your assistant
 [`docs/agent-setup/prompt.md`](agent-setup/prompt.md) — one markdown file that

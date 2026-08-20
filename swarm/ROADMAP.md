@@ -98,4 +98,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 53. Replace upstream-shaped `.env.example` with Klarbog `KLARBOG_*` template; link from README / INSTALL / DEVELOPER (no sister-product env names, no absolute host paths) ✅
 
+## Wave 14 — MCP docs sync (landed)
+
+54. Sync public MCP allowlist docs: `bank_stripe_reconcile_suggest` + `bank_stripe_reconcile_apply_preview` in prompt.md tools table + bank-import skill + INSTALL (parity with registry; no auto journal post) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
