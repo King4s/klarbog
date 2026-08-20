@@ -234,6 +234,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
   chart stub (codes + labels); AuthZ/allowlist like other read tools; **no**
   journal write. Prompt / INSTALL / journal-preview-commit skill.
 
+### Added — Wave 36 (local web UI shell)
+
+- **ADR-012** + UI shell: `klarbog-api` serves Klarbog-owned static assets from
+  repo `ui/` at `http://127.0.0.1:3195/ui/` (same origin as REST; loopback only).
+  Optional `KLARBOG_UI_DIR` override. README / INSTALL / `.env.example` document
+  the path. Progressive status/parties/invoices screens still ROADMAP 80.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

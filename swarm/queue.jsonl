@@ -160,3 +160,4 @@
 {"event":"wave35_rules_chart_surface","status":"done","note":"VERIFY_OK landed","ts":"2026-08-20T12:15:30Z"}
 {"event":"wave36_ui_adr","slice":79,"status":"done","note":"ADR-012 local DEV web UI: klarbog-api same-origin static ui/; Klarbog-owned screens; loopback ADR-003; i64 ore/DKK display helpers; progressive status/parties/invoices; journal preview later; ROADMAP wave36 stub","ts":"2026-08-20T12:46:57Z"}
 {"event":"wave36_ui_shell","status":"done","note":"ADR-012 + ui/ shell served at /ui/; status/parties/invoices/settings; VERIFY_OK","ts":"2026-08-20T12:52:00Z"}
+{"event":"wave36_ui_shell","status":"done","note":"klarbog-api /ui/ shell + docs (README INSTALL .env.example); KLARBOG_UI_DIR; ADR-012; ROADMAP 79b; next slice 80 screens","ts":"2026-08-20T12:51:53Z"}
