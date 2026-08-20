@@ -38,6 +38,7 @@ pub fn mount_ui(router: Router<AppState>) -> Router<AppState> {
         )
         .route("/ui/bank", get(pages::bank_get).post(pages::bank_post))
         .route("/ui/bilag", get(pages::bilag_get).post(pages::bilag_post))
+        .route("/ui/bilag/attach", axum::routing::post(pages::bilag_attach))
         .route(
             "/ui/journal",
             get(pages::journal_get).post(pages::journal_post),

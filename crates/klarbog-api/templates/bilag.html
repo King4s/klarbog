@@ -24,6 +24,42 @@
     </tbody>
   </table>
 
+  <div class="panel nested">
+    <h2>Vedhæft bilag</h2>
+    <p class="muted">Fil gemmes i object store under relativ sti; metadata i documents.json.</p>
+    <form class="grid" method="post" action="/ui/bilag/attach" enctype="multipart/form-data">
+      <div class="grid two">
+        <label>Type
+          <select name="kind">
+            <option value="receipt">receipt</option>
+            <option value="invoice_scan">invoice_scan</option>
+            <option value="other" selected>other</option>
+          </select>
+        </label>
+        <label>Sti (relativ, valgfri — ellers bilag/&lt;filnavn&gt;)
+          <input name="path_hint" placeholder="bilag/kvittering.pdf" />
+        </label>
+      </div>
+      <div class="grid two">
+        <label>Part-id (valgfri)
+          <input name="party_id" placeholder="party_kunde-aps" />
+        </label>
+        <label>Faktura-id (valgfri)
+          <input name="invoice_id" placeholder="inv_…" />
+        </label>
+      </div>
+      <label>Note (valgfri)
+        <input name="notes" placeholder="Kvittering fra leverandør" />
+      </label>
+      <label>Fil
+        <input type="file" name="file" required />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit">Vedhæft</button>
+      </div>
+    </form>
+  </div>
+
   <h2 class="subhead">Undtagelser</h2>
   <table class="table">
     <thead><tr><th>Id</th><th>Kode</th><th>Alvor</th><th>Besked</th><th>Status</th></tr></thead>

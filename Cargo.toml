@@ -45,7 +45,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "fs", "signal"] }
 askama = { version = "0.14", features = ["serde_json"] }
-axum = { version = "0.8", features = ["form"] }
+axum = { version = "0.8", features = ["form", "multipart"] }
 tower-http = { version = "0.6", features = ["fs"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate", "chrono", "uuid"] }
 tracing = "0.1"
