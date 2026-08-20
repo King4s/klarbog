@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 36 landed** — local web UI at `/ui/` (ADR-012); first human screens
-- Next tracks (owner): more UI screens → live E2E → production
-- Tip VERIFY_OK
+- **Wave 36 shell + first screens landed** — `/ui/` (ADR-012); oversigt/parter/fakturaer
+- `wave36_ui_shell` done; docs synced (README / INSTALL / `.env.example`)
+- Next: ROADMAP 81 (journal preview UX) or owner live E2E / prod tracks

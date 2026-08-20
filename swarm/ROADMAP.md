@@ -190,18 +190,13 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 77. Offline `contract_smoke`: mark-paid / mark-part-paid `preview:true` → ConfirmStore fields; default has none; soft <300; `CONTRACT_SMOKE_OK` ✅
 78. Rules-dk chart stub HTTP/MCP surface: `GET /api/v1/rules/chart` + `rules_chart_list` (read-only codes+labels; AuthZ; no journal write) ✅
 
-## Wave 36 — local web UI (in progress)
+## Wave 36 — local web UI (shell + first screens landed)
 
 79. ADR-012: DEV local web UI served by `klarbog-api` (same origin as REST; static `ui/`); Klarbog-owned screens; loopback only; i64 → øre/DKK display helpers; progressive status/parties/invoices first ✅
 79b. UI shell: `klarbog-api` mounts `/ui/` from repo `ui/` (`KLARBOG_UI_DIR` override); README / INSTALL / `.env.example` ✅
-80. UI slice: status + parties + invoices screens against loopback HTTP (stub — implement next)
+80. UI slice: status + parties + invoices (+ settings) against loopback HTTP ✅
 81. UI slice: journal preview UX (deferred; after 80)
 82. Live E2E track (owner; after UI slices)
 83. Prod track (owner; after live E2E)
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
-
-## Wave 36 — local web UI (landed)
-
-76. ADR-012 local DEV web UI served by `klarbog-api` at `/ui/` (static `ui/`; not Rentemester port) ✅
-77. First screens: oversigt (status), parter, fakturaer, indstillinger ✅

@@ -30,6 +30,14 @@ Klarbog er et **lokalt / privat** bogføringssystem til dansk regnskab, bygget s
 | **UI** | (serveres af API) | Menneske-GUI på `http://127.0.0.1:3195/ui/` (ADR-012) |
 | **CLI** | `klarbog` | init, demo, backup, retention, GDPR-export |
 
+### Lokal web-UI (DEV)
+
+```bash
+cargo run -p klarbog-api
+```
+
+Åbn [http://127.0.0.1:3195/ui/](http://127.0.0.1:3195/ui/). Statiske filer i `ui/` serveres same-origin af API’en (valgfri `KLARBOG_UI_DIR`). Se [`docs/INSTALL.md`](docs/INSTALL.md) og [`docs/adr/ADR-012-local-web-ui.md`](docs/adr/ADR-012-local-web-ui.md).
+
 Giv enhver AI **én prompt-fil**, så den selv lærer at snakke med din installation:
 
 📄 **[`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md)**

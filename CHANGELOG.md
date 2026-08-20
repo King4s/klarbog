@@ -7,11 +7,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
-### Added — Wave 36 (local web UI)
+### Added — Wave 36 (local web UI shell)
 
-- **ADR-012:** DEV web UI served by `klarbog-api` at `/ui/` (static `ui/`).
-- First screens: oversigt, parter, fakturaer, indstillinger (actor headers + company path).
-- Distinct Klarbog visual (cool mist / teal) — not a Rentemester cockpit port.
+- **ADR-012:** DEV web UI served by `klarbog-api` at `/ui/` (static `ui/`;
+  same origin as REST; loopback only). Optional `KLARBOG_UI_DIR` override.
+- First screens: oversigt, parter, fakturaer, indstillinger (actor headers +
+  company path; i64 → øre/DKK display helpers).
+- Docs: README / INSTALL / `.env.example` for `http://127.0.0.1:3195/ui/` after
+  `cargo run -p klarbog-api`.
 
 ### Added — slices 0–9 (core ledger)
 
@@ -233,13 +236,6 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - HTTP `GET /api/v1/rules/chart` and MCP `rules_chart_list` expose rules-dk DEV
   chart stub (codes + labels); AuthZ/allowlist like other read tools; **no**
   journal write. Prompt / INSTALL / journal-preview-commit skill.
-
-### Added — Wave 36 (local web UI shell)
-
-- **ADR-012** + UI shell: `klarbog-api` serves Klarbog-owned static assets from
-  repo `ui/` at `http://127.0.0.1:3195/ui/` (same origin as REST; loopback only).
-  Optional `KLARBOG_UI_DIR` override. README / INSTALL / `.env.example` document
-  the path. Progressive status/parties/invoices screens still ROADMAP 80.
 
 ### Added — tooling
 

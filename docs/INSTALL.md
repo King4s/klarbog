@@ -107,15 +107,21 @@ curl -sS http://127.0.0.1:3195/health
 
 ### Local web UI (ADR-012)
 
-Same process serves a human GUI (not a Rentemester port):
+Same process serves Klarbog-owned static assets from repo `ui/` (no separate UI
+process). After `cargo run -p klarbog-api` (or a release binary), open:
 
 ```text
 http://127.0.0.1:3195/ui/
 ```
 
 Set company path + actor under **Indstillinger** (stored in `localStorage`).
-Override asset root with `KLARBOG_UI_DIR` if the binary is moved away from the
-repo `ui/` tree.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KLARBOG_UI_DIR` | repo `ui/` (next to the workspace) | Override static asset root if the binary is moved away from the tree |
+
+If the directory is missing, `/ui` returns 404 until `ui/` exists or
+`KLARBOG_UI_DIR` points at a valid tree.
 
 Optional client env:
 
