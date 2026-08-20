@@ -3,8 +3,13 @@
 use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
-use klarbog_plugin_documents::{raise_exception, remove_document, DocumentId, ExceptionSeverity};
-use klarbog_plugin_retention::{run_retention_purge, write_backup_manifest, PurgeOptions};
+use klarbog_plugin_documents::{
+    raise_exception, remove_document, set_exception_open, DocumentId, ExceptionId,
+    ExceptionSeverity,
+};
+use klarbog_plugin_retention::{
+    gdpr_export_path, run_retention_purge, write_backup_manifest, write_gdpr_export, PurgeOptions,
+};
 use serde::Deserialize;
 
 use super::super::common::{authorize_company, company_from, html_ok};
@@ -20,6 +25,7 @@ pub struct BilagActionForm {
     pub gc_orphan_documents: Option<String>,
     pub document_id: Option<String>,
     pub delete_object: Option<String>,
+    pub exception_id: Option<String>,
 }
 
 fn parse_severity(raw: &str) -> ExceptionSeverity {
@@ -153,6 +159,42 @@ pub async fn bilag_post(
                 }
             }
         }
+        "close_exception" => {
+            let id = ExceptionId::new(form.exception_id.unwrap_or_default().trim().to_string());
+            match set_exception_open(&path, &id, false) {
+                Ok(exc) => html_ok(
+                    bilag_page(
+                        &state,
+                        &company,
+                        gc,
+                        format!("Undtagelse lukket: {}", exc.id),
+                        String::new(),
+                    )
+                    .await,
+                ),
+                Err(e) => {
+                    html_ok(bilag_page(&state, &company, gc, String::new(), e.to_string()).await)
+                }
+            }
+        }
+        "gdpr_export" => match write_gdpr_export(&path) {
+            Ok(export) => html_ok(
+                bilag_page(
+                    &state,
+                    &company,
+                    gc,
+                    format!(
+                        "GDPR-eksport skrevet: {} · {} parter · {} dokumenter",
+                        gdpr_export_path(&path).display(),
+                        export.parties.len(),
+                        export.documents.len()
+                    ),
+                    String::new(),
+                )
+                .await,
+            ),
+            Err(e) => html_ok(bilag_page(&state, &company, gc, String::new(), e.to_string()).await),
+        },
         "backup" => match write_backup_manifest(&path).await {
             Ok(m) => html_ok(
                 bilag_page(

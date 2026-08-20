@@ -70,7 +70,7 @@
 
   <h2 class="subhead">Undtagelser</h2>
   <table class="table">
-    <thead><tr><th>Id</th><th>Kode</th><th>Alvor</th><th>Besked</th><th>Status</th></tr></thead>
+    <thead><tr><th>Id</th><th>Kode</th><th>Alvor</th><th>Besked</th><th>Status</th><th></th></tr></thead>
     <tbody>
       {% for e in exceptions %}
       <tr>
@@ -79,9 +79,16 @@
         <td>{{ e.severity }}</td>
         <td>{{ e.message }}</td>
         <td>{{ e.status }}</td>
+        <td>
+          <form method="post" action="/ui/bilag" class="inline">
+            <input type="hidden" name="action" value="close_exception" />
+            <input type="hidden" name="exception_id" value="{{ e.id }}" />
+            <button class="ghost" type="submit">Luk</button>
+          </form>
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="muted">Ingen åbne undtagelser</td></tr>
+      <tr><td colspan="6" class="muted">Ingen åbne undtagelser</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -129,6 +136,17 @@
       <input type="hidden" name="action" value="backup" />
       <div class="actions">
         <button class="primary" type="submit">Skriv backup manifest</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel nested">
+    <h2>GDPR-eksport</h2>
+    <p class="muted">Skriver samlet eksport (parter + dokument-metadata) som JSON i firmamappen.</p>
+    <form method="post" action="/ui/bilag">
+      <input type="hidden" name="action" value="gdpr_export" />
+      <div class="actions">
+        <button class="primary" type="submit">Skriv GDPR-eksport</button>
       </div>
     </form>
   </div>
