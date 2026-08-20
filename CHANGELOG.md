@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 50 (UI retention purge + backup)
+
+- Bilag: **Dry-run purge** / **Bekræft purge** (`POST /api/v1/retention/purge`)
+  with optional orphan GC; **Backup-manifest** button; journal never touched
+  (ADR-010).
+
 ### Added — Wave 49 (UI GDPR party erase)
 
 - Parter: **GDPR dry-run** / **Bekræft erase** + optional delete documents;

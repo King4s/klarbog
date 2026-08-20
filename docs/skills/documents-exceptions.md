@@ -117,6 +117,10 @@ the company retention grace period — see ADR-010. Surfaces:
 
 Default is dry-run. Purge never touches confirmed journal entries.
 
+**Local web UI (DEV):** Bilag screen — **Dry-run purge** / **Bekræft purge** plus
+optional `gc_orphan_documents`, and **Backup-manifest** (`POST /api/v1/backup`).
+Journal is never rewritten from the UI.
+
 ## Agent checklist
 
 1. Ensure party (and invoice if linked) exist.

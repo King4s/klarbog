@@ -274,3 +274,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 100. Parter UI: GDPR dry-run / confirm (`POST /api/v1/gdpr/erase-party`) +
      export; show `journal_refs_retained`; journal never mutated ✅
+
+## Wave 50 — UI retention purge + backup soft-split
+
+101. Bilag UI: retention purge dry-run/confirm + optional `gc_orphan_documents`;
+     backup-manifest button; journal untouched (ADR-010) ✅
