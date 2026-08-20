@@ -4,6 +4,10 @@ mod revolut;
 mod token_store;
 
 #[cfg(test)]
+mod revolut_refresh_tests;
+#[cfg(test)]
+mod revolut_test_support;
+#[cfg(test)]
 mod revolut_tests;
 
 pub use revolut::{

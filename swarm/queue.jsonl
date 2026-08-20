@@ -128,3 +128,5 @@
 {"event":"wave28_mcp_status","slice":68,"status":"done","note":"MCP klarbog_status mirrors GET /api/v1/status; bind=stdio; VERIFY pending","ts":"2026-08-20T00:52:00Z"}
 {"event":"wave28_mcp_status","slice":68,"status":"done","note":"MCP klarbog_status mirrors GET /api/v1/status; bind=stdio; soft=0; VERIFY_OK","ts":"2026-08-20T00:55:00Z"}
 {"event":"wave29_invoice_lib_soft_split","status":"done","note":"invoice lib tests→tests.rs; VERIFY_OK","ts":"2026-08-20T00:58:00Z"}
+{"event":"wave30_revolut_oauth_tests_soft_split","slice":70,"status":"done","note":"revolut_tests 298→support+exchange+refresh; VERIFY pending","ts":"2026-08-20T01:00:00Z"}
+{"event":"wave30_revolut_oauth_tests_soft_split","slice":70,"status":"done","note":"revolut_tests 298→support+exchange+refresh; soft 82/62/168; VERIFY_OK","ts":"2026-08-20T01:05:00Z"}

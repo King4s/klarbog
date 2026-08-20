@@ -173,6 +173,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 69:** Soft-split `klarbog-plugin-invoice/src/lib.rs` — unit tests moved to `tests.rs` (`#[cfg(test)] mod tests`); invoice types / i64 money / public API unchanged.
 
+### Changed — Wave 30 (soft linegate headroom)
+
+- **Slice 70:** Soft-split `klarbog-plugin-bank` Revolut OAuth unit tests — `oauth/revolut_tests.rs` (298 non-blank) → `revolut_test_support` + `revolut_tests` (start/exchange) + `revolut_refresh_tests` (refresh/resolve); OAuth behavior unchanged.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

@@ -1,5 +1,6 @@
 # Active swarm status
 
-- **Wave 29 landed** — soft-split `klarbog-plugin-invoice` tests out of `lib.rs`
-- Tip VERIFY_OK; MCP parity largely complete — prefer real product gaps or idle
+- **Wave 30 landed** — soft-split Revolut OAuth unit tests (headroom)
+- **Plateau:** HTTP/MCP product parity largely complete; tip VERIFY_OK
+- Next: real product (UI / live E2E with keys) on owner request — avoid inventing thin negatives
 - No sister-product names in public tree

@@ -12,7 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 29: soft-split invoice plugin `lib.rs` → `tests.rs`
-(near soft linegate; MCP parity already complete through wave 28).
+Wave 30: soft-split Revolut OAuth unit tests
+(`revolut_test_support` + exchange + refresh modules; was 298 soft).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

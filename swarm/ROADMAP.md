@@ -162,4 +162,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 69. Soft-split `klarbog-plugin-invoice/src/lib.rs` → extract `tests.rs` (near soft 300; product types unchanged; i64 money) ✅
 
+## Wave 30 — soft linegate headroom (landed)
+
+70. Soft-split `klarbog-plugin-bank` Revolut OAuth tests — `revolut_tests.rs` (298) → `revolut_test_support` + `revolut_tests` + `revolut_refresh_tests` (under soft 300; behavior unchanged) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
