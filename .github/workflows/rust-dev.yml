@@ -1,0 +1,37 @@
+name: rust-dev
+
+on:
+  pull_request:
+    branches: [rust-dev]
+  push:
+    branches: [rust-dev]
+
+concurrency:
+  group: rust-dev-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: verify + ui smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install ripgrep (ui-smoke dependency)
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Verify gate (linegate, fmt, clippy, tests)
+        run: ./scripts/verify.sh
+
+      - name: SSR UI live smoke
+        run: ./scripts/ui-smoke.sh
