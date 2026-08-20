@@ -23,6 +23,8 @@ async fn contract_smoke_moms_suggest_and_multi_currency_400() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
 

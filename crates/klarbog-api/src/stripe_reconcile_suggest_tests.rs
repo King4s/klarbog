@@ -60,6 +60,8 @@ async fn defaults_to_dry_run_consume_then_suggest() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let body = serde_json::json!({ "company": company_path.to_string_lossy() });
@@ -98,6 +100,8 @@ async fn confirm_consume_persists_sidecar() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let body = serde_json::json!({

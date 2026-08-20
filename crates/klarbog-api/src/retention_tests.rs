@@ -29,6 +29,8 @@ async fn retention_backup_gdpr_flow() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -124,6 +126,8 @@ async fn retention_actor_denied() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let intruder = Actor::user("intruder");

@@ -170,3 +170,7 @@
 {"event":"wave41_api_token_gate","status":"done","note":"ADR-016 KLARBOG_API_TOKEN middleware; UI settings; VERIFY_OK CONTRACT_SMOKE_OK","ts":"2026-08-20T13:40:00Z"}
 {"event":"wave42_backup_dr","status":"done","note":"docs/skills/backup-restore.md + scripts/backup-smoke.sh; checklist/INSTALL/CHANGELOG/ROADMAP; not managed HA SLA; VERIFY pending","ts":"2026-08-20T13:45:00Z"}
 {"event":"wave42_backup_dr","status":"done","note":"backup-restore skill + backup-smoke.sh; checklist/INSTALL/CHANGELOG/ROADMAP/ACTIVE/STATUS; BACKUP_SMOKE_OK; VERIFY_OK","ts":"2026-08-20T13:46:00Z"}
+{"event":"wave43_dispatch","note":"owner go: UI bank/docs + session cookie auth","ts":"2026-08-20T14:32:00Z"}
+{"event":"wave43_session_cookie","status":"done","note":"ADR-017 HMAC klarbog_session login/logout; Bearer-or-cookie middleware; INSTALL/env/checklist; VERIFY_OK","ts":"2026-08-20T14:38:56Z"}
+{"event": "wave43_ui_bank_docs", "status": "done", "note": "UI Bank import/preview + Bilag docs/exceptions; mist/teal; Bearer apiToken; E2E_UI_API_OK; VERIFY pending", "ts": "2026-08-20T14:38:36Z"}
+{"event": "wave43_ui_bank_docs", "status": "done", "note": "UI Bank import/preview + Bilag docs/exceptions; mist/teal; Bearer apiToken; E2E_UI_API_OK; VERIFY_OK", "ts": "2026-08-20T14:38:57Z"}

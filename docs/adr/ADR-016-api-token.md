@@ -28,7 +28,8 @@ host exposure, without yet adopting a full IdP.
 5. **Actor headers remain required** on mutating/company routes as today.
    The bearer proves “caller knows the install secret”; actors still authorize
    within the company policy.
-6. **OIDC / session cookies** remain a later residual — out of scope here.
+6. **OIDC** remains a later residual. Optional same-origin **session cookie**
+   is ADR-017 (requires `KLARBOG_SESSION_SECRET` in addition to this token).
 
 ## Consequences
 - `AppState` carries `api_token: Option<Arc<str>>` from env at process start.

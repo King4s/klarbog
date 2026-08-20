@@ -50,6 +50,8 @@ async fn patch_status_and_mark_paid() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -116,6 +118,8 @@ async fn mark_part_paid_then_mark_paid() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);

@@ -5,6 +5,7 @@
 pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 mod actor;
+mod auth_session;
 mod auth_token;
 mod bank;
 mod bank_reconcile;
@@ -28,6 +29,8 @@ mod ui;
 
 #[cfg(test)]
 mod api_tests;
+#[cfg(test)]
+mod auth_session_tests;
 #[cfg(test)]
 mod contract_smoke;
 #[cfg(test)]
@@ -65,6 +68,20 @@ pub struct AppState {
     pub registry: Arc<Registry>,
     /// When `Some` and non-empty, `/api/v1/*` requires bearer (ADR-016).
     pub api_token: Option<Arc<str>>,
+    /// When set with `api_token`, enables login cookie (ADR-017).
+    pub session_secret: Option<Arc<str>>,
+    /// `Secure` on `klarbog_session` (non-loopback / env flag).
+    pub session_cookie_secure: bool,
+}
+
+impl AppState {
+    pub fn session_enabled(&self) -> bool {
+        self.api_token.as_deref().is_some_and(|t| !t.is_empty())
+            && self
+                .session_secret
+                .as_deref()
+                .is_some_and(|t| !t.is_empty())
+    }
 }
 
 #[derive(Serialize)]
@@ -109,7 +126,7 @@ async fn status(State(state): State<AppState>) -> Json<Envelope<Value>> {
 }
 
 pub fn router(state: AppState) -> Router {
-    let api = Router::new()
+    let mut api = Router::new()
         .route("/health", get(health))
         .route("/api/v1/status", get(status))
         .route("/api/v1/journal/preview", post(journal::preview))
@@ -181,6 +198,12 @@ pub fn router(state: AppState) -> Router {
             post(revolut_oauth::oauth_refresh_handler),
         );
 
+    if state.session_enabled() {
+        api = api
+            .route("/api/v1/auth/login", post(auth_session::login))
+            .route("/api/v1/auth/logout", post(auth_session::logout));
+    }
+
     let state_for_mw = state.clone();
     ui::mount_ui(api)
         .layer(middleware::from_fn_with_state(
@@ -210,11 +233,60 @@ fn api_token_from_env() -> Option<Arc<str>> {
     }
 }
 
+fn session_secret_from_env() -> Option<Arc<str>> {
+    match std::env::var("KLARBOG_SESSION_SECRET") {
+        Ok(v) => {
+            let t = v.trim();
+            if t.is_empty() {
+                None
+            } else {
+                Some(Arc::<str>::from(t))
+            }
+        }
+        Err(_) => None,
+    }
+}
+
+fn env_truthy(name: &str) -> bool {
+    match std::env::var(name) {
+        Ok(v) => {
+            let lower = v.trim().to_ascii_lowercase();
+            lower == "1" || lower == "true" || lower == "yes"
+        }
+        Err(_) => false,
+    }
+}
+
+/// Secure cookie when explicitly flagged, or when non-loopback bind is allowed
+/// with an explicit non-loopback `KLARBOG_BIND` (ADR-017).
+fn session_cookie_secure_from_env() -> bool {
+    if env_truthy("KLARBOG_SESSION_COOKIE_SECURE") {
+        return true;
+    }
+    if !env_truthy("KLARBOG_ALLOW_NON_LOOPBACK") {
+        return false;
+    }
+    match std::env::var("KLARBOG_BIND") {
+        Ok(raw) => {
+            let raw = raw.trim();
+            if raw.is_empty() {
+                return false;
+            }
+            raw.parse::<std::net::SocketAddr>()
+                .map(|a| !a.ip().is_loopback())
+                .unwrap_or(false)
+        }
+        Err(_) => false,
+    }
+}
+
 pub fn default_state() -> AppState {
     AppState {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: default_allowlist_root(),
         registry: Arc::new(default_registry()),
         api_token: api_token_from_env(),
+        session_secret: session_secret_from_env(),
+        session_cookie_secure: session_cookie_secure_from_env(),
     }
 }

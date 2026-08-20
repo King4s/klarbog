@@ -7,6 +7,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 43 (session cookie auth residual)
+
+- **ADR-017:** optional HMAC `klarbog_session` when `KLARBOG_API_TOKEN` **and**
+  `KLARBOG_SESSION_SECRET` are set — `POST /api/v1/auth/login|logout`;
+  middleware accepts Bearer **or** valid cookie; unset secret → Bearer-only.
+  Out of scope: OIDC, CSRF cross-site, multi-user.
+- Checklist / INSTALL / `.env.example` updated.
+
 ### Added — Wave 42 (backup / DR depth)
 
 - Skill: [`docs/skills/backup-restore.md`](docs/skills/backup-restore.md) —

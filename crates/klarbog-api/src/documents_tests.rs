@@ -28,6 +28,8 @@ async fn documents_and_exceptions_flow() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -153,6 +155,8 @@ async fn delete_document_removes_metadata_and_object() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -242,6 +246,8 @@ async fn attach_with_content_base64_puts_object() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);

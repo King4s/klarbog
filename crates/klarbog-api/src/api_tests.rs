@@ -70,6 +70,8 @@ async fn status_includes_allowlist() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let res = app
@@ -95,6 +97,8 @@ async fn preview_commit_posts() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let entry = sample_entry(owner.clone(), 300);
@@ -162,6 +166,8 @@ async fn wrong_token_fails() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let entry = sample_entry(owner.clone(), 100);
@@ -198,6 +204,8 @@ async fn actor_denied() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let intruder = Actor::user("intruder");
@@ -232,6 +240,8 @@ async fn path_outside_allowlist_fails() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let entry = sample_entry(owner.clone(), 100);

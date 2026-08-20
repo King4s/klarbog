@@ -33,6 +33,8 @@ async fn bank_preview_generic_dk_csv() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -81,6 +83,8 @@ async fn bank_preview_revolut_csv_mixed_currency_vs_dkk() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -125,6 +129,8 @@ async fn bank_preview_stripe_csv_eur_vs_company_dkk() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -171,6 +177,8 @@ async fn bank_preview_actor_denied() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let intruder = Actor::user("intruder");

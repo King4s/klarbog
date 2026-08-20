@@ -30,6 +30,8 @@ async fn bank_preview_revolut_api_missing_env() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);
@@ -78,6 +80,8 @@ async fn bank_preview_stripe_api_missing_env() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let (kind, id) = actor_headers(&owner);

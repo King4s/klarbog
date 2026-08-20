@@ -444,6 +444,254 @@ async function renderJournal() {
   });
 }
 
+function idStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "object" && v.id != null) return String(v.id);
+  return String(v);
+}
+
+/** @type {{ drafts?: object[], errors?: string[], count?: number, source?: string, provider?: string } | null} */
+let bankLastResult = null;
+
+async function renderBank() {
+  const company = settings.company.trim();
+  const companyHint = company
+    ? ""
+    : `<p class="muted">Sæt firmasti under Indstillinger før preview.</p>`;
+
+  let resultHtml = "";
+  if (bankLastResult) {
+    const drafts = Array.isArray(bankLastResult.drafts) ? bankLastResult.drafts : [];
+    const errors = Array.isArray(bankLastResult.errors) ? bankLastResult.errors : [];
+    const draftRows = drafts
+      .map((d) => {
+        const minor =
+          typeof d.amount_minor === "number"
+            ? d.amount_minor
+            : typeof d.amount?.units === "number"
+              ? d.amount.units
+              : null;
+        return `<tr>
+          <td>${escapeHtml(d.memo || "")}</td>
+          <td class="money">${escapeHtml(formatDkk(minor))}</td>
+          <td class="money">${escapeHtml(minor == null ? "—" : String(minor))}</td>
+        </tr>`;
+      })
+      .join("");
+    const errList = errors.map((e) => `<li>${escapeHtml(e)}</li>`).join("");
+    resultHtml = `
+      <div class="panel nested">
+        <h2>Seneste preview</h2>
+        <p class="muted">${escapeHtml(String(bankLastResult.count ?? drafts.length))} udkast ·
+          ${escapeHtml(bankLastResult.source || "—")} /
+          ${escapeHtml(bankLastResult.provider || "—")}</p>
+        ${
+          errList
+            ? `<ul class="flash err" style="list-style:disc;padding-left:1.25rem">${errList}</ul>`
+            : ""
+        }
+        <table class="table">
+          <thead><tr><th>Memo</th><th>DKK</th><th>Øre (i64)</th></tr></thead>
+          <tbody>${
+            draftRows || `<tr><td colspan="3" class="muted">Ingen udkast</td></tr>`
+          }</tbody>
+        </table>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    ${renderFlash()}
+    <section class="panel">
+      <h1>Bank</h1>
+      <p class="lede">Import-preview — ingen journal-post. Beløb vises i DKK; API bruger øre (i64).</p>
+      ${companyHint}
+      <form id="bank-preview-form" class="grid">
+        <div class="grid two">
+          <label>Kilde
+            <select name="source" id="bank-source">
+              <option value="csv" selected>csv</option>
+              <option value="api">api</option>
+            </select>
+          </label>
+          <label>Provider
+            <select name="provider">
+              <option value="generic_dk" selected>generic_dk</option>
+              <option value="revolut">revolut</option>
+              <option value="stripe">stripe</option>
+            </select>
+          </label>
+        </div>
+        <div class="csv-block" id="bank-csv-block">
+          <label>CSV (indsæt)
+            <textarea name="csv" id="bank-csv" placeholder="Dato;Tekst;Beløb&#10;19.08.2026;Kontor;-125,50"></textarea>
+          </label>
+        </div>
+        <p class="muted">Firma: <span class="money">${escapeHtml(company || "—")}</span>. API kræver provider-nøgler i server-miljø.</p>
+        <div class="actions">
+          <button class="primary" type="submit" ${company ? "" : "disabled"}>Preview import</button>
+        </div>
+      </form>
+      ${resultHtml}
+    </section>
+  `;
+
+  const sourceSel = document.getElementById("bank-source");
+  const csvBlock = document.getElementById("bank-csv-block");
+  const syncCsv = () => {
+    if (csvBlock) csvBlock.hidden = sourceSel?.value === "api";
+  };
+  sourceSel?.addEventListener("change", syncCsv);
+  syncCsv();
+
+  document.getElementById("bank-preview-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!company) {
+      setFlash("err", "Firmasti mangler");
+      await renderBank();
+      return;
+    }
+    const fd = new FormData(ev.target);
+    const source = String(fd.get("source") || "csv");
+    const provider = String(fd.get("provider") || "generic_dk");
+    const csv = String(fd.get("csv") || "");
+    const body = { company, source, provider, currency: "DKK" };
+    if (source === "csv") body.csv = csv;
+    try {
+      const env = await api(settings, "/api/v1/bank/import/preview", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const data = env.data || {};
+      bankLastResult = {
+        drafts: Array.isArray(data.drafts) ? data.drafts : [],
+        errors: Array.isArray(env.errors) ? env.errors : [],
+        count: data.count,
+        source: data.source || source,
+        provider: data.provider || provider,
+      };
+      setFlash("ok", `Preview OK · ${bankLastResult.count ?? bankLastResult.drafts.length} udkast`);
+      await renderBank();
+    } catch (e) {
+      bankLastResult = {
+        drafts: [],
+        errors: [e.message],
+        count: 0,
+        source,
+        provider,
+      };
+      setFlash("err", e.message);
+      await renderBank();
+    }
+  });
+}
+
+async function renderBilag() {
+  const company = settings.company.trim();
+  let docsBody = `<p class="muted">Sæt firmasti under Indstillinger.</p>`;
+  let excBody = "";
+
+  if (company) {
+    try {
+      const q = new URLSearchParams({ company });
+      const [docsEnv, excEnv] = await Promise.all([
+        api(settings, `/api/v1/documents?${q}`),
+        api(settings, `/api/v1/exceptions?${q}`),
+      ]);
+      const docs = Array.isArray(docsEnv.data) ? docsEnv.data : [];
+      const exceptions = Array.isArray(excEnv.data) ? excEnv.data : [];
+      const docRows = docs
+        .map(
+          (d) => `<tr>
+            <td class="money">${escapeHtml(idStr(d.id))}</td>
+            <td>${escapeHtml(d.kind || "")}</td>
+            <td class="money">${escapeHtml(d.path_hint || "")}</td>
+            <td>${escapeHtml(d.notes || "")}</td>
+          </tr>`,
+        )
+        .join("");
+      const excRows = exceptions
+        .map(
+          (e) => `<tr>
+            <td class="money">${escapeHtml(idStr(e.id))}</td>
+            <td>${escapeHtml(e.code || "")}</td>
+            <td>${escapeHtml(e.severity || "")}</td>
+            <td>${escapeHtml(e.message || "")}</td>
+            <td>${e.open === false ? "lukket" : "åben"}</td>
+          </tr>`,
+        )
+        .join("");
+      docsBody = `
+        <h2 class="subhead">Dokumenter</h2>
+        <table class="table">
+          <thead><tr><th>Id</th><th>Type</th><th>Sti</th><th>Note</th></tr></thead>
+          <tbody>${docRows || `<tr><td colspan="4" class="muted">Ingen bilag</td></tr>`}</tbody>
+        </table>`;
+      excBody = `
+        <h2 class="subhead">Undtagelser</h2>
+        <table class="table">
+          <thead><tr><th>Id</th><th>Kode</th><th>Alvor</th><th>Besked</th><th>Status</th></tr></thead>
+          <tbody>${
+            excRows || `<tr><td colspan="5" class="muted">Ingen åbne undtagelser</td></tr>`
+          }</tbody>
+        </table>
+        <form id="exception-form" class="grid" style="margin-top:1.25rem">
+          <div class="grid two">
+            <label>Kode
+              <input name="code" required placeholder="missing_attachment" />
+            </label>
+            <label>Alvor
+              <select name="severity">
+                <option value="info">info</option>
+                <option value="warn" selected>warn</option>
+                <option value="error">error</option>
+              </select>
+            </label>
+          </div>
+          <label>Besked
+            <input name="message" required placeholder="Mangler scan" />
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit">Opret undtagelse</button>
+          </div>
+        </form>`;
+    } catch (e) {
+      docsBody = `<p class="flash err">${escapeHtml(e.message)}</p>`;
+    }
+  }
+
+  app.innerHTML = `
+    ${renderFlash()}
+    <section class="panel">
+      <h1>Bilag</h1>
+      <p class="lede">Dokumenter og undtagelser — ingen journal-skrivning.</p>
+      ${docsBody}
+      ${excBody}
+    </section>
+  `;
+
+  document.getElementById("exception-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    try {
+      await api(settings, "/api/v1/exceptions", {
+        method: "POST",
+        body: JSON.stringify({
+          company: settings.company.trim(),
+          code: String(fd.get("code") || "").trim(),
+          severity: String(fd.get("severity") || "warn"),
+          message: String(fd.get("message") || "").trim(),
+        }),
+      });
+      setFlash("ok", "Undtagelse oprettet");
+      await renderBilag();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderBilag();
+    }
+  });
+}
+
 async function renderChart() {
   const company = settings.company.trim();
   let body = `<p class="muted">Sæt firmasti under Indstillinger.</p>`;
@@ -547,6 +795,8 @@ async function render() {
   if (view === "home") await renderHome();
   else if (view === "parties") await renderParties();
   else if (view === "invoices") await renderInvoices();
+  else if (view === "bank") await renderBank();
+  else if (view === "bilag") await renderBilag();
   else if (view === "journal") await renderJournal();
   else if (view === "chart") await renderChart();
   else renderSettings();

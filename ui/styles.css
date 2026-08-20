@@ -149,19 +149,33 @@ label {
 
 input,
 select,
+textarea,
 button.primary,
 button.ghost {
   font: inherit;
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
   background: #fff;
   color: var(--ink);
+}
+
+textarea {
+  min-height: 9rem;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.csv-block[hidden] {
+  display: none;
 }
 
 button.primary {
@@ -255,11 +269,16 @@ button.ghost {
   background: rgba(255, 255, 255, 0.55);
 }
 
-.panel.nested h2 {
-  margin: 0 0 0.35rem;
+.panel.nested h2,
+h2.subhead {
+  margin: 1.25rem 0 0.35rem;
   font-family: var(--font-brand);
   font-size: 1.2rem;
   font-weight: 600;
+}
+
+h2.subhead:first-of-type {
+  margin-top: 0;
 }
 
 fieldset.leg {

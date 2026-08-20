@@ -1,5 +1,6 @@
-//! Optional API bearer gate (ADR-016).
+//! Optional API bearer gate (ADR-016) + session cookie (ADR-017).
 
+use crate::auth_session;
 use crate::AppState;
 use axum::extract::State;
 use axum::http::{header, Request, StatusCode};
@@ -16,6 +17,8 @@ fn path_exempt(path: &str) -> bool {
         || path == "/ui"
         || path.starts_with("/ui/")
         || path == "/api/v1/webhooks/stripe"
+        || path == "/api/v1/auth/login"
+        || path == "/api/v1/auth/logout"
 }
 
 fn extract_presented(req: &Request<axum::body::Body>) -> Option<String> {
@@ -67,16 +70,23 @@ pub async fn api_token_middleware(
     if expected.is_empty() {
         return next.run(req).await;
     }
-    match extract_presented(&req) {
-        Some(presented) if tokens_equal(&presented, expected) => next.run(req).await,
-        _ => (
-            StatusCode::UNAUTHORIZED,
-            Json(Envelope::<serde_json::Value>::err([
-                "missing or invalid API token (set Authorization: Bearer … or x-klarbog-api-token)",
-            ])),
-        )
-            .into_response(),
+    if let Some(presented) = extract_presented(&req) {
+        if tokens_equal(&presented, expected) {
+            return next.run(req).await;
+        }
     }
+    if let Some(secret) = state.session_secret.as_deref().filter(|s| !s.is_empty()) {
+        if auth_session::session_cookie_valid(req.headers(), secret) {
+            return next.run(req).await;
+        }
+    }
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(Envelope::<serde_json::Value>::err([
+            "missing or invalid API token (Authorization: Bearer …, x-klarbog-api-token, or klarbog_session cookie)",
+        ])),
+    )
+        .into_response()
 }
 
 #[cfg(test)]
@@ -96,6 +106,8 @@ mod tests {
         assert!(path_exempt("/ui/"));
         assert!(path_exempt("/ui/app.js"));
         assert!(path_exempt("/api/v1/webhooks/stripe"));
+        assert!(path_exempt("/api/v1/auth/login"));
+        assert!(path_exempt("/api/v1/auth/logout"));
         assert!(!path_exempt("/api/v1/status"));
         assert!(!path_exempt("/api/v1/crm/parties"));
     }
@@ -113,6 +125,8 @@ mod tests {
             allowlist_root: std::env::temp_dir(),
             registry: Arc::new(default_registry()),
             api_token: token.map(Arc::<str>::from),
+            session_secret: None,
+            session_cookie_secure: false,
         }
     }
 

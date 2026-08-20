@@ -232,3 +232,12 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 89. `docs/skills/backup-restore.md` — CLI backup, included files, scratch-allowlist restore; not managed HA SLA ✅
 90. `scripts/backup-smoke.sh` — offline init → backup → manifest assert (`BACKUP_SMOKE_OK`) ✅
 91. Links: production-checklist + INSTALL + CHANGELOG / queue `wave42_backup_dr` ✅
+
+## Wave 43 — optional session cookie (auth residual #2)
+
+92. ADR-017: `KLARBOG_SESSION_SECRET` + login/logout cookie; Bearer **or**
+   HMAC session; unset secret → Bearer-only; no OIDC ✅
+93. Middleware + tests; checklist / INSTALL / `.env.example`; queue
+   `wave43_session_cookie` ✅
+94. UI Bank + Bilag screens (`wave43_ui_bank_docs`): import/preview +
+   documents/exceptions lists + raise; mist/teal; Bearer `apiToken` ✅

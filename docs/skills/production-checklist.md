@@ -23,19 +23,25 @@ Never print or commit secrets.
 - [ ] Do **not** expose non-loopback Klarbog on cleartext HTTP to untrusted networks
 - [ ] Certificates and renewals are operator-owned (not inside `klarbog-api`)
 
-## 3. Auth gate (ADR-016) + actor reality check
+## 3. Auth gate (ADR-016 / ADR-017) + actor reality check
 
 - [ ] If the API is reachable beyond a trusted loopback/VPN: set
       `KLARBOG_API_TOKEN` to a long random secret
 - [ ] Clients send `Authorization: Bearer …` or `x-klarbog-api-token`
 - [ ] Confirm **401** without the token when it is configured; `/health` and
       Stripe webhook HMAC path stay exempt
-- [ ] UI: store the token under Indstillinger (localStorage only)
-- [ ] Understand that actor headers are still **not** a full IdP — bearer only
-      proves knowledge of the install secret
+- [ ] Optional browser session (ADR-017): also set `KLARBOG_SESSION_SECRET`;
+      `POST /api/v1/auth/login` → HttpOnly `klarbog_session`; logout clears it;
+      unset secret → Bearer-only (no session routes)
+- [ ] If TLS edge / non-loopback: enable `KLARBOG_SESSION_COOKIE_SECURE=1` (or
+      rely on non-loopback bind + allow flag)
+- [ ] UI: store the token under Indstillinger (localStorage only) and/or use
+      login cookie for same-origin calls
+- [ ] Understand that actor headers are still **not** a full IdP — bearer /
+      session only prove knowledge of the install secret
 - [ ] Company paths stay under `KLARBOG_ALLOWLIST_ROOT`; actors exist in
       `policy.json`
-- [ ] OIDC / session cookies remain a later residual — or keep API loopback-only
+- [ ] OIDC remains a later residual — or keep API loopback-only
 
 ## 4. Data isolation and backup
 
@@ -58,7 +64,7 @@ Never print or commit secrets.
 
 | Gap | Notes |
 |-----|--------|
-| OIDC / session auth | Actor headers + optional API bearer (ADR-016); no IdP yet |
+| OIDC / multi-user IdP | Actor headers + optional API bearer (ADR-016) + optional HMAC session cookie (ADR-017); no IdP yet |
 | In-process TLS | By design absent; use ADR-015 edge |
 | Managed HA / multi-node | Single-process DEV model |
 | Managed backup / DR SLA | Operator-owned; CLI manifest is not HA |
@@ -67,6 +73,7 @@ Never print or commit secrets.
 ## Quick references
 
 - [ADR-016 API token](../adr/ADR-016-api-token.md)
+- [ADR-017 session cookie](../adr/ADR-017-session-cookie.md)
 - [ADR-014 production posture](../adr/ADR-014-production-posture.md)
 - [ADR-015 TLS edge](../adr/ADR-015-tls-edge.md)
 - [ADR-013 live E2E](../adr/ADR-013-live-e2e.md)

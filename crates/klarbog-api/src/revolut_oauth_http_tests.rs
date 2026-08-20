@@ -42,6 +42,8 @@ async fn app_with_company() -> (axum::Router, std::path::PathBuf, Actor, tempfil
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     (router(state), company_path, owner, dir)
 }

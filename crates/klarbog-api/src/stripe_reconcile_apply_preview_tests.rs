@@ -61,6 +61,8 @@ async fn unique_safe_issues_confirm_token_no_journal_post() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let body = serde_json::json!({ "company": company_path.to_string_lossy() });
@@ -105,6 +107,8 @@ async fn no_safe_match_returns_suggestions_without_apply() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let body = serde_json::json!({ "company": company_path.to_string_lossy() });
@@ -138,6 +142,8 @@ async fn confirm_consume_persists_sidecar() {
         allowlist_root: dir.path().to_path_buf(),
         registry: Arc::new(default_registry()),
         api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
     };
     let app = router(state);
     let body = serde_json::json!({

@@ -29,4 +29,7 @@ Wave 41: ADR-016 optional `KLARBOG_API_TOKEN` bearer gate
 Wave 42: backup/DR skill + offline `backup-smoke.sh`
 (`wave42_backup_dr`) — operator-owned; not a managed HA SLA.
 
+Wave 43: ADR-017 optional HMAC session cookie
+(`wave43_session_cookie`) — login/logout + Bearer-or-cookie middleware.
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

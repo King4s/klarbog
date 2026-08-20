@@ -165,6 +165,8 @@ mod http_tests {
             allowlist_root: dir.path().to_path_buf(),
             registry: Arc::new(default_registry()),
             api_token: None,
+            session_secret: None,
+            session_cookie_secure: false,
         };
         let app = router(state);
         let (kind, id) = actor_headers(&owner);
@@ -239,6 +241,8 @@ mod http_tests {
             allowlist_root: dir.path().to_path_buf(),
             registry: Arc::new(default_registry()),
             api_token: None,
+            session_secret: None,
+            session_cookie_secure: false,
         };
         let app = router(state);
         let intruder = Actor::user("intruder");
