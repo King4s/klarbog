@@ -17,7 +17,7 @@ empty for offline CSV / local disk). Never commit a filled `.env`.
 ## Clone and build
 
 ```bash
-git clone https://github.com/mikkelkrogsholm/klarbog.git
+git clone https://github.com/King4s/klarbog.git
 cd klarbog
 git checkout rust-dev
 
