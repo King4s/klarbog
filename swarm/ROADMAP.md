@@ -118,4 +118,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 58. MCP parity: `journal_moms_post_suggestion` with negative `gross_minor` → envelope **not ok** (fail-closed; i64; never suggests) ✅
 
+## Wave 19 — MCP retention purge (landed)
+
+59. MCP parity: `retention_purge` mirrors `POST /api/v1/retention/purge` (dry-run/`confirm`; optional `gc_orphan_documents`; journal untouched) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

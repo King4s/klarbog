@@ -72,6 +72,7 @@ Kald `tools/list`. Forvent mindst:
 | `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |
 | `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag |
 | `retention_get` | Læs retention-politik |
+| `retention_purge` | Purge lukkede undtagelser (dry-run/`confirm`; valgfri orphan-doc GC; journal urørt) |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
 | `gdpr_erase_party` | GDPR party-erase (dry-run/`confirm`; journal immutable → `journal_refs_retained`) |
 

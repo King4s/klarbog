@@ -95,9 +95,20 @@ set_exception_open(company, &exc.id, false)?;
 - When `content` is provided, bytes are stored at `path_hint` under `<company>/objects/` (local) or R2 bucket key.
 - Agents should use relative `path_hint`; host resolves against company storage root.
 
+## Retention purge (MCP / HTTP)
+
+Closed exceptions (and optional orphan document **metadata**) can be purged after
+the company retention grace period — see ADR-010. Surfaces:
+
+- HTTP: `POST /api/v1/retention/purge` (`confirm`, optional `gc_orphan_documents`)
+- MCP: `retention_purge` (same args; AuthZ + allowlist)
+
+Default is dry-run. Purge never touches confirmed journal entries.
+
 ## Agent checklist
 
 1. Ensure party (and invoice if linked) exist.
 2. Use relative `path_hint` only.
 3. Raise exceptions for human review — do not auto-post journal fixes.
 4. Close exceptions when evidence is attached or issue resolved.
+5. After grace: preview `retention_purge` before `confirm: true`.

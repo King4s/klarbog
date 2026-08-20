@@ -128,6 +128,21 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "retention_purge",
+                    "description": "Purge closed exceptions (and optional orphan document metadata); dry-run unless confirm:true; journal untouched",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "confirm": {"type": "boolean"},
+                            "gc_orphan_documents": {"type": "boolean"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "backup_manifest",
                     "description": "Write backup manifest + sha256 sidecar; returns paths and digests",
                     "inputSchema": {

@@ -12,6 +12,6 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 18: MCP moms-suggest negative `gross_minor` → envelope not ok.
+Wave 19: MCP `retention_purge` (HTTP parity; dry-run/`confirm`; journal untouched).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

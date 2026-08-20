@@ -129,6 +129,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 58:** MCP negative-path — `journal_moms_post_suggestion` with negative `gross_minor` returns envelope **not ok** (fail-closed; i64; no suggestion payload).
 
+### Added — Wave 19 (MCP retention purge)
+
+- **Slice 59:** MCP `retention_purge` mirrors `POST /api/v1/retention/purge` — dry-run unless `confirm: true`; optional `gc_orphan_documents`; closed-exception purge; journal untouched (ADR-010). Prompt / INSTALL / documents-exceptions skill + ADR-010 note.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

@@ -54,6 +54,7 @@ pub fn handle_tool_call(
             ))
         }
         "retention_get" => rt.block_on(retention::retention_get(args, allowlist_root)),
+        "retention_purge" => rt.block_on(retention::retention_purge(args, allowlist_root)),
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
         "gdpr_erase_party" => rt.block_on(retention::gdpr_erase_party(args, allowlist_root)),
         "invoice_mark_paid_preview" => {

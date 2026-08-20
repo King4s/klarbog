@@ -14,6 +14,7 @@ fn tools_list_names() {
     assert!(names.contains(&"bank_stripe_reconcile_suggest"));
     assert!(names.contains(&"bank_stripe_reconcile_apply_preview"));
     assert!(names.contains(&"retention_get"));
+    assert!(names.contains(&"retention_purge"));
     assert!(names.contains(&"backup_manifest"));
     assert!(names.contains(&"gdpr_erase_party"));
     assert!(names.contains(&"invoice_mark_paid_preview"));

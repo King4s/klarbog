@@ -45,6 +45,8 @@ truth and must remain auditable for the retention window.
 ### Retention purge scope
 - Retention purge may remove **closed exceptions** (and optional orphan
   document metadata) after the configured grace period.
+- Surfaces: `POST /api/v1/retention/purge` and MCP `retention_purge`
+  (dry-run unless `confirm: true`; optional `gc_orphan_documents`).
 - Purge must **not** delete confirmed journal entries or invoice/payment
   business records before `retain_days` elapses. Journal immutability under
   party erase is independent of purge.
