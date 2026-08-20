@@ -7,6 +7,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 38 (live E2E scaffold)
+
+- `./scripts/live-e2e.sh`: fail-closed **SKIP** (exit 0) when Revolut / Stripe /
+  R2 secrets are unset; with keys, bounded loopback smoke (`/health`,
+  `/api/v1/status`, bank import preview `source=api`) — never prints secrets;
+  no production bind.
+- Docs: ADR-013 + `docs/skills/live-e2e.md` + INSTALL note.
+
 ### Added — Wave 37 (UI journal + chart)
 
 - Journal screen: preview form (memo + two legs, i64 øre via `amount.units`) →

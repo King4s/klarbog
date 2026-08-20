@@ -196,7 +196,7 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 79b. UI shell: `klarbog-api` mounts `/ui/` from repo `ui/` (`KLARBOG_UI_DIR` override); README / INSTALL / `.env.example` ✅
 80. UI slice: status + parties + invoices (+ settings) against loopback HTTP ✅
 81. UI slice: journal preview/commit + chart list screens ✅
-82. Live E2E track (owner; after UI slices)
+82. Live E2E track (owner; after UI slices) — scaffold ✅ (wave 38)
 83. Prod track (owner; after live E2E)
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
@@ -205,3 +205,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 81. Journal screen: preview form (memo + two legs `amount`/`units` i64) → show `confirm_token` → commit ✅
 81b. Chart screen: list `GET /api/v1/rules/chart` ✅
+
+## Wave 38 — live E2E scaffold
+
+82a. `scripts/live-e2e.sh`: fail-closed SKIP without Revolut/Stripe/R2 keys; with keys, bounded loopback smoke (health, status, import preview `source=api`) — never print secrets; no prod bind ✅
+82b. Docs: INSTALL + ADR-013 + `docs/skills/live-e2e.md` ✅

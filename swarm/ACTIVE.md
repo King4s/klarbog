@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 37 landed** — UI Journal + Kontoplan screens
-- Next (owner track): live E2E (optional keys), then production
+- **Wave 38 landed** — live E2E scaffold (SKIP without keys)
+- Next: production track (ADR + gated bind — still DEV-default)
 - Tip VERIFY_OK

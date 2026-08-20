@@ -45,6 +45,6 @@ React cockpit.
   tokens or “accounting paper” skin). Prefer a cool mist + deep teal ink
   direction with **Klarbog** as the primary first-viewport brand signal.
 - Live E2E and production tracks remain separate owner waves after this UI track
-  lands slice-by-slice.
+  lands slice-by-slice (live E2E scaffold: ADR-013).
 - ROADMAP wave 36 stubs the progressive UI slices; journal preview UX is
   explicitly deferred.

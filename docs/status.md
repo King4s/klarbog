@@ -10,10 +10,6 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 32: invoice mark-paid / mark-part-paid optional ConfirmStore `preview`
-(HTTP + MCP; default suggestion-only; never auto-commit).
-Wave 35: offline `contract_smoke` covers mark-paid / mark-part-paid ConfirmStore
-`preview:true` (default has none). MCP invoice tests soft-split
-(`invoice_tests` + `invoice_preview_tests`).
-Product AI prompt: `docs/agent-setup/prompt.md`.
+Wave 38: `./scripts/live-e2e.sh` fail-closed SKIP without live keys;
+ADR-013 + `docs/skills/live-e2e.md`. Offline gates unchanged.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

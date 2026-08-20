@@ -63,6 +63,26 @@ and multi-currency import preview **400**:
 # or: cargo test -p klarbog-api contract_smoke
 ```
 
+### Optional live E2E (secrets; loopback only)
+
+When Revolut / Stripe / R2 DEV secrets are exported in the shell, run a bounded
+live smoke against loopback `klarbog-api` (health, status, bank import preview
+`source=api`). **Without keys the script fails closed:** prints `SKIP`, exits 0,
+and makes no live provider calls:
+
+```bash
+./scripts/live-e2e.sh
+# SKIP path ends with LIVE_E2E_SKIP; success ends with LIVE_E2E_OK
+```
+
+Required for the live path (never commit or print):
+`KLARBOG_REVOLUT_API_TOKEN`, `KLARBOG_STRIPE_SECRET_KEY`, and
+`KLARBOG_R2_ACCOUNT_ID` / `KLARBOG_R2_ACCESS_KEY_ID` /
+`KLARBOG_R2_SECRET_ACCESS_KEY` / `KLARBOG_R2_BUCKET`.
+
+See [`docs/skills/live-e2e.md`](skills/live-e2e.md) and
+[`docs/adr/ADR-013-live-e2e.md`](adr/ADR-013-live-e2e.md). No production bind.
+
 ## Data layout and isolation
 
 Company data lives under directories you create (typically `companies/<slug>/`).
