@@ -262,35 +262,188 @@ async function renderInvoices() {
       const invoices = Array.isArray(env.data) ? env.data : env.data?.invoices || [];
       const rows = invoices
         .map((inv) => {
+          const id = inv.invoice_id || inv.id || "";
           const total = inv.total_minor ?? inv.amount_minor ?? null;
-          return `<tr>
-            <td class="money">${escapeHtml(inv.invoice_id || inv.id || "")}</td>
-            <td>${escapeHtml(inv.status || "")}</td>
+          const status = inv.status || "";
+          const canCollect = status === "sent" || status === "part_paid";
+          const canSend = status === "draft";
+          return `<tr data-invoice-id="${escapeHtml(id)}">
+            <td class="money">${escapeHtml(id)}</td>
+            <td>${escapeHtml(status)}</td>
             <td class="money">${escapeHtml(formatDkk(total))}</td>
             <td class="money">${escapeHtml(inv.party_id || "")}</td>
+            <td class="actions-cell">
+              ${
+                canSend
+                  ? `<button type="button" class="ghost inv-send" data-id="${escapeHtml(id)}">Sæt sent</button>`
+                  : ""
+              }
+              ${
+                canCollect
+                  ? `<button type="button" class="ghost inv-part" data-id="${escapeHtml(id)}">Delbetalt preview</button>
+                     <button type="button" class="primary inv-paid" data-id="${escapeHtml(id)}">Betalt preview</button>`
+                  : ""
+              }
+            </td>
           </tr>`;
         })
         .join("");
       body = `
         <table class="table">
-          <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="4" class="muted">Ingen fakturaer</td></tr>`}</tbody>
+          <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th><th>Handling</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="5" class="muted">Ingen fakturaer</td></tr>`}</tbody>
         </table>
+        <div class="panel nested">
+          <h2>Delbetaling (øre)</h2>
+          <p class="muted">Bruges af «Delbetalt preview». Beløb skal være &gt; 0 og &lt; resterende (i64).</p>
+          <label>amount_minor
+            <input id="inv-part-amount" inputmode="numeric" pattern="-?[0-9]+" value="2000" />
+          </label>
+        </div>
       `;
     } catch (e) {
       body = `<p class="flash err">${escapeHtml(e.message)}</p>`;
     }
   }
 
+  const pay = journalPending;
+  const payBlock =
+    pay && pay.from_invoice
+      ? `<div class="panel nested">
+        <h2>Betalings-preview klar</h2>
+        <p class="muted">Fra faktura <span class="money">${escapeHtml(pay.from_invoice)}</span> — poster ikke før commit.</p>
+        <p class="muted">confirm_token</p>
+        <p class="token money">${escapeHtml(pay.confirm_token)}</p>
+        <p class="muted">Udløber (unix ms): ${escapeHtml(String(pay.expires_unix_ms ?? "—"))}</p>
+        <p class="muted">Digest: <span class="money">${escapeHtml(pay.payload_digest || "—")}</span></p>
+        <div class="actions">
+          <button class="primary" type="button" id="inv-journal-commit" ${company ? "" : "disabled"}>Commit journal</button>
+          <button class="ghost" type="button" id="inv-goto-journal">Åbn Journal</button>
+          <button class="ghost" type="button" id="inv-clear-preview">Ryd token</button>
+        </div>
+      </div>`
+      : `<p class="muted">Mark-paid / mark-part-paid med <span class="money">preview:true</span> giver ConfirmStore-token (ingen auto-post).</p>`;
+
   app.innerHTML = `
     ${renderFlash()}
     <section class="panel">
       <h1>Fakturaer</h1>
-      <p class="lede">Beløb vises i kroner; API’et bruger stadig øre (i64).</p>
+      <p class="lede">Beløb i kroner (visning); API bruger øre (i64). Betaling → journalforslag, aldrig auto-post.</p>
       ${body}
+      ${payBlock}
     </section>
   `;
+
+  document.querySelectorAll(".inv-send").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!company) return;
+      try {
+        await api(settings, "/api/v1/invoices/status", {
+          method: "PATCH",
+          body: JSON.stringify({
+            company,
+            invoice_id: btn.dataset.id,
+            status: "sent",
+          }),
+        });
+        setFlash("ok", `Faktura ${btn.dataset.id} → sent`);
+        await renderInvoices();
+      } catch (e) {
+        setFlash("err", e.message);
+        await renderInvoices();
+      }
+    });
+  });
+
+  const runPayPreview = async (path, invoiceId, extra) => {
+    if (!company) return;
+    try {
+      const env = await api(settings, path, {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          invoice_id: invoiceId,
+          preview: true,
+          ...extra,
+        }),
+      });
+      const data = env.data || {};
+      if (!data.confirm_token || !data.journal_entry) {
+        throw new Error("Mangler confirm_token eller journal_entry i preview");
+      }
+      journalPending = {
+        entry: data.journal_entry,
+        confirm_token: String(data.confirm_token),
+        expires_unix_ms: data.expires_unix_ms,
+        payload_digest: data.payload_digest,
+        from_invoice: invoiceId,
+      };
+      setFlash("ok", `Preview OK for ${invoiceId} — token klar (poster ikke)`);
+      await renderInvoices();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderInvoices();
+    }
+  };
+
+  document.querySelectorAll(".inv-paid").forEach((btn) => {
+    btn.addEventListener("click", () =>
+      runPayPreview("/api/v1/invoices/mark-paid", btn.dataset.id, {}),
+    );
+  });
+
+  document.querySelectorAll(".inv-part").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        const raw = document.getElementById("inv-part-amount")?.value;
+        const amount_minor = parseMinor(raw, "Delbetaling");
+        await runPayPreview("/api/v1/invoices/mark-part-paid", btn.dataset.id, {
+          amount_minor,
+        });
+      } catch (e) {
+        setFlash("err", e.message);
+        await renderInvoices();
+      }
+    });
+  });
+
+  document.getElementById("inv-clear-preview")?.addEventListener("click", async () => {
+    journalPending = null;
+    setFlash("ok", "Token ryddet");
+    await renderInvoices();
+  });
+
+  document.getElementById("inv-goto-journal")?.addEventListener("click", async () => {
+    view = "journal";
+    setActiveNav();
+    await renderJournal();
+  });
+
+  document.getElementById("inv-journal-commit")?.addEventListener("click", async () => {
+    if (!company || !journalPending) return;
+    try {
+      const env = await api(settings, "/api/v1/journal/commit", {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          entry: journalPending.entry,
+          confirm_token: journalPending.confirm_token,
+        }),
+      });
+      const data = env.data || {};
+      journalPending = null;
+      setFlash(
+        "ok",
+        `Posted ${data.id || "ok"} · digest ${String(data.digest || "").slice(0, 16)}…`,
+      );
+      await renderInvoices();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderInvoices();
+    }
+  });
 }
+
 
 function journalFormDefaults() {
   const fromPending = journalPending?.entry;

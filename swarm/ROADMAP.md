@@ -247,3 +247,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 95. Journal UI: moms-forslag panel → `POST /api/v1/journal/moms-suggest`;
     show net/vat i64 + DKK helpers; apply brutto to both legs; never auto-post
     (ADR-011); Revolut remains dormant ✅
+
+## Wave 45 — UI invoice payment preview soft-split
+
+96. Fakturaer UI: mark-paid / mark-part-paid with `preview:true` → ConfirmStore
+    token + journal_entry; optional commit or open Journal; never auto-post ✅

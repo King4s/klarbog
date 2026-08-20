@@ -88,6 +88,13 @@ MCP: `invoice_create_draft`, `invoice_list`, `invoice_patch_status`,
 `preview:true` → ConfirmStore). Still **no** `JournalWrite` — post suggestions via
 journal-preview-commit.
 
+## Local web UI (DEV)
+
+Fakturaer (`/ui/` → Fakturaer): list drafts, patch to `sent`, then
+**Delbetalt preview** / **Betalt preview** with `preview: true`. Shows
+`confirm_token` and can commit via `/api/v1/journal/commit` or open Journal.
+Never auto-posts.
+
 ## Validation
 
 - At least one line; positive `amount_minor`; single currency per invoice.

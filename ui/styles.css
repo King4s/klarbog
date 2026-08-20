@@ -274,6 +274,19 @@ ul.plain {
   padding-left: 1.15rem;
 }
 
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.actions-cell .primary,
+.actions-cell .ghost {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.55rem;
+}
+
 .panel.nested h2,
 h2.subhead {
   margin: 1.25rem 0 0.35rem;

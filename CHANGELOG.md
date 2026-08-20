@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 45 (UI invoice payment preview)
+
+- Fakturaer screen: **Sæt sent**, **Delbetalt preview**, **Betalt preview**
+  (`preview:true` → ConfirmStore token + `journal_entry`); commit from UI or
+  open Journal — never auto-posts (ADR-001 i64; invoice-draft skill).
+
 ### Added — Wave 44 (UI moms-suggest soft-split)
 
 - Journal screen: **Moms-forslag** calls `POST /api/v1/journal/moms-suggest`
