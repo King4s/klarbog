@@ -244,6 +244,9 @@ cargo run -p klarbog-cli -- demo
 
 klarbog retention --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
 klarbog backup   --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
+# → company backups/<ts>/manifest.json + manifest.sha256 (operator-owned;
+#   not a managed HA/DR SLA). Restore drills: scratch allowlist only.
+#   Skill: docs/skills/backup-restore.md — offline: ./scripts/backup-smoke.sh
 klarbog gdpr-export --company "$KLARBOG_ALLOWLIST_ROOT/companies/min-aps"
 # dry-run party erasure (add --confirm to apply; optional --delete-documents)
 klarbog gdpr-erase-party \

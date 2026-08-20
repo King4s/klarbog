@@ -226,3 +226,9 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 87. ADR-016: optional `KLARBOG_API_TOKEN`; Bearer / `x-klarbog-api-token`; constant-time compare; exempt health/ui/stripe webhook ✅
 88. Middleware + tests; UI settings field; checklist/INSTALL/env ✅
+
+## Wave 42 — backup / DR depth (prod residual)
+
+89. `docs/skills/backup-restore.md` — CLI backup, included files, scratch-allowlist restore; not managed HA SLA ✅
+90. `scripts/backup-smoke.sh` — offline init → backup → manifest assert (`BACKUP_SMOKE_OK`) ✅
+91. Links: production-checklist + INSTALL + CHANGELOG / queue `wave42_backup_dr` ✅

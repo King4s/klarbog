@@ -7,6 +7,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 42 (backup / DR depth)
+
+- Skill: [`docs/skills/backup-restore.md`](docs/skills/backup-restore.md) —
+  CLI backup, manifest contents, scratch-allowlist restore expectations;
+  explicitly **not** a managed HA / DR SLA.
+- Offline `./scripts/backup-smoke.sh` → `BACKUP_SMOKE_OK` (init → backup →
+  assert manifest + sidecar).
+- Links from production checklist + INSTALL.
+
 ### Added — Wave 41 (API bearer gate)
 
 - **ADR-016:** optional `KLARBOG_API_TOKEN` — when set, `/api/v1/*` requires

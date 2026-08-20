@@ -26,4 +26,7 @@ Wave 40: ADR-015 TLS edge + `docs/skills/production-checklist.md`
 Wave 41: ADR-016 optional `KLARBOG_API_TOKEN` bearer gate
 (`wave41_api_token_gate`).
 
+Wave 42: backup/DR skill + offline `backup-smoke.sh`
+(`wave42_backup_dr`) — operator-owned; not a managed HA SLA.
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

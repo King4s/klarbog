@@ -41,8 +41,9 @@ Never print or commit secrets.
 
 - [ ] `KLARBOG_ALLOWLIST_ROOT` points at the intended data root
 - [ ] Operator backup plan for company SQLite + documents (CLI backup helpers are
-      DEV aids, not a DR SLA)
+      DEV aids, not a DR SLA) — see [`backup-restore.md`](backup-restore.md)
 - [ ] Test restore on a scratch allowlist before relying on backups
+- [ ] Optional offline gate: `./scripts/backup-smoke.sh` → `BACKUP_SMOKE_OK`
 
 ## 5. Integrations
 
@@ -60,6 +61,7 @@ Never print or commit secrets.
 | OIDC / session auth | Actor headers + optional API bearer (ADR-016); no IdP yet |
 | In-process TLS | By design absent; use ADR-015 edge |
 | Managed HA / multi-node | Single-process DEV model |
+| Managed backup / DR SLA | Operator-owned; CLI manifest is not HA |
 | Public deploy runbook | Out of scope of bind gate + TLS docs |
 
 ## Quick references
@@ -68,4 +70,5 @@ Never print or commit secrets.
 - [ADR-014 production posture](../adr/ADR-014-production-posture.md)
 - [ADR-015 TLS edge](../adr/ADR-015-tls-edge.md)
 - [ADR-013 live E2E](../adr/ADR-013-live-e2e.md)
+- [backup-restore.md](backup-restore.md)
 - [INSTALL](../INSTALL.md)
