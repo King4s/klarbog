@@ -90,4 +90,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 51. `klarbog demo` covers `moms_post_suggestion` (i64 `#vat25` legs + optional-none; never auto-posts) ✅
 
+## Wave 12 — scratch-marker gitignore (landed)
+
+52. Ignore autonomous scratch `/wave*.md`, `docs/status-*.md`, `/status/` (canonical `STATUS.md` / `docs/status.md` kept) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

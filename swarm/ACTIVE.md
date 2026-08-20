@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 11 landed** — `klarbog demo` covers moms-suggest (i64 preview)
+- **Wave 12 landed** — gitignore autonomous scratch markers (wave*/docs/status-*)
 - Tip VERIFY_OK; continue packaging/MCP polish on request
-- No sister-product names; skip scratch wave*/status markers
+- No sister-product names in public tree

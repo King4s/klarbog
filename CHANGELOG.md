@@ -101,6 +101,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **`klarbog demo`:** covers optional moms-suggest (`#vat25` → net 10000 / vat 2500 i64 legs; no tag → none; `auto_post` always false).
 
+### Added — Wave 12 (hygiene)
+
+- **`.gitignore`:** scratch markers `/wave*.md`, `docs/status-*.md`, `/status/` (keeps `STATUS.md` + `docs/status.md`; `slice-*.md` already ignored).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

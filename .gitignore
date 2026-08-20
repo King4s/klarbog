@@ -20,4 +20,8 @@ imports/
 graphify-out/
 .claude/*
 !.claude/settings.json
+# Autonomous scratch markers (keep STATUS.md + docs/status.md)
 slice-*.md
+/wave*.md
+docs/status-*.md
+/status/
