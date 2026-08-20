@@ -1,163 +1,22 @@
-//! Bank SSR — CSV import preview and reconcile suggest.
+//! Bank POST — import preview, reconcile suggest, apply→journal preview.
 
-use askama::Template;
 use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
 use chrono::{DateTime, NaiveDate, Utc};
+use klarbog_core::journal_preview;
 use klarbog_plugin_bank::{
-    default_source_for_rail, import_preview, suggest_matches, BankImportConfig, BankProfile,
+    apply_match, default_source_for_rail, import_preview, suggest_matches, BankImportConfig,
     BankRow,
 };
 use klarbog_types::{Actor, Currency, MinorAmount};
-use serde::Deserialize;
 
-use super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav, ACTOR};
+use super::super::common::{authorize_company, company_from, format_dkk, html_ok, ACTOR};
+use super::form::{
+    parse_provider, provider_name, wants_force, BankActionForm, DraftRow, SuggestRow,
+};
+use super::view::{bank_page, BankView};
 use crate::AppState;
-
-struct DraftRow {
-    idx: usize,
-    date: String,
-    memo: String,
-    dkk: String,
-    minor: String,
-}
-
-struct SuggestRow {
-    date: String,
-    text: String,
-    amount: String,
-    best_invoice: String,
-    confidence_bps: String,
-    unsafe_reason: String,
-}
-
-#[derive(Template)]
-#[template(path = "bank.html")]
-struct BankTemplate {
-    title: &'static str,
-    nav_home: bool,
-    nav_parties: bool,
-    nav_invoices: bool,
-    nav_bank: bool,
-    nav_bilag: bool,
-    nav_journal: bool,
-    nav_chart: bool,
-    nav_settings: bool,
-    foot: String,
-    has_flash_ok: bool,
-    flash_ok: String,
-    has_flash_err: bool,
-    flash_err: String,
-    has_company: bool,
-    company: String,
-    provider: String,
-    csv: String,
-    row_date: String,
-    row_text: String,
-    row_amount: String,
-    has_import: bool,
-    import_count: String,
-    import_source: String,
-    drafts: Vec<DraftRow>,
-    has_suggest: bool,
-    suggest_count: String,
-    suggestions: Vec<SuggestRow>,
-}
-
-struct BankView {
-    company: String,
-    provider: String,
-    csv: String,
-    row_date: String,
-    row_text: String,
-    row_amount: String,
-    drafts: Vec<DraftRow>,
-    import_source: String,
-    suggestions: Vec<SuggestRow>,
-    flash_ok: String,
-    flash_err: String,
-}
-
-fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
-    let n = nav("bank");
-    BankTemplate {
-        title: "Bank",
-        nav_home: n.home,
-        nav_parties: n.parties,
-        nav_invoices: n.invoices,
-        nav_bank: n.bank,
-        nav_bilag: n.bilag,
-        nav_journal: n.journal,
-        nav_chart: n.chart,
-        nav_settings: n.settings,
-        foot: foot(state),
-        has_flash_ok: !v.flash_ok.is_empty(),
-        flash_ok: v.flash_ok,
-        has_flash_err: !v.flash_err.is_empty(),
-        flash_err: v.flash_err,
-        has_company: !v.company.is_empty(),
-        company: v.company,
-        provider: v.provider,
-        csv: v.csv,
-        row_date: v.row_date,
-        row_text: v.row_text,
-        row_amount: v.row_amount,
-        has_import: !v.drafts.is_empty(),
-        import_count: v.drafts.len().to_string(),
-        import_source: v.import_source,
-        drafts: v.drafts,
-        has_suggest: !v.suggestions.is_empty(),
-        suggest_count: v.suggestions.len().to_string(),
-        suggestions: v.suggestions,
-    }
-}
-
-pub async fn bank_get(State(state): State<AppState>, headers: HeaderMap) -> Response {
-    let company = company_from(&headers);
-    html_ok(bank_page(
-        &state,
-        BankView {
-            company,
-            provider: "generic_dk".into(),
-            csv: String::new(),
-            row_date: "2026-05-20".into(),
-            row_text: "Customer payment".into(),
-            row_amount: "50000".into(),
-            drafts: Vec::new(),
-            import_source: String::new(),
-            suggestions: Vec::new(),
-            flash_ok: String::new(),
-            flash_err: String::new(),
-        },
-    ))
-}
-
-#[derive(Deserialize)]
-pub struct BankActionForm {
-    pub action: String,
-    pub provider: String,
-    pub csv: String,
-    pub row_date: String,
-    pub row_text: String,
-    pub row_amount: String,
-}
-
-fn parse_provider(raw: &str) -> BankProfile {
-    match raw.trim() {
-        "revolut" => BankProfile::Revolut,
-        "stripe" => BankProfile::Stripe,
-        _ => BankProfile::GenericDk,
-    }
-}
-
-fn provider_name(p: BankProfile) -> &'static str {
-    match p {
-        BankProfile::GenericDk => "generic_dk",
-        BankProfile::Revolut => "revolut",
-        BankProfile::Stripe => "stripe",
-    }
-}
 
 pub async fn bank_post(
     State(state): State<AppState>,
@@ -278,13 +137,14 @@ pub async fn bank_post(
                         .into_iter()
                         .map(|m| {
                             let best = m.suggestions.first();
+                            let best_invoice =
+                                best.map(|s| s.invoice_id.clone()).unwrap_or_default();
                             SuggestRow {
                                 date: m.date,
                                 text: m.text,
                                 amount: format_dkk(m.amount_minor),
-                                best_invoice: best
-                                    .map(|s| s.invoice_id.clone())
-                                    .unwrap_or_default(),
+                                can_apply: !best_invoice.is_empty(),
+                                best_invoice,
                                 confidence_bps: best
                                     .map(|s| s.confidence_bps.to_string())
                                     .unwrap_or_else(|| "—".into()),
@@ -308,6 +168,60 @@ pub async fn bank_post(
                             flash_err: String::new(),
                         },
                     ))
+                }
+                Err(e) => html_ok(empty(String::new(), e.to_string())),
+            }
+        }
+        "apply_preview" => {
+            let invoice_id = form.invoice_id.trim();
+            if invoice_id.is_empty() {
+                return html_ok(empty(String::new(), "invoice_id kræves til apply.".into()));
+            }
+            let amount: i64 = match form.row_amount.trim().parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    return html_ok(empty(String::new(), "Beløb skal være heltal (øre).".into()));
+                }
+            };
+            let date = match NaiveDate::parse_from_str(form.row_date.trim(), "%Y-%m-%d") {
+                Ok(d) => d,
+                Err(e) => {
+                    return html_ok(empty(String::new(), format!("Ugyldig dato: {e}")));
+                }
+            };
+            let row_index: usize = form.row_index.trim().parse().unwrap_or(0);
+            let dt: DateTime<Utc> = date.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let bank_row = BankRow {
+                date: dt,
+                text: form.row_text.trim().to_string(),
+                amount_minor: MinorAmount::from_minor(amount),
+            };
+            let force = wants_force(&form.force);
+            match apply_match(&path, &bank_row, invoice_id, &actor, force, row_index) {
+                Ok(applied) => {
+                    match journal_preview(
+                        &state.allowlist_root,
+                        std::path::Path::new(&company),
+                        &applied.entry,
+                        &actor,
+                        &state.confirm,
+                        &state.registry,
+                    )
+                    .await
+                    {
+                        Ok(p) => html_ok(empty(
+                            format!(
+                                "Apply-preview ok · inv {} · {} bps{} · token {} · memo {}",
+                                invoice_id,
+                                applied.confidence_bps,
+                                if applied.forced { " (forced)" } else { "" },
+                                p.confirm_token.token,
+                                applied.entry.memo
+                            ),
+                            String::new(),
+                        )),
+                        Err(e) => html_ok(empty(String::new(), e.to_string())),
+                    }
                 }
                 Err(e) => html_ok(empty(String::new(), e.to_string())),
             }

@@ -2,7 +2,7 @@
 {% block content %}
 <section class="panel">
   <h1>Bank</h1>
-  <p class="lede">Import-preview og afstem-forslag · Rust SSR.</p>
+  <p class="lede">Import-preview, afstem-forslag og apply→journal-preview · Rust SSR.</p>
   {% if has_company %}
   <p class="muted">Firma: <span class="money">{{ company }}</span></p>
   {% else %}
@@ -73,9 +73,9 @@
   {% if has_suggest %}
   <div class="panel nested">
     <h2>Match-forslag</h2>
-    <p class="muted">{{ suggest_count }} rækker</p>
+    <p class="muted">{{ suggest_count }} rækker · apply bygger journal-preview (commit via Journal)</p>
     <table class="table">
-      <thead><tr><th>Dato</th><th>Tekst</th><th>Beløb</th><th>Bedste faktura</th><th>bps</th><th>Usikker</th></tr></thead>
+      <thead><tr><th>Dato</th><th>Tekst</th><th>Beløb</th><th>Bedste faktura</th><th>bps</th><th>Usikker</th><th></th></tr></thead>
       <tbody>
         {% for s in suggestions %}
         <tr>
@@ -85,6 +85,22 @@
           <td class="money">{{ s.best_invoice }}</td>
           <td class="money">{{ s.confidence_bps }}</td>
           <td class="muted">{{ s.unsafe_reason }}</td>
+          <td>
+            {% if s.can_apply %}
+            <form method="post" action="/ui/bank" class="inline">
+              <input type="hidden" name="action" value="apply_preview" />
+              <input type="hidden" name="provider" value="{{ provider }}" />
+              <input type="hidden" name="csv" value="{{ csv }}" />
+              <input type="hidden" name="row_date" value="{{ row_date }}" />
+              <input type="hidden" name="row_text" value="{{ row_text }}" />
+              <input type="hidden" name="row_amount" value="{{ row_amount }}" />
+              <input type="hidden" name="invoice_id" value="{{ s.best_invoice }}" />
+              <input type="hidden" name="row_index" value="0" />
+              <label class="muted"><input type="checkbox" name="force" value="on" /> force</label>
+              <button type="submit" {% if !has_company %}disabled{% endif %}>Apply→preview</button>
+            </form>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
