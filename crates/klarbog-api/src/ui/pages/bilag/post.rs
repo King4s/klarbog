@@ -3,7 +3,7 @@
 use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
-use klarbog_plugin_documents::{raise_exception, ExceptionSeverity};
+use klarbog_plugin_documents::{raise_exception, remove_document, DocumentId, ExceptionSeverity};
 use klarbog_plugin_retention::{run_retention_purge, write_backup_manifest, PurgeOptions};
 use serde::Deserialize;
 
@@ -18,6 +18,8 @@ pub struct BilagActionForm {
     pub severity: Option<String>,
     pub message: Option<String>,
     pub gc_orphan_documents: Option<String>,
+    pub document_id: Option<String>,
+    pub delete_object: Option<String>,
 }
 
 fn parse_severity(raw: &str) -> ExceptionSeverity {
@@ -123,6 +125,34 @@ pub async fn bilag_post(
             ),
             Err(e) => html_ok(bilag_page(&state, &company, gc, String::new(), e.to_string()).await),
         },
+        "remove_document" => {
+            let id = DocumentId::new(form.document_id.unwrap_or_default().trim().to_string());
+            let delete_object = form.delete_object.is_some();
+            match remove_document(&path, &id, delete_object).await {
+                Ok(doc) => html_ok(
+                    bilag_page(
+                        &state,
+                        &company,
+                        gc,
+                        format!(
+                            "Bilag fjernet: {} · {}{}",
+                            doc.id,
+                            doc.path_hint,
+                            if delete_object {
+                                " (objekt slettet)"
+                            } else {
+                                " (objekt bevaret)"
+                            }
+                        ),
+                        String::new(),
+                    )
+                    .await,
+                ),
+                Err(e) => {
+                    html_ok(bilag_page(&state, &company, gc, String::new(), e.to_string()).await)
+                }
+            }
+        }
         "backup" => match write_backup_manifest(&path).await {
             Ok(m) => html_ok(
                 bilag_page(

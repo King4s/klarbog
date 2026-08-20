@@ -9,7 +9,7 @@
 
   <h2 class="subhead">Dokumenter</h2>
   <table class="table">
-    <thead><tr><th>Id</th><th>Type</th><th>Sti</th><th>Note</th></tr></thead>
+    <thead><tr><th>Id</th><th>Type</th><th>Sti</th><th>Note</th><th></th></tr></thead>
     <tbody>
       {% for d in documents %}
       <tr>
@@ -17,9 +17,17 @@
         <td>{{ d.kind }}</td>
         <td class="money">{{ d.path_hint }}</td>
         <td>{{ d.notes }}</td>
+        <td>
+          <form method="post" action="/ui/bilag" class="inline">
+            <input type="hidden" name="action" value="remove_document" />
+            <input type="hidden" name="document_id" value="{{ d.id }}" />
+            <label class="muted"><input type="checkbox" name="delete_object" value="1" /> slet fil</label>
+            <button class="ghost" type="submit">Fjern</button>
+          </form>
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="4" class="muted">Ingen bilag</td></tr>
+      <tr><td colspan="5" class="muted">Ingen bilag</td></tr>
       {% endfor %}
     </tbody>
   </table>
