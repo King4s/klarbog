@@ -49,6 +49,12 @@ Suggested: `suggested: true`, `net_minor`, `vat_minor`, `rate_bps`, `legs`,
 
 `journal_moms_post_suggestion` — same fields + `actor_kind` / `actor_id`.
 
+## Local web UI (DEV)
+
+Journal screen (`/ui/` → Journal) has a **Moms-forslag** panel that calls the same
+HTTP route. It shows net/vat/gross in øre + DKK display helpers and can apply
+**brutto on both journal legs** (still preview → commit; never auto-posts).
+
 ## Agent checklist
 
 1. Call moms-suggest with gross + memo (include `#vat25` when wanting a split).
@@ -59,3 +65,4 @@ Suggested: `suggested: true`, `net_minor`, `vat_minor`, `rate_bps`, `legs`,
 
 - ADR-011: [`docs/adr/ADR-011-moms-suggest.md`](../adr/ADR-011-moms-suggest.md)
 - ADR-001 money; skill [`journal-preview-commit.md`](journal-preview-commit.md)
+- ADR-012 local web UI

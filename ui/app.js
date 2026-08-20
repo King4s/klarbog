@@ -66,6 +66,10 @@ let view = "home";
 let flash = null;
 /** @type {{ entry: object, confirm_token: string, expires_unix_ms?: number, payload_digest?: string } | null} */
 let journalPending = null;
+/** Last moms-suggest payload (preview only; never posts). @type {object | null} */
+let journalMomsLast = null;
+/** Draft fields shared across moms apply ↔ journal form re-renders. @type {object | null} */
+let journalDraft = null;
 
 function parseMinor(raw, label) {
   const s = String(raw ?? "").trim();
@@ -288,12 +292,57 @@ async function renderInvoices() {
   `;
 }
 
+function journalFormDefaults() {
+  const fromPending = journalPending?.entry;
+  const d = journalDraft || {};
+  const leg0 = fromPending?.legs?.[0];
+  const leg1 = fromPending?.legs?.[1];
+  return {
+    memo: d.memo ?? fromPending?.memo ?? "udgift #vat25 #receipt",
+    account1: d.account1 ?? leg0?.account ?? "6000",
+    direction1: d.direction1 ?? leg0?.direction ?? "debit",
+    amount1:
+      d.amount1 ??
+      (leg0?.amount?.units != null ? String(leg0.amount.units) : "12500"),
+    account2: d.account2 ?? leg1?.account ?? "5800",
+    direction2: d.direction2 ?? leg1?.direction ?? "credit",
+    amount2:
+      d.amount2 ??
+      (leg1?.amount?.units != null ? String(leg1.amount.units) : "12500"),
+    momsGross: d.momsGross ?? "12500",
+    momsMemo: d.momsMemo ?? "udgift #vat25 #receipt",
+  };
+}
+
 async function renderJournal() {
   const company = settings.company.trim();
   const pending = journalPending;
+  const defs = journalFormDefaults();
   let companyHint = company
     ? ""
     : `<p class="muted">Sæt firmasti under Indstillinger før preview/commit.</p>`;
+
+  const moms = journalMomsLast;
+  let momsResult = `<p class="muted">Intet moms-forslag endnu. Kræver memo-tag <span class="money">#vat25</span> (eller moms:25).</p>`;
+  if (moms && moms.suggested === true) {
+    momsResult = `
+      <div class="panel nested">
+        <h2>Moms-forslag (poster ikke)</h2>
+        <p class="muted">auto_post=${escapeHtml(String(moms.auto_post))} · rate_bps=${escapeHtml(String(moms.rate_bps ?? "—"))}</p>
+        <ul class="plain">
+          <li>Brutto: <span class="money">${escapeHtml(String(moms.gross_minor))} øre</span> (${formatDkk(Number(moms.gross_minor))})</li>
+          <li>Netto: <span class="money">${escapeHtml(String(moms.net_minor))} øre</span> (${formatDkk(Number(moms.net_minor))})</li>
+          <li>Moms: <span class="money">${escapeHtml(String(moms.vat_minor))} øre</span> (${formatDkk(Number(moms.vat_minor))})</li>
+        </ul>
+        <div class="actions">
+          <button class="primary" type="button" id="moms-apply-gross" ${company ? "" : "disabled"}>Anvend brutto på begge ben</button>
+          <button class="ghost" type="button" id="moms-clear">Ryd forslag</button>
+        </div>
+        <p class="muted">Anvend sætter memo + beløb (øre) til brutto på begge ben — stadig preview→commit.</p>
+      </div>`;
+  } else if (moms && moms.suggested === false) {
+    momsResult = `<p class="muted">Ingen forslag (${escapeHtml(moms.reason || "ingen #vat25-tag")}). auto_post=false.</p>`;
+  }
 
   const tokenBlock = pending
     ? `<div class="panel nested">
@@ -316,53 +365,57 @@ async function renderJournal() {
       <h1>Journal</h1>
       <p class="lede">To-fase bogføring: preview → confirm_token → commit. Beløb i øre (i64).</p>
       ${companyHint}
+
+      <div class="panel nested">
+        <h2>Moms-forslag</h2>
+        <p class="muted">POST /api/v1/journal/moms-suggest — kun forslag, aldrig post (ADR-011).</p>
+        <form id="moms-suggest-form" class="grid">
+          <label>Brutto moms-inkl. (øre)
+            <input name="gross_minor" required inputmode="numeric" pattern="-?[0-9]+" value="${escapeHtml(defs.momsGross)}" />
+          </label>
+          <label>Memo (skal indeholde #vat25 for forslag)
+            <input name="moms_memo" required value="${escapeHtml(defs.momsMemo)}" />
+          </label>
+          <div class="actions">
+            <button class="primary" type="submit" ${company ? "" : "disabled"}>Hent moms-forslag</button>
+          </div>
+        </form>
+        ${momsResult}
+      </div>
+
       <form id="journal-preview-form" class="grid">
         <label>Memo
-          <input name="memo" required placeholder="udgift #receipt" value="${escapeHtml(
-            pending?.entry?.memo || "",
-          )}" />
+          <input name="memo" required placeholder="udgift #receipt" value="${escapeHtml(defs.memo)}" />
         </label>
         <div class="grid two">
           <fieldset class="leg">
             <legend>Ben 1 (debit)</legend>
             <label>Konto
-              <input name="account1" required value="${escapeHtml(
-                pending?.entry?.legs?.[0]?.account || "6000",
-              )}" />
+              <input name="account1" required value="${escapeHtml(defs.account1)}" />
             </label>
             <label>Retning
               <select name="direction1">
-                <option value="debit" selected>debit</option>
+                <option value="debit">debit</option>
                 <option value="credit">credit</option>
               </select>
             </label>
             <label>Beløb (øre)
-              <input name="amount1" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(
-                pending?.entry?.legs?.[0]?.amount?.units != null
-                  ? String(pending.entry.legs[0].amount.units)
-                  : "12500",
-              )}" />
+              <input name="amount1" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(defs.amount1)}" />
             </label>
           </fieldset>
           <fieldset class="leg">
             <legend>Ben 2 (credit)</legend>
             <label>Konto
-              <input name="account2" required value="${escapeHtml(
-                pending?.entry?.legs?.[1]?.account || "5800",
-              )}" />
+              <input name="account2" required value="${escapeHtml(defs.account2)}" />
             </label>
             <label>Retning
               <select name="direction2">
                 <option value="debit">debit</option>
-                <option value="credit" selected>credit</option>
+                <option value="credit">credit</option>
               </select>
             </label>
             <label>Beløb (øre)
-              <input name="amount2" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(
-                pending?.entry?.legs?.[1]?.amount?.units != null
-                  ? String(pending.entry.legs[1].amount.units)
-                  : "12500",
-              )}" />
+              <input name="amount2" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(defs.amount2)}" />
             </label>
           </fieldset>
         </div>
@@ -375,14 +428,70 @@ async function renderJournal() {
     </section>
   `;
 
-  if (pending?.entry?.legs?.[0]?.direction) {
-    const d1 = document.querySelector('select[name="direction1"]');
-    if (d1) d1.value = pending.entry.legs[0].direction;
-  }
-  if (pending?.entry?.legs?.[1]?.direction) {
-    const d2 = document.querySelector('select[name="direction2"]');
-    if (d2) d2.value = pending.entry.legs[1].direction;
-  }
+  const d1 = document.querySelector('select[name="direction1"]');
+  if (d1) d1.value = defs.direction1;
+  const d2 = document.querySelector('select[name="direction2"]');
+  if (d2) d2.value = defs.direction2;
+
+  document.getElementById("moms-suggest-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!company) {
+      setFlash("err", "Firmasti mangler");
+      await renderJournal();
+      return;
+    }
+    const fd = new FormData(ev.target);
+    try {
+      const gross = parseMinor(fd.get("gross_minor"), "Brutto");
+      const memo = String(fd.get("moms_memo") || "").trim();
+      if (!memo) throw new Error("Memo kræves");
+      journalDraft = {
+        ...(journalDraft || {}),
+        momsGross: String(gross),
+        momsMemo: memo,
+      };
+      const env = await api(settings, "/api/v1/journal/moms-suggest", {
+        method: "POST",
+        body: JSON.stringify({ company, gross_minor: gross, memo }),
+      });
+      journalMomsLast = env.data || { suggested: false };
+      if (journalMomsLast.suggested) {
+        setFlash(
+          "ok",
+          `Moms-forslag: netto ${journalMomsLast.net_minor} / moms ${journalMomsLast.vat_minor} øre (poster ikke)`,
+        );
+      } else {
+        setFlash("ok", "Ingen moms-forslag (mangler #vat25-tag)");
+      }
+      await renderJournal();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderJournal();
+    }
+  });
+
+  document.getElementById("moms-apply-gross")?.addEventListener("click", async () => {
+    if (!journalMomsLast?.suggested) return;
+    const gross = String(journalMomsLast.gross_minor);
+    const memoEl = document.querySelector('#moms-suggest-form input[name="moms_memo"]');
+    const memo = memoEl ? String(memoEl.value || "").trim() : defs.momsMemo;
+    journalDraft = {
+      ...(journalDraft || {}),
+      memo: memo || defs.memo,
+      amount1: gross,
+      amount2: gross,
+      momsGross: gross,
+      momsMemo: memo || defs.momsMemo,
+    };
+    setFlash("ok", "Brutto udfyldt på begge ben — kør Preview");
+    await renderJournal();
+  });
+
+  document.getElementById("moms-clear")?.addEventListener("click", async () => {
+    journalMomsLast = null;
+    setFlash("ok", "Moms-forslag ryddet");
+    await renderJournal();
+  });
 
   document.getElementById("journal-preview-form")?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -392,7 +501,18 @@ async function renderJournal() {
       return;
     }
     try {
-      const entry = buildJournalEntry(new FormData(ev.target));
+      const fd = new FormData(ev.target);
+      journalDraft = {
+        ...(journalDraft || {}),
+        memo: String(fd.get("memo") || ""),
+        account1: String(fd.get("account1") || ""),
+        direction1: String(fd.get("direction1") || "debit"),
+        amount1: String(fd.get("amount1") || ""),
+        account2: String(fd.get("account2") || ""),
+        direction2: String(fd.get("direction2") || "credit"),
+        amount2: String(fd.get("amount2") || ""),
+      };
+      const entry = buildJournalEntry(fd);
       const env = await api(settings, "/api/v1/journal/preview", {
         method: "POST",
         body: JSON.stringify({ company, entry }),
@@ -432,6 +552,7 @@ async function renderJournal() {
       });
       const data = env.data || {};
       journalPending = null;
+      journalDraft = null;
       setFlash(
         "ok",
         `Posted ${data.id || "ok"} · digest ${String(data.digest || "").slice(0, 16)}…`,
@@ -443,6 +564,7 @@ async function renderJournal() {
     }
   });
 }
+
 
 function idStr(v) {
   if (v == null) return "";

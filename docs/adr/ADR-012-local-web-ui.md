@@ -36,6 +36,8 @@ React cockpit.
 ### Progressive slices
 1. **First:** status, parties, invoices.
 2. **Later:** journal preview / confirm UX (and bank surfaces after that).
+3. **Wave 44:** journal **moms-forslag** UI wired to
+   `POST /api/v1/journal/moms-suggest` (preview only; ADR-011).
 
 ## Consequences
 - `klarbog-api` gains a static-file serve path for `ui/` (env override optional;

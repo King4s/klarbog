@@ -7,6 +7,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 44 (UI moms-suggest soft-split)
+
+- Journal screen: **Moms-forslag** calls `POST /api/v1/journal/moms-suggest`
+  (i64 gross + `#vat25`); shows net/vat; optional apply brutto to both legs;
+  still preview → commit; never auto-posts (ADR-011).
+- Skill `moms-suggest.md` notes the UI panel.
+
 ### Added — Wave 43 (session cookie auth residual)
 
 - **ADR-017:** optional HMAC `klarbog_session` when `KLARBOG_API_TOKEN` **and**

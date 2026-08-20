@@ -241,3 +241,9 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
    `wave43_session_cookie` ✅
 94. UI Bank + Bilag screens (`wave43_ui_bank_docs`): import/preview +
    documents/exceptions lists + raise; mist/teal; Bearer `apiToken` ✅
+
+## Wave 44 — UI moms-suggest soft-split
+
+95. Journal UI: moms-forslag panel → `POST /api/v1/journal/moms-suggest`;
+    show net/vat i64 + DKK helpers; apply brutto to both legs; never auto-post
+    (ADR-011); Revolut remains dormant ✅
