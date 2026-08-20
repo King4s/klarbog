@@ -2,23 +2,52 @@
 {% block content %}
 <section class="panel">
   <h1>Parter</h1>
-  <p class="lede">CRM uden journal-skrivning · Rust SSR.</p>
+  <p class="lede">CRM uden journal-skrivning · GDPR-slet med dry-run · Rust SSR.</p>
   {% if has_company %}
   <p class="muted">Firma: <span class="money">{{ company }}</span></p>
+
+  {% if has_report %}
+  <div class="panel nested">
+    <h2>GDPR dry-run · {{ report_party }}</h2>
+    <ul>
+      {% for line in report_lines %}
+      <li class="muted">{{ line }}</li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="/ui/parties">
+      <input type="hidden" name="action" value="erase_confirm" />
+      <input type="hidden" name="party_id" value="{{ report_party }}" />
+      {% if report_delete_docs %}
+      <input type="hidden" name="delete_documents" value="on" />
+      {% endif %}
+      <button class="primary" type="submit">Bekræft GDPR-slet</button>
+    </form>
+  </div>
+  {% endif %}
+
   <table class="table">
-    <thead><tr><th>Id</th><th>Navn</th></tr></thead>
+    <thead><tr><th>Id</th><th>Navn</th><th>GDPR</th></tr></thead>
     <tbody>
       {% for p in parties %}
       <tr>
         <td class="money">{{ p.id }}</td>
         <td>{{ p.display_name }}</td>
+        <td>
+          <form method="post" action="/ui/parties" class="inline">
+            <input type="hidden" name="action" value="erase_dry" />
+            <input type="hidden" name="party_id" value="{{ p.id }}" />
+            <label class="muted"><input type="checkbox" name="delete_documents" value="on" /> slet dokumenter</label>
+            <button class="ghost" type="submit">Dry-run slet</button>
+          </form>
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="2" class="muted">Ingen parter</td></tr>
+      <tr><td colspan="3" class="muted">Ingen parter</td></tr>
       {% endfor %}
     </tbody>
   </table>
   <form class="grid" method="post" action="/ui/parties" style="margin-top:1.25rem">
+    <input type="hidden" name="action" value="create" />
     <label>Nyt partenavn
       <input name="display_name" required placeholder="Kunde ApS" />
     </label>
