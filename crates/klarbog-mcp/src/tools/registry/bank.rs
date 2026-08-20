@@ -93,6 +93,33 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "revolut_oauth_start",
+            "description": "Start Revolut OAuth: return auth_url + state (never returns client_secret or tokens)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "revolut_oauth_callback",
+            "description": "Exchange Revolut OAuth code → store tokens under company secrets (never returns tokens)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "code": {"type": "string"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "code", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
             "name": "revolut_oauth_refresh",
             "description": "Refresh Revolut OAuth access token for company secrets (never returns tokens)",
             "inputSchema": {

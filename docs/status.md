@@ -10,7 +10,7 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 26: MCP `bank_reconcile_apply` optional `preview: true` → ConfirmStore
-token (HTTP parity; no journal commit). Product AI prompt:
+Wave 27: MCP `revolut_oauth_start` + `revolut_oauth_callback` (HTTP OAuth
+parity; never echo tokens). Product AI prompt:
 `docs/agent-setup/prompt.md`.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

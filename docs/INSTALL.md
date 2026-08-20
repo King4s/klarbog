@@ -142,6 +142,8 @@ suggestions only — no journal write), `documents_attach` / `documents_list` /
 `retention_purge` (dry-run/`confirm`; closed exceptions + optional orphan-doc GC;
 journal untouched), `bank_reconcile_suggest` / `bank_reconcile_apply` (`force` only
 for `user` below safe threshold; optional `preview:true` → ConfirmStore token),
+Revolut OAuth MCP `revolut_oauth_start` / `revolut_oauth_callback` /
+`revolut_oauth_refresh` (never echo tokens; secrets mode `0600`),
 and Stripe pipelines
 `bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview`
 (consume → suggest / unique-safe ConfirmStore preview; no auto journal post —
@@ -188,7 +190,9 @@ fallback. Tokens belong in the **API process environment** (or shell that starts
 | `KLARBOG_REVOLUT_REDIRECT_URI` | OAuth flow | Must match registered redirect |
 
 Import preview: `provider=revolut`, `source=api` (or `source=csv` with pasted export).
-OAuth: `/api/v1/revolut/oauth/start|callback|refresh` (tokens under company `secrets/`, mode `0600`).
+OAuth: `/api/v1/revolut/oauth/start|callback|refresh` and MCP
+`revolut_oauth_start` / `revolut_oauth_callback` / `revolut_oauth_refresh`
+(tokens under company `secrets/`, mode `0600`; responses never include raw tokens).
 
 See [`docs/adr/ADR-008-revolut-bank.md`](adr/ADR-008-revolut-bank.md).
 

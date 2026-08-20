@@ -2,6 +2,7 @@
 
 mod auth;
 mod bank;
+mod bank_oauth;
 mod bank_stripe_pipelines;
 mod bank_wave2;
 mod crm;
@@ -55,6 +56,10 @@ pub fn handle_tool_call(
             store,
             registry,
         )),
+        "revolut_oauth_start" => rt.block_on(bank_oauth::revolut_oauth_start(args, allowlist_root)),
+        "revolut_oauth_callback" => {
+            rt.block_on(bank_oauth::revolut_oauth_callback(args, allowlist_root))
+        }
         "revolut_oauth_refresh" => {
             rt.block_on(bank_wave2::revolut_oauth_refresh(args, allowlist_root))
         }

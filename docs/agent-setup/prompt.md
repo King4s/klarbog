@@ -77,6 +77,8 @@ Kald `tools/list`. Forvent mindst:
 | `bank_stripe_reconcile_apply_preview` | Stripe consume → unik safe apply + ConfirmStore preview (**ingen** auto-commit) |
 | `bank_reconcile_suggest` | Match banklinjer ↔ åbne fakturaer (`rows` eller CSV/provider; **ingen** post) |
 | `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold; valgfri `preview:true` → ConfirmStore-token) |
+| `revolut_oauth_start` | Revolut OAuth start → `auth_url` + `state` (returnerer aldrig secrets) |
+| `revolut_oauth_callback` | OAuth `code` → gem tokens under company secrets (returnerer aldrig tokens) |
 | `revolut_oauth_refresh` | Refresh Revolut access-token (returnerer aldrig tokens) |
 | `invoice_create_draft` | Opret fakturakladde (`kind` sale\|purchase; `lines[].amount_minor` i64) → journalforslag (**poster aldrig**) |
 | `invoice_list` | List fakturaer, eller én når `invoice_id` er sat (read-only) |

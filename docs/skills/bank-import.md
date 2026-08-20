@@ -147,3 +147,17 @@ Optional `preview: true` (default `false`): after building the entry, runs the s
 ### MCP — `bank_reconcile_apply` (force + optional ConfirmStore preview)
 
 Same contract as HTTP apply: args `company`, `invoice_id`, `row` / `row_index`, optional `force`, optional `preview` (default `false`). Below `SAFE_THRESHOLD_BPS`, `force: true` is accepted **only** when `actor_kind` is `user`; agents/system are rejected. Response includes `entry`, `confidence_bps`, `forced`, `exception_closed`. With `preview: true`, also `confirm_token`, `expires_unix_ms`, `payload_digest` (same ConfirmStore path as `journal_post_preview`) so the client can `journal_post_commit` without a separate preview. Still does **not** post.
+
+## Revolut OAuth (start / callback / refresh)
+
+HTTP: `GET /api/v1/revolut/oauth/start`, `POST …/callback`, `POST …/refresh` (ADR-008).
+
+MCP parity:
+
+| Tool | Mirrors | Notes |
+|------|---------|-------|
+| `revolut_oauth_start` | GET start | Returns `auth_url` + `state`; never `client_secret` / tokens |
+| `revolut_oauth_callback` | POST callback | Args `company` + `code`; stores `secrets/revolut.json` (`0600`); response `{stored, path}` only |
+| `revolut_oauth_refresh` | POST refresh | Fail-closed without refresh_token; never echoes tokens |
+
+Env: `KLARBOG_REVOLUT_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` (optional `_TOKEN_URL` / `_AUTH_URL`). Missing config → fail closed.

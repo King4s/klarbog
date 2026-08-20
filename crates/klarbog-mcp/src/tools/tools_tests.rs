@@ -19,6 +19,8 @@ fn tools_list_names() {
     assert!(names.contains(&"bank_stripe_consume"));
     assert!(names.contains(&"bank_reconcile_suggest"));
     assert!(names.contains(&"bank_reconcile_apply"));
+    assert!(names.contains(&"revolut_oauth_start"));
+    assert!(names.contains(&"revolut_oauth_callback"));
     assert!(names.contains(&"revolut_oauth_refresh"));
     assert!(names.contains(&"bank_stripe_reconcile_suggest"));
     assert!(names.contains(&"bank_stripe_reconcile_apply_preview"));

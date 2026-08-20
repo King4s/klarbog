@@ -150,4 +150,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 66. MCP parity: `bank_reconcile_apply` optional `preview: true` → ConfirmStore token (same as HTTP; no journal commit) ✅
 
+## Wave 27 — MCP Revolut OAuth start/callback (landed)
+
+67. MCP parity: `revolut_oauth_start` + `revolut_oauth_callback` mirror HTTP OAuth scaffold (AuthZ; never echo tokens; refresh already present) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

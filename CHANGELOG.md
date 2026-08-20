@@ -161,6 +161,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 66:** MCP `bank_reconcile_apply` optional `preview: true` mirrors HTTP ConfirmStore path — adds `confirm_token` / `expires_unix_ms` / `payload_digest`; default still suggestion-only; **no** journal commit. Prompt / INSTALL / bank-import skill.
 
+### Added — Wave 27 (MCP Revolut OAuth start/callback)
+
+- **Slice 67:** MCP `revolut_oauth_start` + `revolut_oauth_callback` mirror HTTP `/api/v1/revolut/oauth/start|callback` — AuthZ + allowlist; store under `secrets/revolut.json`; responses never include raw tokens (`revolut_oauth_refresh` already present). Prompt / INSTALL / bank-import skill / ADR-008.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
