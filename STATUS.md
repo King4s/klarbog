@@ -12,4 +12,6 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
+Wave 15: moms-suggest negative `gross_minor` → HTTP 400.
+
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

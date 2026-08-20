@@ -102,4 +102,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 54. Sync public MCP allowlist docs: `bank_stripe_reconcile_suggest` + `bank_stripe_reconcile_apply_preview` in prompt.md tools table + bank-import skill + INSTALL (parity with registry; no auto journal post) ✅
 
+## Wave 15 — idle hardening (landed)
+
+55. Thin negative-path: `POST /api/v1/journal/moms-suggest` with negative `gross_minor` → **400** (HTTP maps `MomsPostSuggestionError`; i64; never suggests) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 14 landed** — MCP docs sync for Stripe reconcile suggest/apply-preview
-- Tip VERIFY_OK; continue public-doc hygiene or soft-split on request
+- **Wave 15 landed** — moms-suggest HTTP negative gross → 400
+- Tip VERIFY_OK; continue idle hardening or product gaps on request
 - No sister-product names in public tree

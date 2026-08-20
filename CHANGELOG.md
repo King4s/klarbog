@@ -113,6 +113,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 54:** Public MCP allowlist parity — `bank_stripe_reconcile_suggest` + `bank_stripe_reconcile_apply_preview` in [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) tools table, [`docs/skills/bank-import.md`](docs/skills/bank-import.md), and INSTALL (same contracts as HTTP; no auto journal post).
 
+### Added — Wave 15 (idle hardening)
+
+- **Slice 55:** HTTP negative-path — `POST /api/v1/journal/moms-suggest` with negative `gross_minor` returns **400** (fail-closed; i64; no suggestion payload).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

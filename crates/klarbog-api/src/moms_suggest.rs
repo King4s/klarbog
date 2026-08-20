@@ -152,4 +152,35 @@ mod tests {
         let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(env.data.unwrap()["suggested"], false);
     }
+
+    /// Wave15: negative gross is fail-closed HTTP 400 (i64 path; never suggests).
+    #[tokio::test]
+    async fn moms_suggest_negative_gross_is_400() {
+        let (app, _dir, company) = app_with_company().await;
+        let body = json!({
+            "company": company.to_string_lossy(),
+            "gross_minor": -1,
+            "memo": "supplies #vat25",
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/journal/moms-suggest")
+                    .header("content-type", "application/json")
+                    .header("x-klarbog-actor-kind", "user")
+                    .header("x-klarbog-actor-id", "owner")
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
+        assert!(!env.ok);
+        assert!(env.data.is_none());
+    }
 }
