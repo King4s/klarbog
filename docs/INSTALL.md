@@ -141,7 +141,8 @@ suggestions only — no journal write), `documents_attach` / `documents_list` /
 (company-scoped metadata → `gdpr_export.json`; no binary blobs), `gdpr_erase_party`,
 `retention_purge` (dry-run/`confirm`; closed exceptions + optional orphan-doc GC;
 journal untouched), `bank_reconcile_suggest` / `bank_reconcile_apply` (`force` only
-for `user` below safe threshold), and Stripe pipelines
+for `user` below safe threshold; optional `preview:true` → ConfirmStore token),
+and Stripe pipelines
 `bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview`
 (consume → suggest / unique-safe ConfirmStore preview; no auto journal post —
 see [`docs/skills/bank-import.md`](skills/bank-import.md)).

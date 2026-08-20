@@ -68,7 +68,7 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "bank_reconcile_apply",
-            "description": "Apply bank row ↔ invoice match as journal preview suggestion (no post). force requires user actor below safe threshold.",
+            "description": "Apply bank row ↔ invoice match as journal suggestion (no post). Optional preview:true issues ConfirmStore token. force requires user actor below safe threshold.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -85,6 +85,7 @@ pub fn tools() -> Vec<Value> {
                     },
                     "row_index": {"type": "integer"},
                     "force": {"type": "boolean"},
+                    "preview": {"type": "boolean"},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}
                 },

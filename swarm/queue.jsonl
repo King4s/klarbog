@@ -123,3 +123,4 @@
 {"event":"wave23_mcp_registry_soft_split","slice":63,"status":"done","note":"registry.rs→registry/{mod,bank,ledger_ops}; soft 54/138/149; schemas unchanged; VERIFY_OK","ts":"2026-08-20T00:33:00Z"}
 {"event":"wave24_mcp_documents_exceptions","status":"done","note":"MCP documents_* + exceptions_*; VERIFY_OK","ts":"2026-08-20T00:37:00Z"}
 {"event":"wave25_mcp_invoice_lifecycle","status":"done","note":"MCP invoice_create_draft/list/patch_status; VERIFY_OK","ts":"2026-08-20T00:41:00Z"}
+{"event":"wave26_mcp_bank_reconcile_apply_preview","status":"done","note":"MCP bank_reconcile_apply preview→ConfirmStore; VERIFY_OK","ts":"2026-08-20T00:45:00Z"}

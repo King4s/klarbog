@@ -157,6 +157,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 65:** MCP `invoice_create_draft` / `invoice_list` / `invoice_patch_status` mirror HTTP `/api/v1/invoices/drafts` + `/api/v1/invoices/status` — i64 `amount_minor`; create returns suggestion-only journal_entry; **no** journal write (ADR-004). Mark-paid previews unchanged. Prompt / INSTALL / invoice-draft skill (`invoice_id` query field aligned).
 
+### Added — Wave 26 (MCP bank reconcile apply preview)
+
+- **Slice 66:** MCP `bank_reconcile_apply` optional `preview: true` mirrors HTTP ConfirmStore path — adds `confirm_token` / `expires_unix_ms` / `payload_digest`; default still suggestion-only; **no** journal commit. Prompt / INSTALL / bank-import skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

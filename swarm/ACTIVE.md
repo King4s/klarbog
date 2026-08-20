@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 25 landed** — MCP invoice draft/list/patch_status (HTTP parity)
-- Tip VERIFY_OK; continue soft-split or remaining parity holes
+- **Wave 26 landed** — MCP `bank_reconcile_apply` preview → ConfirmStore
+- Tip VERIFY_OK; continue parity holes or soft-split
 - No sister-product names in public tree

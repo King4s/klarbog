@@ -146,4 +146,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 65. MCP parity: `invoice_create_draft` / `invoice_list` / `invoice_patch_status` mirror HTTP drafts + status (i64 `amount_minor`; suggestion-only create; no journal write; mark-paid previews already present) ✅
 
+## Wave 26 — MCP bank reconcile apply preview (landed)
+
+66. MCP parity: `bank_reconcile_apply` optional `preview: true` → ConfirmStore token (same as HTTP; no journal commit) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

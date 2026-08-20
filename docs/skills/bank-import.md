@@ -144,6 +144,6 @@ Optional `preview: true` (default `false`): after building the entry, runs the s
 
 **Unsafe matches** (confidence &lt; `SAFE_THRESHOLD_BPS`): rejected unless `force: true` **and** actor is `user` (agents/system cannot force). When applied, any open `unmatched_bank_transaction` for that bank row related-id is closed.
 
-### MCP — `bank_reconcile_apply` (force path)
+### MCP — `bank_reconcile_apply` (force + optional ConfirmStore preview)
 
-Same contract as HTTP apply: args `company`, `invoice_id`, `row` / `row_index`, optional `force`. Below `SAFE_THRESHOLD_BPS`, `force: true` is accepted **only** when `actor_kind` is `user`; agents/system are rejected. Response includes `entry`, `confidence_bps`, `forced`, `exception_closed`. Does **not** post — feed `entry` into `journal_post_preview` → `journal_post_commit`. (HTTP-only: optional `preview: true` → ConfirmStore token.)
+Same contract as HTTP apply: args `company`, `invoice_id`, `row` / `row_index`, optional `force`, optional `preview` (default `false`). Below `SAFE_THRESHOLD_BPS`, `force: true` is accepted **only** when `actor_kind` is `user`; agents/system are rejected. Response includes `entry`, `confidence_bps`, `forced`, `exception_closed`. With `preview: true`, also `confirm_token`, `expires_unix_ms`, `payload_digest` (same ConfirmStore path as `journal_post_preview`) so the client can `journal_post_commit` without a separate preview. Still does **not** post.

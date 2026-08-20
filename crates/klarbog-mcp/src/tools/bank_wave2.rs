@@ -2,6 +2,8 @@
 
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
 use chrono::{DateTime, NaiveDate, Utc};
+use klarbog_core::{journal_preview, ConfirmStore};
+use klarbog_plugin::Registry;
 use klarbog_plugin_bank::{
     apply_match, consume_stripe_webhook_queue, default_source_for_rail, import_preview,
     list_unmatched_bank_exceptions, refresh_access_token, suggest_matches,
@@ -185,8 +187,13 @@ pub async fn bank_stripe_consume(args: &Value, allowlist_root: &Path) -> Envelop
     }
 }
 
-/// Mirror POST /api/v1/bank/reconcile/apply — journal preview only (no post).
-pub async fn bank_reconcile_apply(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+/// Mirror POST /api/v1/bank/reconcile/apply — suggestion; optional ConfirmStore (`preview`).
+pub async fn bank_reconcile_apply(
+    args: &Value,
+    allowlist_root: &Path,
+    store: &ConfirmStore,
+    registry: &Registry,
+) -> Envelope<Value> {
     let actor = match parse_actor(args) {
         Ok(a) => a,
         Err(e) => return Envelope::err([e]),
@@ -200,6 +207,10 @@ pub async fn bank_reconcile_apply(args: &Value, allowlist_root: &Path) -> Envelo
         _ => return Envelope::err(["missing invoice_id"]),
     };
     let force = args.get("force").and_then(|v| v.as_bool()).unwrap_or(false);
+    let preview = args
+        .get("preview")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let (row, row_index) = match parse_row_fields(args) {
         Ok(r) => r,
         Err(e) => return Envelope::err([e]),
@@ -208,16 +219,37 @@ pub async fn bank_reconcile_apply(args: &Value, allowlist_root: &Path) -> Envelo
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    match apply_match(&path, &row, &invoice_id, &actor, force, row_index) {
-        Ok(applied) => Envelope::ok(json!({
-            "entry": applied.entry,
-            "confidence_bps": applied.confidence_bps,
-            "forced": applied.forced,
-            "exception_closed": applied.exception_closed.as_ref().map(|e| e.id.to_string()),
-            "invoice_id": invoice_id,
-        })),
-        Err(e) => map_reconcile(e),
+    let applied = match apply_match(&path, &row, &invoice_id, &actor, force, row_index) {
+        Ok(a) => a,
+        Err(e) => return map_reconcile(e),
+    };
+    let mut data = json!({
+        "entry": applied.entry,
+        "confidence_bps": applied.confidence_bps,
+        "forced": applied.forced,
+        "exception_closed": applied.exception_closed.as_ref().map(|e| e.id.to_string()),
+        "invoice_id": invoice_id,
+    });
+    if !preview {
+        return Envelope::ok(data);
     }
+    let confirm = match journal_preview(
+        allowlist_root,
+        &company,
+        &applied.entry,
+        &actor,
+        store,
+        registry,
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    data["confirm_token"] = Value::String(confirm.confirm_token.token.clone());
+    data["expires_unix_ms"] = json!(confirm.confirm_token.expires_unix_ms);
+    data["payload_digest"] = Value::String(confirm.payload_digest);
+    Envelope::ok_with_rules(data, confirm.applied_rules)
 }
 
 /// Mirror POST /api/v1/revolut/oauth/refresh — never echo tokens.

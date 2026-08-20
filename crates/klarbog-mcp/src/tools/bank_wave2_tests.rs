@@ -3,7 +3,7 @@
 use super::{
     bank_reconcile_apply, bank_reconcile_suggest, bank_stripe_consume, revolut_oauth_refresh,
 };
-use klarbog_core::init_company;
+use klarbog_core::{default_registry, init_company, ConfirmStore};
 use klarbog_plugin_bank::{
     ingest_stripe_webhook, save_revolut_tokens, sign_test_payload, RevolutStoredTokens,
     StripeWebhookConfig, STRIPE_WEBHOOKS_CONSUMED,
@@ -154,12 +154,57 @@ async fn mcp_reconcile_apply_returns_entry() {
         "actor_kind": "user",
         "actor_id": "owner",
     });
-    let env = bank_reconcile_apply(&args, dir.path()).await;
+    let store = ConfirmStore::default();
+    let registry = default_registry();
+    let env = bank_reconcile_apply(&args, dir.path(), &store, &registry).await;
     assert!(env.ok);
     let data = env.data.unwrap();
     assert!(data["entry"]["memo"].as_str().unwrap().contains("bank:"));
     assert!(data["entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
     assert_eq!(data["forced"], false);
+    assert!(data.get("confirm_token").is_none());
+}
+
+#[tokio::test]
+async fn mcp_reconcile_apply_preview_issues_confirm_token() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&company_path, None, "Nordic Supply".into()).unwrap();
+    let inv = create_draft_from_new(
+        &company_path,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Widgets".into(),
+            amount_minor: 50_000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    let args = json!({
+        "company": company_path.to_string_lossy(),
+        "invoice_id": inv.id.to_string(),
+        "preview": true,
+        "row": {
+            "date": "2026-05-20",
+            "text": "Customer payment Nordic Supply consulting",
+            "amount_minor": 50000
+        },
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let store = ConfirmStore::default();
+    let registry = default_registry();
+    let env = bank_reconcile_apply(&args, dir.path(), &store, &registry).await;
+    assert!(env.ok);
+    let data = env.data.unwrap();
+    assert!(data["entry"]["memo"].as_str().unwrap().contains("bank:"));
+    let token = data["confirm_token"].as_str().unwrap();
+    assert!(!token.is_empty());
+    assert!(data["expires_unix_ms"].as_u64().unwrap() > 0);
+    assert_eq!(data["payload_digest"].as_str().unwrap().len(), 64);
 }
 
 #[tokio::test]

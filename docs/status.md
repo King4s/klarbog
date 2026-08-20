@@ -10,5 +10,7 @@ updated: "2026-08-20"
 
 Branch `rust-dev`. DEV-only.
 
-Wave 24: MCP documents + exceptions parity. Product AI prompt: `docs/agent-setup/prompt.md`.
+Wave 26: MCP `bank_reconcile_apply` optional `preview: true` → ConfirmStore
+token (HTTP parity; no journal commit). Product AI prompt:
+`docs/agent-setup/prompt.md`.
 Gate: `./scripts/verify.sh` → `VERIFY_OK`.

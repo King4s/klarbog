@@ -49,9 +49,12 @@ pub fn handle_tool_call(
         "bank_reconcile_suggest" => {
             rt.block_on(bank_wave2::bank_reconcile_suggest(args, allowlist_root))
         }
-        "bank_reconcile_apply" => {
-            rt.block_on(bank_wave2::bank_reconcile_apply(args, allowlist_root))
-        }
+        "bank_reconcile_apply" => rt.block_on(bank_wave2::bank_reconcile_apply(
+            args,
+            allowlist_root,
+            store,
+            registry,
+        )),
         "revolut_oauth_refresh" => {
             rt.block_on(bank_wave2::revolut_oauth_refresh(args, allowlist_root))
         }
