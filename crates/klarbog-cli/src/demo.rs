@@ -1,8 +1,8 @@
-//! Agent demo smoke path (slice 8 + 28 + wave11) — temp company, no network.
+//! Agent demo smoke path (slice 8 + 28 / wave33) — temp company, offline, no live Revolut keys.
 
 use klarbog_core::init_company;
 use klarbog_plugin_bank::{
-    draft_entries_from_rows, parse_bank_csv, parse_revolut_csv, BankImportConfig,
+    import_preview, BankImportConfig, BankImportError, BankImportSource, BankProfile,
 };
 use klarbog_plugin_crm::CrmPlugin;
 use klarbog_plugin_invoice::{
@@ -42,11 +42,32 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
     suggestion.validate()?;
 
     let cfg = BankImportConfig::default();
-    let dk_rows = parse_bank_csv(DK_BANK_FIXTURE)?;
-    let dk_drafts = draft_entries_from_rows(&dk_rows, &cfg, &actor)?;
+    let (_, dk_drafts) = import_preview(
+        BankImportSource::Csv,
+        BankProfile::GenericDk,
+        Some(DK_BANK_FIXTURE),
+        &cfg,
+        &actor,
+        None,
+    )
+    .await?;
 
-    let revolut_rows = parse_revolut_csv(REVOLUT_FIXTURE, Some(&cfg.currency))?;
-    let revolut_drafts = draft_entries_from_rows(&revolut_rows, &cfg, &actor)?;
+    // Offline Revolut: CSV fixture via import_preview — never requires live API keys.
+    let (_, revolut_drafts) = import_preview(
+        BankImportSource::Csv,
+        BankProfile::Revolut,
+        Some(REVOLUT_FIXTURE),
+        &cfg,
+        &actor,
+        None,
+    )
+    .await?;
+
+    // Fail-closed without live keys: API source with no env token / company secrets
+    // errors before any network call. If a process token is already set, skip the
+    // live probe so demo stays offline-friendly.
+    let revolut_api_fail_closed_without_keys =
+        probe_revolut_api_fail_closed_without_keys(&cfg, &actor).await;
 
     patch_status(&company_path, &invoice.id, InvoiceStatus::Sent)?;
     let part_amount = 4_000;
@@ -81,6 +102,9 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
         "journal_suggestion_legs": suggestion.legs.len(),
         "bank_draft_count_generic_dk": dk_drafts.len(),
         "bank_draft_count_revolut": revolut_drafts.len(),
+        "revolut_import_source": "csv",
+        "revolut_requires_live_keys": false,
+        "revolut_api_fail_closed_without_keys": revolut_api_fail_closed_without_keys,
         "gdpr_parties": gdpr.parties.len(),
         "gdpr_invoices": gdpr.invoices.len(),
         "retention_retain_days": retention.retain_days,
@@ -93,16 +117,43 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
     }))
 }
 
+/// When `KLARBOG_REVOLUT_API_TOKEN` is unset/blank, API import must fail closed (Config) with no network.
+/// When a token is already in the process env, return true without calling live API (demo stays offline).
+async fn probe_revolut_api_fail_closed_without_keys(cfg: &BankImportConfig, actor: &Actor) -> bool {
+    let has_token = std::env::var("KLARBOG_REVOLUT_API_TOKEN")
+        .ok()
+        .is_some_and(|v| !v.trim().is_empty());
+    if has_token {
+        return true;
+    }
+    matches!(
+        import_preview(
+            BankImportSource::Api,
+            BankProfile::Revolut,
+            None,
+            cfg,
+            actor,
+            None,
+        )
+        .await,
+        Err(BankImportError::Config(_))
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn agent_demo_smoke() {
+        let _token_guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
         let data = run_agent_demo().await.expect("demo");
         assert_eq!(data["journal_suggestion_legs"], 2);
         assert_eq!(data["bank_draft_count_generic_dk"], 3);
         assert_eq!(data["bank_draft_count_revolut"], 3);
+        assert_eq!(data["revolut_import_source"], "csv");
+        assert_eq!(data["revolut_requires_live_keys"], false);
+        assert_eq!(data["revolut_api_fail_closed_without_keys"], true);
         assert_eq!(data["invoice_status"], "part_paid");
         assert_eq!(data["part_paid_amount_minor"], 4_000);
         assert_eq!(data["part_paid_journal_legs"], 2);
@@ -116,5 +167,28 @@ mod tests {
         assert_eq!(data["moms_suggest_legs"], 2);
         assert_eq!(data["moms_suggest_auto_post"], false);
         assert_eq!(data["moms_suggest_optional_none"], true);
+    }
+
+    struct EnvGuard {
+        key: &'static str,
+        prev: Option<String>,
+    }
+
+    impl EnvGuard {
+        fn unset(key: &'static str) -> Self {
+            let prev = std::env::var(key).ok();
+            // SAFETY: demo smoke only; restore on drop.
+            unsafe { std::env::remove_var(key) };
+            Self { key, prev }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            match &self.prev {
+                Some(v) => unsafe { std::env::set_var(self.key, v) },
+                None => unsafe { std::env::remove_var(self.key) },
+            }
+        }
     }
 }

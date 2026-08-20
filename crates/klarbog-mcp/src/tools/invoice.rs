@@ -262,7 +262,6 @@ pub async fn invoice_mark_part_paid_preview(
     Envelope::ok_with_rules(data, confirm.applied_rules)
 }
 
-
 #[cfg(test)]
 #[path = "invoice_tests.rs"]
 mod tests;

@@ -12,7 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 32: OAuth/MCP env-lock hardening
-(crate-wide ENV_TEST_LOCK held through await; stripe premature unlock fixed).
+Wave 33 demo Revolut (`wave33_demo_revolut` / ROADMAP 28): `klarbog demo`
+offline CSV + API fail-closed without live keys.
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

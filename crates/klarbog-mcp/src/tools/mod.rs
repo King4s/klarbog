@@ -93,14 +93,12 @@ pub fn handle_tool_call(
             store,
             registry,
         )),
-        "invoice_mark_part_paid_preview" => {
-            rt.block_on(invoice::invoice_mark_part_paid_preview(
-                args,
-                allowlist_root,
-                store,
-                registry,
-            ))
-        }
+        "invoice_mark_part_paid_preview" => rt.block_on(invoice::invoice_mark_part_paid_preview(
+            args,
+            allowlist_root,
+            store,
+            registry,
+        )),
         "journal_post_preview" => rt.block_on(journal::journal_post_preview(
             args,
             allowlist_root,

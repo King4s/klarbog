@@ -32,6 +32,8 @@ mod documents_tests;
 #[cfg(test)]
 mod invoice_lifecycle_http_tests;
 #[cfg(test)]
+mod invoice_lifecycle_preview_http_tests;
+#[cfg(test)]
 mod retention_erase_http_tests;
 #[cfg(test)]
 mod retention_tests;

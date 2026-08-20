@@ -37,7 +37,7 @@ Owner add-ons: Cloudflare EU (R2); Revolut **API**; Stripe **API**.
 25. GDPR **party erasure** dry-run/confirm (metadata + optional R2 delete; keep journal immutable)
 26. rules-dk: VAT **split suggestion** (i64 minor + bps; no f64) for moms 25/0
 27. Reconcile apply optional `preview: true` → ConfirmStore token (wire to journal commit)
-28. `klarbog demo` covers wave2/3 surfaces (drop Revolut skip TODO)
+28. `klarbog demo` covers wave2/3 surfaces (drop Revolut skip TODO) ✅
 29. CHANGELOG + agent-setup prompt refresh for wave3
 
 ## Wave 4 — deepen (after wave3)
@@ -171,8 +171,17 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 71. Soft-split `klarbog-plugin-retention/src/erase.rs` (290) → `erase_tests.rs` (under soft 300; journal immutable / erase behavior unchanged) ✅
 
 
-## Wave 32 — OAuth/MCP env-lock hardening (landed)
+## Wave 32 — OAuth env-lock + invoice ConfirmStore preview (landed)
 
 72. Env-mutating Revolut/Stripe/OAuth MCP+API+plugin tests hold crate-wide `ENV_TEST_LOCK` (tokio Mutex) until after async calls complete; stripe webhook premature unlock fixed ✅
+73. Invoice mark-paid / mark-part-paid optional `preview:true` → ConfirmStore (HTTP+MCP; default suggestion-only; no auto journal commit; soft-split preview HTTP tests) ✅
+
+## Wave 33 — soft linegate headroom (landed)
+
+74. Soft-split `klarbog-api` `bank_http_tests.rs` (293) → `bank_http_tests` + `bank_http_env_tests` via `#[path]` on `bank.rs` (under soft 300; behavior unchanged) ✅
+
+## Wave 34 — soft-split verify (landed)
+
+75. Verify wave33 `bank_http_tests` + `bank_http_env_tests` soft-split (soft <300; behavior unchanged; VERIFY_OK) ✅
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

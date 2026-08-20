@@ -147,5 +147,8 @@ pub async fn preview(
 }
 
 #[cfg(test)]
+#[path = "bank_http_env_tests.rs"]
+mod http_env_tests;
+#[cfg(test)]
 #[path = "bank_http_tests.rs"]
 mod http_tests;

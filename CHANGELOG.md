@@ -64,8 +64,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - **Slice 25:** GDPR **party erasure** — `erase_party` dry-run/`confirm`; anonymize `display_name`→`erased`; strip doc `party_id` or `--delete-documents`; `journal_refs_retained`; export `note`; `POST /api/v1/gdpr/erase-party`; CLI `klarbog gdpr-erase-party`.
 - **Slice 26:** rules-dk VAT **split** — i64 minor + bps (`dk.vat.split_hint`); inclusive 25%/0 helpers.
 - **Slice 27:** Reconcile apply optional `preview: true` → ConfirmStore `confirm_token` (wire to journal commit).
+- **Slice 28:** `klarbog demo` covers wave2/3 surfaces offline — CRM + journal, Revolut **CSV** via `import_preview` (no live keys, no Revolut skip TODO), sent→part_paid + remaining ledger, GDPR export, retention get; Revolut **API** without `KLARBOG_REVOLUT_API_TOKEN` fail-closed (`Config`) before any network call.
 - **Slice 29:** CHANGELOG + [`docs/agent-setup/prompt.md`](docs/agent-setup/prompt.md) + INSTALL refreshed for wave2/wave3 HTTP+MCP surface.
-- Remaining: demo CLI coverage — see [`swarm/ROADMAP.md`](swarm/ROADMAP.md).
 
 ### Added — Wave 4 (deepen)
 
@@ -100,6 +100,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 ### Added — Wave 11 (demo polish)
 
 - **`klarbog demo`:** covers optional moms-suggest (`#vat25` → net 10000 / vat 2500 i64 legs; no tag → none; `auto_post` always false).
+
+### Changed — demo Revolut offline (ROADMAP 28 / `wave33_demo_revolut`)
+
+- **`klarbog demo`:** wave2/3 smoke stays fail-closed and offline-friendly — Revolut via CSV `import_preview` (no live keys, no skip TODO); API without `KLARBOG_REVOLUT_API_TOKEN` returns `Config` before any network call.
 
 ### Added — Wave 12 (hygiene)
 
@@ -184,6 +188,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 ### Fixed — Wave 32 (OAuth/MCP env-lock)
 
 - **Slice 72:** Crate-wide `ENV_TEST_LOCK` held through async Revolut/Stripe/OAuth MCP+API+plugin tests; stripe webhook test no longer drops lock before await (parallel VERIFY flake).
+
+### Added — Wave 32 (invoice mark-paid ConfirmStore preview)
+
+- **Slice 73:** HTTP `POST /api/v1/invoices/mark-paid` + `mark-part-paid` and MCP
+  `invoice_mark_paid_preview` / `invoice_mark_part_paid_preview` accept optional
+  `preview: true` → ConfirmStore `confirm_token` / `expires_unix_ms` /
+  `payload_digest` (same path as journal preview / bank reconcile apply). Default
+  remains suggestion-only; **never** auto-commits journal. i64 money. Soft-split
+  preview HTTP tests → `invoice_lifecycle_preview_http_tests.rs`. Prompt /
+  INSTALL / invoice-draft skill.
+
+### Changed — Wave 33 (soft linegate headroom)
+
+- **Slice 74:** Soft-split `klarbog-api` `bank_http_tests.rs` (293 non-blank) →
+  CSV/currency/AuthZ tests + `bank_http_env_tests.rs` (missing-env fail-closed);
+  both under soft 300; behavior unchanged.
+
+### Changed — Wave 34 (soft-split verify)
+
+- Verified wave33 bank import HTTP soft-split (`bank_http_tests` + `bank_http_env_tests` via `#[path]` on `bank.rs`); soft <300; coverage unchanged; VERIFY_OK.
 
 ### Added — tooling
 
