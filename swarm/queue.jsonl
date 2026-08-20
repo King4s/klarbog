@@ -104,3 +104,5 @@
 {"event":"wave11_demo_moms_suggest","slice":51,"status":"done","note":"klarbog demo moms_post_suggestion #vat25 i64 legs + optional-none; auto_post false; VERIFY pending","ts":"2026-08-20T00:04:44Z"}
 {"event":"wave11_demo_moms_suggest","slice":51,"status":"done","note":"klarbog demo moms_post_suggestion #vat25 i64 legs + optional-none; auto_post false; VERIFY_OK","ts":"2026-08-20T00:05:00Z"}
 {"event":"wave12_gitignore_scratch_markers","status":"done","note":"gitignore wave*.md docs/status-*.md /status/; VERIFY_OK","ts":"2026-08-20T00:06:00Z"}
+{"event": "wave13_env_example_packaging", "slice": 53, "status": "done", "note": "Klarbog-native .env.example (KLARBOG_*); README/INSTALL/DEVELOPER links; no sister-product env / host paths; i64 money unchanged; VERIFY pending", "ts": "2026-08-20T00:08:13Z"}
+{"event": "wave13_env_example_packaging", "slice": 53, "status": "done", "note": "Klarbog-native .env.example (KLARBOG_*); README/INSTALL/DEVELOPER links; no sister-product env / host paths; VERIFY_OK", "ts": "2026-08-20T00:08:28Z"}

@@ -94,4 +94,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 52. Ignore autonomous scratch `/wave*.md`, `docs/status-*.md`, `/status/` (canonical `STATUS.md` / `docs/status.md` kept) ✅
 
+## Wave 13 — packaging env polish (landed)
+
+53. Replace upstream-shaped `.env.example` with Klarbog `KLARBOG_*` template; link from README / INSTALL / DEVELOPER (no sister-product env names, no absolute host paths) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

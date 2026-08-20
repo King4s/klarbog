@@ -60,9 +60,11 @@ Penge er `i64` minor units (øre) — aldrig `f64`. Dobbelt bogholderi er obliga
 cargo build --workspace
 ./scripts/verify.sh
 cargo run -p klarbog-cli -- demo
+# optional release bundle + sha256: ./scripts/package-dev.sh
 ```
 
-**Installér og kør (API / MCP / CLI, env vars, R2):** [`docs/INSTALL.md`](docs/INSTALL.md)
+Env template (no secrets): [`.env.example`](.env.example).  
+**Installér og kør (API / MCP / CLI, env vars, R2, packaging):** [`docs/INSTALL.md`](docs/INSTALL.md)
 
 ## Mere
 

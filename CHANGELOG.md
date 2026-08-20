@@ -105,6 +105,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **`.gitignore`:** scratch markers `/wave*.md`, `docs/status-*.md`, `/status/` (keeps `STATUS.md` + `docs/status.md`; `slice-*.md` already ignored).
 
+### Added — Wave 13 (packaging docs)
+
+- **`.env.example`:** Klarbog-native `KLARBOG_*` template (allowlist, Revolut, Stripe, R2, package-dev); no upstream product env names or host paths. README / INSTALL / DEVELOPER link the template + `package-dev.sh`.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

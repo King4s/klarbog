@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 12 landed** — gitignore autonomous scratch markers (wave*/docs/status-*)
-- Tip VERIFY_OK; continue packaging/MCP polish on request
-- No sister-product names in public tree
+- **Wave 13 landed** — Klarbog-native `.env.example` (KLARBOG_* only)
+- Tip VERIFY_OK; continue soft-split/MCP polish on request
+- No sister-product names or absolute host paths in public tree

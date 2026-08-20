@@ -9,10 +9,12 @@ git checkout rust-dev
 ./scripts/verify.sh   # forvent VERIFY_OK
 cargo build -p klarbog-mcp --release
 cargo run -p klarbog-cli -- demo
+# optional: ./scripts/package-dev.sh   # dist/ + sha256; then ./scripts/contract-smoke.sh
 ```
 
-Skills under `docs/skills/`. ADR under `docs/adr/`. Swarm: `swarm/ROADMAP.md`.  
-DEV only. Penge = i64. Journal = to-fase confirm.
+Env names: root [`.env.example`](../../.env.example) (Klarbog `KLARBOG_*` only).  
+Skills under `docs/skills/` (incl. `moms-suggest.md`). ADR under `docs/adr/`.  
+Swarm: `swarm/ROADMAP.md`. DEV only. Penge = i64. Journal = to-fase confirm.
 
 Klarbog er en Rust-port af [Rentemester](https://github.com/mikkelkrogsholm/rentemester)
 (Mikkel Krogsholm m.fl., MIT) — se root `README.md` / `NOTICE`.

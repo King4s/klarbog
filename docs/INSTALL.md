@@ -11,6 +11,9 @@ Build from the `rust-dev` branch unless release tags say otherwise.
 - Optional: Revolut Business API token and/or OAuth client, Stripe secret key +
   webhook secret, Cloudflare R2 credentials
 
+Copy [`.env.example`](../.env.example) for documented `KLARBOG_*` names (leave values
+empty for offline CSV / local disk). Never commit a filled `.env`.
+
 ## Clone and build
 
 ```bash
