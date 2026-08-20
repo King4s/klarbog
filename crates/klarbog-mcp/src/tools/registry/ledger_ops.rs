@@ -75,6 +75,65 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "invoice_create_draft",
+            "description": "Create invoice draft (sale|purchase lines with i64 amount_minor) and return journal suggestion with party_id (no post)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "party_id": {"type": "string"},
+                    "kind": {"type": "string", "enum": ["sale", "purchase"]},
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "description": {"type": "string"},
+                                "amount_minor": {"type": "integer"},
+                                "currency": {"type": "string"}
+                            },
+                            "required": ["description", "amount_minor", "currency"]
+                        }
+                    },
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "party_id", "kind", "lines", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_list",
+            "description": "List invoices, or get one when invoice_id is set (read-only)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_patch_status",
+            "description": "Patch invoice lifecycle status (draft|sent|part_paid|paid|void); no journal write",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "status": {
+                        "type": "string",
+                        "enum": ["draft", "sent", "part_paid", "paid", "void"]
+                    },
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "invoice_id", "status", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
             "name": "invoice_mark_paid_preview",
             "description": "Mark invoice paid for remaining balance (payment ledger) and return payment journal suggestion with party_id (no post). Rejects when remaining is 0.",
             "inputSchema": {

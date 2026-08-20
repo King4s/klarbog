@@ -12,6 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 24: MCP documents + exceptions parity (`documents_*` / `exceptions_*`; no journal write).
+Wave 25: MCP invoice lifecycle parity (`invoice_create_draft` / `invoice_list` /
+`invoice_patch_status`; mark-paid previews already present; no journal write).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

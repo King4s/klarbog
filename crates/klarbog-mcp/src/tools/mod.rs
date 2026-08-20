@@ -71,6 +71,9 @@ pub fn handle_tool_call(
         "backup_manifest" => rt.block_on(retention::backup_manifest(args, allowlist_root)),
         "gdpr_export" => rt.block_on(retention::gdpr_export(args, allowlist_root)),
         "gdpr_erase_party" => rt.block_on(retention::gdpr_erase_party(args, allowlist_root)),
+        "invoice_create_draft" => rt.block_on(invoice::invoice_create_draft(args, allowlist_root)),
+        "invoice_list" => rt.block_on(invoice::invoice_list(args, allowlist_root)),
+        "invoice_patch_status" => rt.block_on(invoice::invoice_patch_status(args, allowlist_root)),
         "invoice_mark_paid_preview" => {
             rt.block_on(invoice::invoice_mark_paid_preview(args, allowlist_root))
         }

@@ -1,0 +1,214 @@
+use super::*;
+use klarbog_core::init_company;
+use klarbog_plugin_crm::upsert_party;
+use klarbog_types::Actor;
+use serde_json::json;
+use tempfile::tempdir;
+
+#[tokio::test]
+async fn mcp_invoice_create_list_patch_status() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+
+    let create = invoice_create_draft(
+        &json!({
+            "company": co.to_string_lossy(),
+            "party_id": party.id.to_string(),
+            "kind": "sale",
+            "lines": [{
+                "description": "Item",
+                "amount_minor": 12_500,
+                "currency": "DKK"
+            }],
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(create.ok, "{create:?}");
+    let data = create.data.unwrap();
+    assert_eq!(data["invoice"]["status"], "draft");
+    assert_eq!(data["invoice"]["lines"][0]["amount_minor"], 12_500);
+    assert!(data["journal_entry"]["legs"].as_array().unwrap().len() >= 2);
+    let invoice_id = data["invoice"]["id"].as_str().unwrap().to_string();
+
+    let listed = invoice_list(
+        &json!({
+            "company": co.to_string_lossy(),
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(listed.ok, "{listed:?}");
+    assert_eq!(listed.data.unwrap().as_array().unwrap().len(), 1);
+
+    let one = invoice_list(
+        &json!({
+            "company": co.to_string_lossy(),
+            "invoice_id": invoice_id,
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(one.ok, "{one:?}");
+    assert_eq!(one.data.unwrap()["id"], invoice_id);
+
+    let patched = invoice_patch_status(
+        &json!({
+            "company": co.to_string_lossy(),
+            "invoice_id": invoice_id,
+            "status": "sent",
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(patched.ok, "{patched:?}");
+    assert_eq!(patched.data.unwrap()["status"], "sent");
+}
+
+#[tokio::test]
+async fn mcp_invoice_create_rejects_non_positive_amount() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let env = invoice_create_draft(
+        &json!({
+            "company": co.to_string_lossy(),
+            "party_id": party.id.to_string(),
+            "kind": "sale",
+            "lines": [{
+                "description": "Bad",
+                "amount_minor": 0,
+                "currency": "DKK"
+            }],
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(!env.ok);
+}
+
+#[tokio::test]
+async fn mcp_invoice_authz_denied() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let env = invoice_list(
+        &json!({
+            "company": co.to_string_lossy(),
+            "actor_kind": "agent",
+            "actor_id": "stranger",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(!env.ok);
+}
+
+#[tokio::test]
+async fn mcp_mark_paid_preview() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let invoice = create_draft_from_new(
+        &co,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Item".into(),
+            amount_minor: 1000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
+    let args = json!({
+        "company": co.to_string_lossy(),
+        "invoice_id": invoice.id.to_string(),
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let env = invoice_mark_paid_preview(&args, dir.path()).await;
+    assert!(env.ok);
+    let data = env.data.unwrap();
+    assert_eq!(data["invoice"]["status"], "paid");
+    assert!(data["journal_entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
+}
+
+#[tokio::test]
+async fn mcp_mark_part_paid_preview() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let invoice = create_draft_from_new(
+        &co,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Item".into(),
+            amount_minor: 10_000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
+    let args = json!({
+        "company": co.to_string_lossy(),
+        "invoice_id": invoice.id.to_string(),
+        "amount_minor": 3_000,
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let env = invoice_mark_part_paid_preview(&args, dir.path()).await;
+    assert!(env.ok);
+    let data = env.data.unwrap();
+    assert_eq!(data["invoice"]["status"], "part_paid");
+    assert_eq!(data["invoice"]["payments"].as_array().unwrap().len(), 1);
+    assert!(data["journal_entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
+    let amount = &data["journal_entry"]["legs"][0]["amount"];
+    let units = amount
+        .as_i64()
+        .or_else(|| amount.get("units").and_then(|u| u.as_i64()));
+    assert_eq!(units, Some(3_000));
+
+    let paid_args = json!({
+        "company": co.to_string_lossy(),
+        "invoice_id": invoice.id.to_string(),
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let paid_env = invoice_mark_paid_preview(&paid_args, dir.path()).await;
+    assert!(paid_env.ok);
+    let paid = paid_env.data.unwrap();
+    assert_eq!(paid["invoice"]["status"], "paid");
+    assert_eq!(paid["invoice"]["payments"].as_array().unwrap().len(), 2);
+    let rem = &paid["journal_entry"]["legs"][0]["amount"];
+    let rem_units = rem
+        .as_i64()
+        .or_else(|| rem.get("units").and_then(|u| u.as_i64()));
+    assert_eq!(rem_units, Some(7_000));
+}

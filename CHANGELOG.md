@@ -153,6 +153,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 64:** MCP `documents_attach` / `documents_list` / `documents_delete` + `exceptions_raise` / `exceptions_list` / `exceptions_set_open` mirror HTTP `/api/v1/documents` and `/api/v1/exceptions` — AuthZ + allowlist; relative `path_hint`; optional `content_base64`; **no** journal write (ADR-004/007). Prompt / INSTALL / documents-exceptions skill.
 
+### Added — Wave 25 (MCP invoice lifecycle)
+
+- **Slice 65:** MCP `invoice_create_draft` / `invoice_list` / `invoice_patch_status` mirror HTTP `/api/v1/invoices/drafts` + `/api/v1/invoices/status` — i64 `amount_minor`; create returns suggestion-only journal_entry; **no** journal write (ADR-004). Mark-paid previews unchanged. Prompt / INSTALL / invoice-draft skill (`invoice_id` query field aligned).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

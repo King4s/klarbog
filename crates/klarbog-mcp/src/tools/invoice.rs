@@ -1,15 +1,138 @@
-//! Invoice lifecycle MCP tools (read-only journal preview).
+//! Invoice MCP tools — drafts, status, mark-paid previews (no journal write).
 
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
 use klarbog_plugin_invoice::{
-    mark_paid_preview, mark_part_paid_preview, InvoiceConfig, InvoiceError, InvoiceId,
+    create_draft_from_new, get_invoice, journal_suggestion, list_invoices, mark_paid_preview,
+    mark_part_paid_preview, patch_status, InvoiceConfig, InvoiceError, InvoiceId, InvoiceKind,
+    InvoiceStatus, NewLine,
 };
-use klarbog_types::Envelope;
+use klarbog_types::{Envelope, PartyId};
 use serde_json::{json, Value};
 use std::path::Path;
 
 fn map_invoice(err: InvoiceError) -> Envelope<Value> {
     Envelope::err([err.to_string()])
+}
+
+fn parse_invoice_id(args: &Value) -> Result<InvoiceId, &'static str> {
+    match args.get("invoice_id").and_then(|v| v.as_str()) {
+        Some(id) if !id.is_empty() => Ok(InvoiceId::new(id)),
+        _ => Err("missing invoice_id"),
+    }
+}
+
+/// Mirror POST /api/v1/invoices/drafts — create draft + journal suggestion (no post).
+pub async fn invoice_create_draft(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+    let actor = match parse_actor(args) {
+        Ok(a) => a,
+        Err(e) => return Envelope::err([e]),
+    };
+    let company = match parse_company(args) {
+        Ok(c) => c,
+        Err(e) => return Envelope::err([e]),
+    };
+    let party_id = match args.get("party_id").and_then(|v| v.as_str()) {
+        Some(id) if !id.is_empty() => PartyId::new(id.to_string()),
+        _ => return Envelope::err(["missing party_id"]),
+    };
+    let kind: InvoiceKind = match args.get("kind") {
+        Some(v) => match serde_json::from_value(v.clone()) {
+            Ok(k) => k,
+            Err(_) => return Envelope::err(["invalid kind (expected sale|purchase)"]),
+        },
+        None => return Envelope::err(["missing kind"]),
+    };
+    let lines: Vec<NewLine> = match args.get("lines") {
+        Some(v) => match serde_json::from_value(v.clone()) {
+            Ok(lines) => lines,
+            Err(_) => {
+                return Envelope::err([
+                    "invalid lines (need description, amount_minor i64, currency)",
+                ])
+            }
+        },
+        None => return Envelope::err(["missing lines"]),
+    };
+    let path = match authorize_company(allowlist_root, &company, &actor).await {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    let invoice = match create_draft_from_new(&path, party_id, kind, lines) {
+        Ok(inv) => inv,
+        Err(e) => return map_invoice(e),
+    };
+    match journal_suggestion(&invoice, &actor, &InvoiceConfig::default()) {
+        Ok(journal_entry) => Envelope::ok(json!({
+            "invoice": invoice,
+            "journal_entry": journal_entry,
+        })),
+        Err(e) => map_invoice(e),
+    }
+}
+
+/// Mirror GET /api/v1/invoices/drafts — list all, or one when `invoice_id` set.
+pub async fn invoice_list(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+    let actor = match parse_actor(args) {
+        Ok(a) => a,
+        Err(e) => return Envelope::err([e]),
+    };
+    let company = match parse_company(args) {
+        Ok(c) => c,
+        Err(e) => return Envelope::err([e]),
+    };
+    let path = match authorize_company(allowlist_root, &company, &actor).await {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    if let Some(raw_id) = args
+        .get("invoice_id")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+    {
+        let id = InvoiceId::new(raw_id);
+        return match get_invoice(&path, &id) {
+            Ok(Some(invoice)) => Envelope::ok(serde_json::to_value(invoice).unwrap()),
+            Ok(None) => Envelope::err([format!("invoice not found: {id}")]),
+            Err(e) => map_invoice(e),
+        };
+    }
+    match list_invoices(&path) {
+        Ok(invoices) => Envelope::ok(serde_json::to_value(invoices).unwrap()),
+        Err(e) => map_invoice(e),
+    }
+}
+
+/// Mirror PATCH /api/v1/invoices/status — lifecycle status only (no journal write).
+pub async fn invoice_patch_status(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+    let actor = match parse_actor(args) {
+        Ok(a) => a,
+        Err(e) => return Envelope::err([e]),
+    };
+    let company = match parse_company(args) {
+        Ok(c) => c,
+        Err(e) => return Envelope::err([e]),
+    };
+    let invoice_id = match parse_invoice_id(args) {
+        Ok(id) => id,
+        Err(e) => return Envelope::err([e]),
+    };
+    let status: InvoiceStatus = match args.get("status") {
+        Some(v) => match serde_json::from_value(v.clone()) {
+            Ok(s) => s,
+            Err(_) => {
+                return Envelope::err(["invalid status (expected draft|sent|part_paid|paid|void)"])
+            }
+        },
+        None => return Envelope::err(["missing status"]),
+    };
+    let path = match authorize_company(allowlist_root, &company, &actor).await {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    match patch_status(&path, &invoice_id, status) {
+        Ok(invoice) => Envelope::ok(serde_json::to_value(invoice).unwrap()),
+        Err(e) => map_invoice(e),
+    }
 }
 
 pub async fn invoice_mark_paid_preview(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
@@ -21,9 +144,9 @@ pub async fn invoice_mark_paid_preview(args: &Value, allowlist_root: &Path) -> E
         Ok(c) => c,
         Err(e) => return Envelope::err([e]),
     };
-    let invoice_id = match args.get("invoice_id").and_then(|v| v.as_str()) {
-        Some(id) if !id.is_empty() => InvoiceId::new(id),
-        _ => return Envelope::err(["missing invoice_id"]),
+    let invoice_id = match parse_invoice_id(args) {
+        Ok(id) => id,
+        Err(e) => return Envelope::err([e]),
     };
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
@@ -50,9 +173,9 @@ pub async fn invoice_mark_part_paid_preview(
         Ok(c) => c,
         Err(e) => return Envelope::err([e]),
     };
-    let invoice_id = match args.get("invoice_id").and_then(|v| v.as_str()) {
-        Some(id) if !id.is_empty() => InvoiceId::new(id),
-        _ => return Envelope::err(["missing invoice_id"]),
+    let invoice_id = match parse_invoice_id(args) {
+        Ok(id) => id,
+        Err(e) => return Envelope::err([e]),
     };
     let amount_minor = match args.get("amount_minor").and_then(|v| v.as_i64()) {
         Some(a) => a,
@@ -78,103 +201,5 @@ pub async fn invoice_mark_part_paid_preview(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use klarbog_core::init_company;
-    use klarbog_plugin_crm::upsert_party;
-    use klarbog_plugin_invoice::{
-        create_draft_from_new, patch_status, InvoiceKind, InvoiceStatus, NewLine,
-    };
-    use klarbog_types::Actor;
-    use tempfile::tempdir;
-
-    #[tokio::test]
-    async fn mcp_mark_paid_preview() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        std::fs::create_dir_all(&co).unwrap();
-        let owner = Actor::user("owner");
-        init_company(&co, "Demo", &owner).await.unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
-        let invoice = create_draft_from_new(
-            &co,
-            party.id,
-            InvoiceKind::Sale,
-            vec![NewLine {
-                description: "Item".into(),
-                amount_minor: 1000,
-                currency: "DKK".into(),
-            }],
-        )
-        .unwrap();
-        patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
-        let args = json!({
-            "company": co.to_string_lossy(),
-            "invoice_id": invoice.id.to_string(),
-            "actor_kind": "user",
-            "actor_id": "owner",
-        });
-        let env = invoice_mark_paid_preview(&args, dir.path()).await;
-        assert!(env.ok);
-        let data = env.data.unwrap();
-        assert_eq!(data["invoice"]["status"], "paid");
-        assert!(data["journal_entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
-    }
-
-    #[tokio::test]
-    async fn mcp_mark_part_paid_preview() {
-        let dir = tempdir().unwrap();
-        let co = dir.path().join("co");
-        std::fs::create_dir_all(&co).unwrap();
-        let owner = Actor::user("owner");
-        init_company(&co, "Demo", &owner).await.unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
-        let invoice = create_draft_from_new(
-            &co,
-            party.id,
-            InvoiceKind::Sale,
-            vec![NewLine {
-                description: "Item".into(),
-                amount_minor: 10_000,
-                currency: "DKK".into(),
-            }],
-        )
-        .unwrap();
-        patch_status(&co, &invoice.id, InvoiceStatus::Sent).unwrap();
-        let args = json!({
-            "company": co.to_string_lossy(),
-            "invoice_id": invoice.id.to_string(),
-            "amount_minor": 3_000,
-            "actor_kind": "user",
-            "actor_id": "owner",
-        });
-        let env = invoice_mark_part_paid_preview(&args, dir.path()).await;
-        assert!(env.ok);
-        let data = env.data.unwrap();
-        assert_eq!(data["invoice"]["status"], "part_paid");
-        assert_eq!(data["invoice"]["payments"].as_array().unwrap().len(), 1);
-        assert!(data["journal_entry"]["legs"].as_array().unwrap()[0]["party_id"].is_string());
-        let amount = &data["journal_entry"]["legs"][0]["amount"];
-        let units = amount
-            .as_i64()
-            .or_else(|| amount.get("units").and_then(|u| u.as_i64()));
-        assert_eq!(units, Some(3_000));
-
-        let paid_args = json!({
-            "company": co.to_string_lossy(),
-            "invoice_id": invoice.id.to_string(),
-            "actor_kind": "user",
-            "actor_id": "owner",
-        });
-        let paid_env = invoice_mark_paid_preview(&paid_args, dir.path()).await;
-        assert!(paid_env.ok);
-        let paid = paid_env.data.unwrap();
-        assert_eq!(paid["invoice"]["status"], "paid");
-        assert_eq!(paid["invoice"]["payments"].as_array().unwrap().len(), 2);
-        let rem = &paid["journal_entry"]["legs"][0]["amount"];
-        let rem_units = rem
-            .as_i64()
-            .or_else(|| rem.get("units").and_then(|u| u.as_i64()));
-        assert_eq!(rem_units, Some(7_000));
-    }
-}
+#[path = "invoice_tests.rs"]
+mod tests;

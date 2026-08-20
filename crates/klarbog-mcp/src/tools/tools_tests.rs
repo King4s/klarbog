@@ -27,6 +27,9 @@ fn tools_list_names() {
     assert!(names.contains(&"backup_manifest"));
     assert!(names.contains(&"gdpr_export"));
     assert!(names.contains(&"gdpr_erase_party"));
+    assert!(names.contains(&"invoice_create_draft"));
+    assert!(names.contains(&"invoice_list"));
+    assert!(names.contains(&"invoice_patch_status"));
     assert!(names.contains(&"invoice_mark_paid_preview"));
     assert!(names.contains(&"invoice_mark_part_paid_preview"));
     assert!(names.contains(&"journal_post_preview"));

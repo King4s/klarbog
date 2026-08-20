@@ -133,14 +133,16 @@ Wire it in your AI client (Cursor, Claude Desktop, etc.) as a **stdio MCP server
 pointing at the `klarbog-mcp` binary. Mutating tools use **two-phase confirm**
 (preview token → commit). Useful tools include `journal_moms_post_suggestion`
 (preview-only VAT split hint), `crm_upsert_party` / `crm_list_parties` (HTTP CRM
-parity; no journal write), `documents_attach` / `documents_list` / `documents_delete`
-and `exceptions_raise` / `exceptions_list` / `exceptions_set_open` (HTTP documents +
-exceptions parity; no journal write), `gdpr_export` (company-scoped metadata →
-`gdpr_export.json`; no binary blobs), `gdpr_erase_party`, `retention_purge`
-(dry-run/`confirm`; closed exceptions + optional orphan-doc GC; journal untouched),
-`bank_reconcile_suggest` / `bank_reconcile_apply` (`force` only for `user` below safe
-threshold), and Stripe
-pipelines `bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview`
+parity; no journal write), `invoice_create_draft` / `invoice_list` /
+`invoice_patch_status` plus mark-paid previews (HTTP invoice lifecycle parity;
+suggestions only — no journal write), `documents_attach` / `documents_list` /
+`documents_delete` and `exceptions_raise` / `exceptions_list` / `exceptions_set_open`
+(HTTP documents + exceptions parity; no journal write), `gdpr_export`
+(company-scoped metadata → `gdpr_export.json`; no binary blobs), `gdpr_erase_party`,
+`retention_purge` (dry-run/`confirm`; closed exceptions + optional orphan-doc GC;
+journal untouched), `bank_reconcile_suggest` / `bank_reconcile_apply` (`force` only
+for `user` below safe threshold), and Stripe pipelines
+`bank_stripe_reconcile_suggest` / `bank_stripe_reconcile_apply_preview`
 (consume → suggest / unique-safe ConfirmStore preview; no auto journal post —
 see [`docs/skills/bank-import.md`](skills/bank-import.md)).
 

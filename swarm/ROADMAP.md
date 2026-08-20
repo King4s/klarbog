@@ -142,4 +142,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 64. MCP parity: `documents_attach` / `documents_list` / `documents_delete` + `exceptions_raise` / `exceptions_list` / `exceptions_set_open` mirror HTTP documents/exceptions (no journal write; ADR-004/007) ✅
 
+## Wave 25 — MCP invoice lifecycle (landed)
+
+65. MCP parity: `invoice_create_draft` / `invoice_list` / `invoice_patch_status` mirror HTTP drafts + status (i64 `amount_minor`; suggestion-only create; no journal write; mark-paid previews already present) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

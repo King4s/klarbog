@@ -38,7 +38,18 @@ description: >-
 
 `GET /api/v1/invoices/drafts?company=<path>` — list.
 
-`GET /api/v1/invoices/drafts?company=<path>&id=<inv_id>` — one draft.
+`GET /api/v1/invoices/drafts?company=<path>&invoice_id=<inv_id>` — one invoice.
+
+## MCP
+
+- `invoice_create_draft` — args: `company`, `party_id`, `kind` (`sale`|`purchase`),
+  `lines` (`description`, `amount_minor` i64, `currency`), actor. Returns
+  `{invoice, journal_entry}` (suggestion only).
+- `invoice_list` — args: `company`, optional `invoice_id`, actor.
+- `invoice_patch_status` — args: `company`, `invoice_id`,
+  `status` (`draft`|`sent`|`part_paid`|`paid`|`void`), actor. **No** journal write.
+- `invoice_mark_part_paid_preview` / `invoice_mark_paid_preview` — payment ledger
+  previews (still **no** `JournalWrite`; post via journal-preview-commit).
 
 ## Journal suggestion (Rust)
 
@@ -67,7 +78,8 @@ Remaining = total − sum(payments) (i64 minor units only).
 - `POST /api/v1/invoices/mark-paid` — journal suggestion for **remaining** (not always
   full total); rejects when remaining is 0; records the settling payment.
 
-MCP: `invoice_mark_part_paid_preview`, `invoice_mark_paid_preview`. Still **no**
+MCP: `invoice_create_draft`, `invoice_list`, `invoice_patch_status`,
+`invoice_mark_part_paid_preview`, `invoice_mark_paid_preview`. Still **no**
 `JournalWrite` — post suggestions via journal-preview-commit.
 
 ## Validation

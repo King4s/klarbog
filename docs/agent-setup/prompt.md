@@ -78,6 +78,9 @@ Kald `tools/list`. Forvent mindst:
 | `bank_reconcile_suggest` | Match banklinjer ↔ åbne fakturaer (`rows` eller CSV/provider; **ingen** post) |
 | `bank_reconcile_apply` | Match → journalforslag (`force` kræver user under safe-threshold) |
 | `revolut_oauth_refresh` | Refresh Revolut access-token (returnerer aldrig tokens) |
+| `invoice_create_draft` | Opret fakturakladde (`kind` sale\|purchase; `lines[].amount_minor` i64) → journalforslag (**poster aldrig**) |
+| `invoice_list` | List fakturaer, eller én når `invoice_id` er sat (read-only) |
+| `invoice_patch_status` | Sæt status (`draft\|sent\|part_paid\|paid\|void`; **ingen** journal-write) |
 | `invoice_mark_paid_preview` | Marker betalt for **resterende** saldo → journalforslag |
 | `invoice_mark_part_paid_preview` | Delbetaling (`amount_minor` >0 og < remaining) → forslag |
 | `retention_get` | Læs retention-politik |
