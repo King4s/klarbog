@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 8 landed** — contract_smoke moms-suggest + multi-currency 400
-- VERIFY_OK / CONTRACT_SMOKE_OK; continue polish/E2E/UI on request
-- No sister-product names; skip scratch status/wave*.md markers
+- **Wave 9 landed** — ADR-011 + skill for moms-suggest (preview-only, i64)
+- Soft linegate clear; continue bank/oauth or packaging polish on request
+- No sister-product names; skip scratch wave*/status markers

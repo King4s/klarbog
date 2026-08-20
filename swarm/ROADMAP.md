@@ -78,4 +78,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 48. `contract-smoke` extend: moms-suggest i64 legs + multi-currency import preview **400** ✅
 
+## Wave 9 — moms-suggest ADR/skill (landed)
+
+49. ADR-011 + dedicated `docs/skills/moms-suggest.md` (preview-only i64; no auto-post) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

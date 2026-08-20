@@ -94,7 +94,7 @@ let sug = moms_post_suggestion(gross, "invoice draft #vat25")?;
 Formula: `vat = gross * 2500 / 12500` (integer); `net = gross - vat` (remainder in net).
 Memo tags `#vat25` / `moms:25` on a journal preview apply hint id `dk.vat.split_hint` (non-blocking).
 
-HTTP `POST /api/v1/journal/moms-suggest` and MCP `journal_moms_post_suggestion` return the same net+vat legs for agents.
+HTTP `POST /api/v1/journal/moms-suggest` and MCP `journal_moms_post_suggestion` return the same net+vat legs for agents. Full contract: [`moms-suggest.md`](moms-suggest.md) / ADR-011.
 ## Envelope
 
 Create returns invoice + optional embedded suggestion metadata via API.

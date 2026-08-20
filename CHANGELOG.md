@@ -89,6 +89,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 - **Slice 46:** Stripe apply-preview closes prior `unmatched_bank_transaction` on unique safe apply (`unique_safe_apply_closes_prior_unmatched_exception`).
 - **Wave 8 / slice 48:** Offline `contract_smoke` covers `POST /api/v1/journal/moms-suggest` (i64 net+vat legs) and multi-currency `import/preview` → **400**.
 
+### Added — Wave 9 (docs)
+
+- **ADR-011 + skill:** moms post suggestion is preview-only, i64 inclusive 25% split, no auto-post. See [`docs/adr/ADR-011-moms-suggest.md`](docs/adr/ADR-011-moms-suggest.md) and [`docs/skills/moms-suggest.md`](docs/skills/moms-suggest.md).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

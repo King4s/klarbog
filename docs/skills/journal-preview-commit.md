@@ -35,17 +35,9 @@ Zero-rated `#vat0` / `moms:0` → `dk.vat.rate` only (no split hint).
 
 ### Optional moms post **suggestion** (preview only)
 
-When building legs and the memo will carry `#vat25`, call the helper / HTTP / MCP surface **before** preview. Returns suggested net+vat i64 amounts — **never** auto-posts (`auto_post: false`).
-
-```rust
-use klarbog_plugin_rules_dk::moms_post_suggestion;
-let Some(s) = moms_post_suggestion(12_500, "office #vat25")? else { /* no tag → skip */ };
-// s.net_minor / s.vat_minor / s.legs — feed into journal preview legs yourself
-```
-
-- HTTP: `POST /api/v1/journal/moms-suggest` — body `{ company, gross_minor, memo }` (+ actor headers).
-- MCP: `journal_moms_post_suggestion` — same fields + `actor_kind` / `actor_id`.
-- Without a 25% tag → `{ suggested: false }` (optional helper).
+See dedicated skill [`moms-suggest.md`](moms-suggest.md) and **ADR-011**.
+When building legs and the memo will carry `#vat25`, call that surface **before**
+preview — suggested net+vat i64 amounts; **never** auto-posts (`auto_post: false`).
 
 Then continue with normal preview → commit below.
 ## HTTP (DEV, loopback)
