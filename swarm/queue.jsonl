@@ -110,3 +110,5 @@
 {"event":"wave14_mcp_docs_sync","slice":54,"status":"done","note":"prompt+skill+INSTALL list bank_stripe_reconcile_suggest/apply_preview; registry parity; no auto journal post; VERIFY_OK","ts":"2026-08-20T00:10:30Z"}
 {"event":"wave15_idle_hardening","slice":55,"status":"done","note":"HTTP moms-suggest negative gross_minor → 400; i64; soft<300; no sister names; VERIFY pending","ts":"2026-08-20T00:12:00Z"}
 {"event":"wave15_idle_hardening","slice":55,"status":"done","note":"HTTP moms-suggest negative gross_minor → 400; i64; soft<300; no sister names; VERIFY_OK","ts":"2026-08-20T00:12:30Z"}
+{"event":"wave16_moms_suggest_unsupported_rate","slice":56,"status":"done","note":"HTTP moms-suggest unsupported memo vat:12 → 400; i64; soft<300; no sister names; VERIFY pending","ts":"2026-08-20T00:14:00Z"}
+{"event":"wave16_moms_suggest_unsupported_rate","slice":56,"status":"done","note":"HTTP moms-suggest unsupported memo vat:12 → 400; i64; soft<300; no sister names; VERIFY_OK","ts":"2026-08-20T00:14:30Z"}

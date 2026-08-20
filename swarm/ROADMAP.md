@@ -106,4 +106,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 55. Thin negative-path: `POST /api/v1/journal/moms-suggest` with negative `gross_minor` → **400** (HTTP maps `MomsPostSuggestionError`; i64; never suggests) ✅
 
+## Wave 16 — idle hardening (landed)
+
+56. Thin negative-path: `POST /api/v1/journal/moms-suggest` with unsupported memo VAT (`vat:12`) → **400** (HTTP maps `MomsPostSuggestionError::Memo`; i64 gross untouched; never suggests) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

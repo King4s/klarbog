@@ -117,6 +117,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 55:** HTTP negative-path — `POST /api/v1/journal/moms-suggest` with negative `gross_minor` returns **400** (fail-closed; i64; no suggestion payload).
 
+### Added — Wave 16 (idle hardening)
+
+- **Slice 56:** HTTP negative-path — `POST /api/v1/journal/moms-suggest` with unsupported memo VAT (`vat:12`) returns **400** (fail-closed; no suggestion payload).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
