@@ -250,6 +250,49 @@ button.ghost {
   font-size: 1.35rem;
 }
 
+.panel.nested {
+  margin-top: 1.25rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.panel.nested h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-brand);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+fieldset.leg {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.65rem;
+}
+
+fieldset.leg legend {
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.token {
+  word-break: break-all;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px dashed var(--line);
+  background: rgba(18, 122, 114, 0.06);
+  font-size: 0.85rem;
+}
+
+button.primary:disabled,
+button.ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .foot {
   display: flex;
   justify-content: space-between;

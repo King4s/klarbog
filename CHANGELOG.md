@@ -7,6 +7,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 ## [Unreleased] — rust-dev milestones
 
+### Added — Wave 37 (UI journal + chart)
+
+- Journal screen: preview form (memo + two legs, i64 øre via `amount.units`) →
+  `confirm_token` → commit against `POST /api/v1/journal/preview|commit`.
+- Kontoplan screen: list stub accounts from `GET /api/v1/rules/chart`.
+
 ### Added — Wave 36 (local web UI shell)
 
 - **ADR-012:** DEV web UI served by `klarbog-api` at `/ui/` (static `ui/`;

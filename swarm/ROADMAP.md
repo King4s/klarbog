@@ -195,8 +195,13 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 79. ADR-012: DEV local web UI served by `klarbog-api` (same origin as REST; static `ui/`); Klarbog-owned screens; loopback only; i64 → øre/DKK display helpers; progressive status/parties/invoices first ✅
 79b. UI shell: `klarbog-api` mounts `/ui/` from repo `ui/` (`KLARBOG_UI_DIR` override); README / INSTALL / `.env.example` ✅
 80. UI slice: status + parties + invoices (+ settings) against loopback HTTP ✅
-81. UI slice: journal preview UX (deferred; after 80)
+81. UI slice: journal preview/commit + chart list screens ✅
 82. Live E2E track (owner; after UI slices)
 83. Prod track (owner; after live E2E)
 
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
+
+## Wave 37 — UI journal + chart
+
+81. Journal screen: preview form (memo + two legs `amount`/`units` i64) → show `confirm_token` → commit ✅
+81b. Chart screen: list `GET /api/v1/rules/chart` ✅

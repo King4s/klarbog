@@ -59,6 +59,50 @@ const footStatus = document.getElementById("foot-status");
 let settings = loadSettings();
 let view = "home";
 let flash = null;
+/** @type {{ entry: object, confirm_token: string, expires_unix_ms?: number, payload_digest?: string } | null} */
+let journalPending = null;
+
+function parseMinor(raw, label) {
+  const s = String(raw ?? "").trim();
+  if (!/^-?\d+$/.test(s)) throw new Error(`${label}: angiv heltal i øre (i64)`);
+  const n = Number(s);
+  if (!Number.isSafeInteger(n)) throw new Error(`${label}: beløb uden for sikkert heltal`);
+  return n;
+}
+
+function buildJournalEntry(fd) {
+  const memo = String(fd.get("memo") || "").trim();
+  if (!memo) throw new Error("Memo kræves");
+  const amount1 = parseMinor(fd.get("amount1"), "Ben 1 beløb");
+  const amount2 = parseMinor(fd.get("amount2"), "Ben 2 beløb");
+  const account1 = String(fd.get("account1") || "").trim();
+  const account2 = String(fd.get("account2") || "").trim();
+  if (!account1 || !account2) throw new Error("Begge konti kræves");
+  const direction1 = String(fd.get("direction1") || "debit");
+  const direction2 = String(fd.get("direction2") || "credit");
+  return {
+    as_of: new Date().toISOString(),
+    memo,
+    actor: {
+      kind: settings.actorKind || "user",
+      id: settings.actorId || "ui-dev",
+    },
+    legs: [
+      {
+        account: account1,
+        direction: direction1,
+        amount: { units: amount1 },
+        currency: "DKK",
+      },
+      {
+        account: account2,
+        direction: direction2,
+        amount: { units: amount2 },
+        currency: "DKK",
+      },
+    ],
+  };
+}
 
 function setFlash(kind, message) {
   flash = { kind, message };
@@ -239,6 +283,208 @@ async function renderInvoices() {
   `;
 }
 
+async function renderJournal() {
+  const company = settings.company.trim();
+  const pending = journalPending;
+  let companyHint = company
+    ? ""
+    : `<p class="muted">Sæt firmasti under Indstillinger før preview/commit.</p>`;
+
+  const tokenBlock = pending
+    ? `<div class="panel nested">
+        <h2>Bekræftelse klar</h2>
+        <p class="muted">Gemt entry + token — commit bruger samme payload.</p>
+        <p class="muted">confirm_token</p>
+        <p class="token money" id="confirm-token">${escapeHtml(pending.confirm_token)}</p>
+        <p class="muted">Udløber (unix ms): ${escapeHtml(String(pending.expires_unix_ms ?? "—"))}</p>
+        <p class="muted">Digest: <span class="money">${escapeHtml(pending.payload_digest || "—")}</span></p>
+        <div class="actions">
+          <button class="primary" type="button" id="journal-commit" ${company ? "" : "disabled"}>Commit journal</button>
+          <button class="ghost" type="button" id="journal-clear">Ryd token</button>
+        </div>
+      </div>`
+    : `<p class="muted">Kør preview for at få et confirm_token.</p>`;
+
+  app.innerHTML = `
+    ${renderFlash()}
+    <section class="panel">
+      <h1>Journal</h1>
+      <p class="lede">To-fase bogføring: preview → confirm_token → commit. Beløb i øre (i64).</p>
+      ${companyHint}
+      <form id="journal-preview-form" class="grid">
+        <label>Memo
+          <input name="memo" required placeholder="udgift #receipt" value="${escapeHtml(
+            pending?.entry?.memo || "",
+          )}" />
+        </label>
+        <div class="grid two">
+          <fieldset class="leg">
+            <legend>Ben 1 (debit)</legend>
+            <label>Konto
+              <input name="account1" required value="${escapeHtml(
+                pending?.entry?.legs?.[0]?.account || "6000",
+              )}" />
+            </label>
+            <label>Retning
+              <select name="direction1">
+                <option value="debit" selected>debit</option>
+                <option value="credit">credit</option>
+              </select>
+            </label>
+            <label>Beløb (øre)
+              <input name="amount1" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(
+                pending?.entry?.legs?.[0]?.amount?.units != null
+                  ? String(pending.entry.legs[0].amount.units)
+                  : "12500",
+              )}" />
+            </label>
+          </fieldset>
+          <fieldset class="leg">
+            <legend>Ben 2 (credit)</legend>
+            <label>Konto
+              <input name="account2" required value="${escapeHtml(
+                pending?.entry?.legs?.[1]?.account || "5800",
+              )}" />
+            </label>
+            <label>Retning
+              <select name="direction2">
+                <option value="debit">debit</option>
+                <option value="credit" selected>credit</option>
+              </select>
+            </label>
+            <label>Beløb (øre)
+              <input name="amount2" required inputmode="numeric" pattern="-?[0-9]+" placeholder="12500" value="${escapeHtml(
+                pending?.entry?.legs?.[1]?.amount?.units != null
+                  ? String(pending.entry.legs[1].amount.units)
+                  : "12500",
+              )}" />
+            </label>
+          </fieldset>
+        </div>
+        <p class="muted">Samme beløb på begge ben giver balance. Preview poster ikke.</p>
+        <div class="actions">
+          <button class="primary" type="submit" ${company ? "" : "disabled"}>Preview</button>
+        </div>
+      </form>
+      ${tokenBlock}
+    </section>
+  `;
+
+  if (pending?.entry?.legs?.[0]?.direction) {
+    const d1 = document.querySelector('select[name="direction1"]');
+    if (d1) d1.value = pending.entry.legs[0].direction;
+  }
+  if (pending?.entry?.legs?.[1]?.direction) {
+    const d2 = document.querySelector('select[name="direction2"]');
+    if (d2) d2.value = pending.entry.legs[1].direction;
+  }
+
+  document.getElementById("journal-preview-form")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!company) {
+      setFlash("err", "Firmasti mangler");
+      await renderJournal();
+      return;
+    }
+    try {
+      const entry = buildJournalEntry(new FormData(ev.target));
+      const env = await api(settings, "/api/v1/journal/preview", {
+        method: "POST",
+        body: JSON.stringify({ company, entry }),
+      });
+      const data = env.data || {};
+      if (!data.confirm_token) throw new Error("Intet confirm_token i svar");
+      journalPending = {
+        entry,
+        confirm_token: String(data.confirm_token),
+        expires_unix_ms: data.expires_unix_ms,
+        payload_digest: data.payload_digest,
+      };
+      setFlash("ok", "Preview OK — token klar til commit");
+      await renderJournal();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderJournal();
+    }
+  });
+
+  document.getElementById("journal-clear")?.addEventListener("click", async () => {
+    journalPending = null;
+    setFlash("ok", "Token ryddet");
+    await renderJournal();
+  });
+
+  document.getElementById("journal-commit")?.addEventListener("click", async () => {
+    if (!company || !journalPending) return;
+    try {
+      const env = await api(settings, "/api/v1/journal/commit", {
+        method: "POST",
+        body: JSON.stringify({
+          company,
+          entry: journalPending.entry,
+          confirm_token: journalPending.confirm_token,
+        }),
+      });
+      const data = env.data || {};
+      journalPending = null;
+      setFlash(
+        "ok",
+        `Posted ${data.id || "ok"} · digest ${String(data.digest || "").slice(0, 16)}…`,
+      );
+      await renderJournal();
+    } catch (e) {
+      setFlash("err", e.message);
+      await renderJournal();
+    }
+  });
+}
+
+async function renderChart() {
+  const company = settings.company.trim();
+  let body = `<p class="muted">Sæt firmasti under Indstillinger.</p>`;
+  if (company) {
+    try {
+      const q = new URLSearchParams({ company });
+      const env = await api(settings, `/api/v1/rules/chart?${q}`);
+      const data = env.data || {};
+      const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+      const rows = accounts
+        .map((a) => {
+          const range =
+            a.min != null && a.max != null
+              ? `${a.min}–${a.max}`
+              : a.code || "";
+          return `<tr>
+            <td class="money">${escapeHtml(a.code || "")}</td>
+            <td>${escapeHtml(a.label || "")}</td>
+            <td class="money">${escapeHtml(range)}</td>
+          </tr>`;
+        })
+        .join("");
+      body = `
+        <p class="muted">Stub-kontoplan (DEV). Regel-hint: <span class="money">${escapeHtml(
+          data.rule_known_account || "—",
+        )}</span>${data.stub ? " · stub" : ""}</p>
+        <table class="table">
+          <thead><tr><th>Kode</th><th>Label</th><th>Range</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="3" class="muted">Tom</td></tr>`}</tbody>
+        </table>
+      `;
+    } catch (e) {
+      body = `<p class="flash err">${escapeHtml(e.message)}</p>`;
+    }
+  }
+
+  app.innerHTML = `
+    ${renderFlash()}
+    <section class="panel">
+      <h1>Kontoplan</h1>
+      <p class="lede">GET /api/v1/rules/chart — kun læsning, ingen journal-skrivning.</p>
+      ${body}
+    </section>
+  `;
+}
+
 function renderSettings() {
   app.innerHTML = `
     ${renderFlash()}
@@ -289,10 +535,11 @@ function renderSettings() {
 
 async function render() {
   setActiveNav();
-  flash = view === "settings" ? flash : flash;
   if (view === "home") await renderHome();
   else if (view === "parties") await renderParties();
   else if (view === "invoices") await renderInvoices();
+  else if (view === "journal") await renderJournal();
+  else if (view === "chart") await renderChart();
   else renderSettings();
 }
 
