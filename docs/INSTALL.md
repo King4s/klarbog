@@ -115,10 +115,14 @@ and multi-currency import preview **400**:
 
 ### Optional live E2E (secrets; loopback only)
 
-When Revolut / Stripe / R2 DEV secrets are exported in the shell, run a bounded
-live smoke against loopback `klarbog-api` (health, status, bank import preview
-`source=api`). **Without keys the script fails closed:** prints `SKIP`, exits 0,
-and makes no live provider calls:
+When **Stripe + R2** DEV secrets are exported in the shell, run a bounded live
+smoke against loopback `klarbog-api` (health, status, bank import preview
+`source=api` for Stripe). **Without Stripe/R2 the script fails closed:** prints
+`SKIP`, exits 0, and makes no live provider calls.
+
+`KLARBOG_REVOLUT_API_TOKEN` is optional: without a Revolut Business account the
+Revolut preview stays **dormant** (explicit SKIP line; no Revolut call). Export
+the token later to enable that leg.
 
 ```bash
 ./scripts/live-e2e.sh
@@ -126,9 +130,10 @@ and makes no live provider calls:
 ```
 
 Required for the live path (never commit or print):
-`KLARBOG_REVOLUT_API_TOKEN`, `KLARBOG_STRIPE_SECRET_KEY`, and
+`KLARBOG_STRIPE_SECRET_KEY`, and
 `KLARBOG_R2_ACCOUNT_ID` / `KLARBOG_R2_ACCESS_KEY_ID` /
 `KLARBOG_R2_SECRET_ACCESS_KEY` / `KLARBOG_R2_BUCKET`.
+Optional: `KLARBOG_REVOLUT_API_TOKEN`.
 
 See [`docs/skills/live-e2e.md`](skills/live-e2e.md) and
 [`docs/adr/ADR-013-live-e2e.md`](adr/ADR-013-live-e2e.md). Live E2E stays on

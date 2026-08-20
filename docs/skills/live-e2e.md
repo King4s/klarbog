@@ -1,25 +1,27 @@
 ---
 name: klarbog-live-e2e
 description: >-
-  Optional live E2E smoke against loopback klarbog-api when Revolut/Stripe/R2
-  secrets are set. Fail-closed SKIP without keys. Never commit or print secrets.
+  Optional live E2E smoke against loopback klarbog-api when Stripe+R2 secrets
+  are set. Revolut token optional (dormant without Business account).
+  Fail-closed SKIP without Stripe/R2. Never commit or print secrets.
 ---
 
 # Live E2E (DEV loopback)
 
 ## When to use
 
-- After UI / offline contract smoke are green, and the owner has real DEV keys.
-- To exercise **live** Revolut + Stripe `source=api` import preview through
-  loopback HTTP (`127.0.0.1:3195`), plus `/health` and `/api/v1/status`.
+- After UI / offline contract smoke are green, and the owner has real DEV keys
+  for **Stripe + R2** (Revolut when a Business account exists).
+- To exercise **live** Stripe `source=api` import preview through loopback HTTP
+  (`127.0.0.1:3195`), plus `/health` and `/api/v1/status`. Revolut preview runs
+  only when `KLARBOG_REVOLUT_API_TOKEN` is set.
 - **Not** for CI by default — CI stays offline (`verify.sh`, `contract-smoke.sh`).
 
-## Fail-closed without keys
+## Fail-closed without Stripe + R2
 
 `./scripts/live-e2e.sh` exits **0** with `LIVE_E2E_SKIP` when any of these are
 unset or empty:
 
-- `KLARBOG_REVOLUT_API_TOKEN`
 - `KLARBOG_STRIPE_SECRET_KEY`
 - `KLARBOG_R2_ACCOUNT_ID`
 - `KLARBOG_R2_ACCESS_KEY_ID`
@@ -28,7 +30,14 @@ unset or empty:
 
 No network calls to payment rails or R2 happen in the SKIP path.
 
-## With keys set
+## Revolut dormant (optional)
+
+- `KLARBOG_REVOLUT_API_TOKEN` is **not** required.
+- Without it: script prints `import preview provider=revolut SKIP (DORMANT …)`
+  and continues. No Revolut API call.
+- With it: Revolut `import/preview` runs like Stripe.
+
+## With Stripe + R2 set
 
 1. Ensures `KLARBOG_ALLOWLIST_ROOT` (default: repo root) and starts
    `klarbog-api` on **127.0.0.1:3195** if `/health` is not already up.
@@ -36,9 +45,9 @@ No network calls to payment rails or R2 happen in the SKIP path.
 3. Creates a temp company, then:
    - `GET /health`
    - `GET /api/v1/status`
-   - `POST /api/v1/bank/import/preview` with `source=api` for `revolut` and
-     `stripe` (drafts only — **no journal post**)
-4. Prints counts / OK lines only — **never** prints token or key values.
+   - `POST /api/v1/bank/import/preview` with `source=api` for `stripe`
+     (and `revolut` when token set) — drafts only, **no journal post**
+4. Prints counts / OK / DORMANT lines only — **never** prints token or key values.
 5. Ends with `LIVE_E2E_OK` on success.
 
 Optional: `KLARBOG_API_BASE` (default `http://127.0.0.1:3195`),

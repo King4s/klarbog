@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Live E2E smoke (wave38). Fail-closed without keys: SKIP exit 0.
-# With keys: bounded loopback smoke — health, status, bank import preview
-# (source=api for Revolut + Stripe). Never prints secret values.
-# Loopback only (127.0.0.1:3195). No production bind.
+# Live E2E smoke (wave38+). Fail-closed without Stripe+R2: SKIP exit 0.
+# Revolut is optional (dormant until Business account exists): skip that
+# provider preview when KLARBOG_REVOLUT_API_TOKEN is unset.
+# With Stripe+R2: bounded loopback smoke — health, status, bank import
+# preview (source=api for Stripe; Revolut when token set). Never prints
+# secret values. Loopback only (127.0.0.1:3195). No production bind.
 set -euo pipefail
 # Never dump env / token values (also if someone runs bash -x).
 set +x
@@ -28,7 +30,6 @@ cleanup() {
 trap cleanup EXIT
 
 missing=()
-[[ -z "${KLARBOG_REVOLUT_API_TOKEN:-}" ]] && missing+=("KLARBOG_REVOLUT_API_TOKEN")
 [[ -z "${KLARBOG_STRIPE_SECRET_KEY:-}" ]] && missing+=("KLARBOG_STRIPE_SECRET_KEY")
 for v in \
   KLARBOG_R2_ACCOUNT_ID \
@@ -42,19 +43,29 @@ do
 done
 
 if ((${#missing[@]} > 0)); then
-  echo "SKIP: live E2E requires secrets (unset: ${missing[*]})."
-  echo "Export KLARBOG_REVOLUT_API_TOKEN, KLARBOG_STRIPE_SECRET_KEY, and"
+  echo "SKIP: live E2E requires Stripe + R2 secrets (unset: ${missing[*]})."
+  echo "Export KLARBOG_STRIPE_SECRET_KEY and"
   echo "KLARBOG_R2_ACCOUNT_ID / ACCESS_KEY_ID / SECRET_ACCESS_KEY / BUCKET"
+  echo "Optional later: KLARBOG_REVOLUT_API_TOKEN (dormant without Business account)."
   echo "(see docs/skills/live-e2e.md). Never commit secrets."
   echo "Offline: ./scripts/contract-smoke.sh  and  ./scripts/verify.sh"
   echo "LIVE_E2E_SKIP"
   exit 0
 fi
 
+REVOLUT_LIVE=0
+if [[ -n "${KLARBOG_REVOLUT_API_TOKEN:-}" ]]; then
+  REVOLUT_LIVE=1
+fi
+
 export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$ROOT}"
 export KLARBOG_STORAGE="${KLARBOG_STORAGE:-r2}"
 
-echo "live-e2e: keys present (values not printed); loopback smoke starting"
+if [[ "$REVOLUT_LIVE" -eq 1 ]]; then
+  echo "live-e2e: Stripe+R2+Revolut keys present (values not printed); loopback smoke starting"
+else
+  echo "live-e2e: Stripe+R2 keys present; Revolut DORMANT (no token); loopback smoke starting"
+fi
 
 BIN=""
 if [[ -x "$ROOT/target/release/klarbog-api" ]]; then
@@ -152,7 +163,11 @@ PY
   echo "live-e2e: import preview provider=$provider OK (count=$count)"
 }
 
-import_preview revolut
+if [[ "$REVOLUT_LIVE" -eq 1 ]]; then
+  import_preview revolut
+else
+  echo "live-e2e: import preview provider=revolut SKIP (DORMANT — no Business account / token)"
+fi
 import_preview stripe
 
 echo "LIVE_E2E_OK"
