@@ -12,7 +12,7 @@ Branch: `rust-dev` (DEV-only).
 - API: `127.0.0.1:3195`
 - MCP: `klarbog-mcp` (stdio)
 
-Wave 28: MCP `klarbog_status` (HTTP `/api/v1/status` parity —
-mode/allowlist/plugins; `bind=stdio`).
+Wave 29: soft-split invoice plugin `lib.rs` → `tests.rs`
+(near soft linegate; MCP parity already complete through wave 28).
 
 See `docs/agent-setup/prompt.md` (product AI prompt) and `swarm/ROADMAP.md`.

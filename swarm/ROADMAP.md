@@ -158,4 +158,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 68. MCP parity: `klarbog_status` mirrors `GET /api/v1/status` (mode, allowlist_root, plugins; `bind=stdio`) ✅
 
+## Wave 29 — soft linegate headroom (landed)
+
+69. Soft-split `klarbog-plugin-invoice/src/lib.rs` → extract `tests.rs` (near soft 300; product types unchanged; i64 money) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

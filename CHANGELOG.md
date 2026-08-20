@@ -169,6 +169,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 68:** MCP `klarbog_status` mirrors `GET /api/v1/status` — `mode`, `allowlist_root`, plugin roster (`id`/`version`/`capabilities`); `bind=stdio` (HTTP uses loopback). Prompt / INSTALL.
 
+### Changed — Wave 29 (soft linegate headroom)
+
+- **Slice 69:** Soft-split `klarbog-plugin-invoice/src/lib.rs` — unit tests moved to `tests.rs` (`#[cfg(test)] mod tests`); invoice types / i64 money / public API unchanged.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
