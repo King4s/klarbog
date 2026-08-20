@@ -126,4 +126,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 60. MCP parity: `bank_reconcile_suggest` mirrors `POST /api/v1/bank/reconcile/suggest` (`rows` or CSV/provider; `raise_exceptions`; no journal post) ✅
 
+## Wave 21 — MCP GDPR export (landed)
+
+61. MCP parity: `gdpr_export` mirrors `POST /api/v1/gdpr-export` (company-scoped metadata → `gdpr_export.json`; i64 invoice totals; no binary blobs) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

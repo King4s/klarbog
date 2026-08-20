@@ -75,6 +75,7 @@ Kald `tools/list`. Forvent mindst:
 | `retention_get` | Læs retention-politik |
 | `retention_purge` | Purge lukkede undtagelser (dry-run/`confirm`; valgfri orphan-doc GC; journal urørt) |
 | `backup_manifest` | Skriv backup-manifest (+ checksum-sidecar) |
+| `gdpr_export` | GDPR-eksport v1 (firma-scope metadata + note; skriver `gdpr_export.json`; ingen binære blobs) |
 | `gdpr_erase_party` | GDPR party-erase (dry-run/`confirm`; journal immutable → `journal_refs_retained`) |
 
 Typiske argumenter: `company` (absolut sti), `actor_kind`, `actor_id`, plus tool-specifikke felter (`entry`, `csv`, `profile`, `confirm_token`, …).

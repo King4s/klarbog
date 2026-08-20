@@ -41,6 +41,8 @@ truth and must remain auditable for the retention window.
 - GDPR export includes invoice metadata (id, party id, status, kind, totals)
   without binary blobs; operators rely on anonymized CRM +
   `journal_refs_retained` for subject response completeness.
+- Surfaces: `POST /api/v1/gdpr-export`, CLI `klarbog gdpr-export`, and MCP
+  `gdpr_export` (same company-scoped metadata payload; AuthZ + allowlist).
 
 ### Retention purge scope
 - Retention purge may remove **closed exceptions** (and optional orphan

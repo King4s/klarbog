@@ -3,8 +3,8 @@
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
 use klarbog_plugin_retention::{
     erase_party, load_retention, manifest_path, manifest_sidecar_path, run_retention_purge,
-    write_backup_manifest, BackupError, ErasePartyOptions, GdprError, PurgeError, PurgeOptions,
-    RetentionError,
+    write_backup_manifest, write_gdpr_export, BackupError, ErasePartyOptions, GdprError,
+    PurgeError, PurgeOptions, RetentionError,
 };
 use klarbog_types::{Envelope, PartyId};
 use serde_json::{json, Value};
@@ -77,6 +77,26 @@ pub async fn backup_manifest(args: &Value, allowlist_root: &Path) -> Envelope<Va
         "file_count": manifest.files.len(),
         "journal_count": manifest.journal_digests.len(),
     }))
+}
+
+/// Mirror POST /api/v1/gdpr-export — company-scoped metadata only; writes gdpr_export.json.
+pub async fn gdpr_export(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
+    let actor = match parse_actor(args) {
+        Ok(a) => a,
+        Err(e) => return Envelope::err([e]),
+    };
+    let company = match parse_company(args) {
+        Ok(c) => c,
+        Err(e) => return Envelope::err([e]),
+    };
+    let path = match authorize_company(allowlist_root, &company, &actor).await {
+        Ok(p) => p,
+        Err(e) => return map_core_error(e),
+    };
+    match write_gdpr_export(&path) {
+        Ok(export) => Envelope::ok(serde_json::to_value(export).unwrap()),
+        Err(e) => map_gdpr(e),
+    }
 }
 
 /// Mirror POST /api/v1/gdpr/erase-party — dry-run unless confirm:true; journal immutable.

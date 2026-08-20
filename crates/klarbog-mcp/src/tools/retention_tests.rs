@@ -2,7 +2,7 @@ use super::*;
 use klarbog_core::init_company;
 use klarbog_plugin_crm::upsert_party;
 use klarbog_plugin_retention::{
-    ensure_company_extras, save_retention, RetentionPolicy, DEFAULT_RETAIN_DAYS,
+    ensure_company_extras, gdpr_export_path, save_retention, RetentionPolicy, DEFAULT_RETAIN_DAYS,
 };
 use klarbog_types::Actor;
 use std::fs;
@@ -45,6 +45,45 @@ async fn backup_writes_manifest_and_sha() {
         .ends_with("manifest.json"));
     assert!(data["content_sha256"].as_str().unwrap().len() == 64);
     assert!(data["file_sha256"].as_str().unwrap().len() == 64);
+}
+
+#[tokio::test]
+async fn gdpr_export_writes_metadata_file() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let party = upsert_party(&company_path, None, "Export Me".into()).unwrap();
+    let args = json!({
+        "company": company_path.to_string_lossy(),
+        "actor_kind": "user",
+        "actor_id": "owner",
+    });
+    let env = gdpr_export(&args, dir.path()).await;
+    assert!(env.ok, "{env:?}");
+    let data = env.data.unwrap();
+    assert!(data["note"].as_str().unwrap().contains("immutable"));
+    assert_eq!(data["parties"].as_array().unwrap().len(), 1);
+    assert_eq!(data["parties"][0]["id"], party.id.to_string());
+    assert_eq!(data["parties"][0]["display_name"], "Export Me");
+    assert!(data["invoices"].as_array().unwrap().is_empty());
+    assert!(data["retention"]["retain_days"].as_i64().is_some());
+    assert!(gdpr_export_path(&company_path).exists());
+}
+
+#[tokio::test]
+async fn gdpr_export_authz_denied() {
+    let dir = tempdir().unwrap();
+    let owner = Actor::user("owner");
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &owner).await.unwrap();
+    let args = json!({
+        "company": company_path.to_string_lossy(),
+        "actor_kind": "agent",
+        "actor_id": "stranger",
+    });
+    let env = gdpr_export(&args, dir.path()).await;
+    assert!(!env.ok);
 }
 
 #[tokio::test]

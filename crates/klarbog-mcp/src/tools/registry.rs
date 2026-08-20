@@ -186,6 +186,19 @@ pub fn tools_list() -> Value {
                     }
                 },
                 {
+                    "name": "gdpr_export",
+                    "description": "Write company-scoped GDPR export v1 metadata (gdpr_export.json; no binary blobs; i64 totals; journal note)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "company": {"type": "string"},
+                            "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                            "actor_id": {"type": "string"}
+                        },
+                        "required": ["company", "actor_kind", "actor_id"]
+                    }
+                },
+                {
                     "name": "gdpr_erase_party",
                     "description": "GDPR party erase preview/confirm: anonymize display_name; strip or delete docs; journal immutable (journal_refs_retained)",
                     "inputSchema": {

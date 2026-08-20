@@ -137,6 +137,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 60:** MCP `bank_reconcile_suggest` mirrors `POST /api/v1/bank/reconcile/suggest` — `rows` or CSV/provider; `raise_exceptions` default true; AuthZ + allowlist; **no** journal post. Prompt / INSTALL / bank-import skill.
 
+### Added — Wave 21 (MCP GDPR export)
+
+- **Slice 61:** MCP `gdpr_export` mirrors `POST /api/v1/gdpr-export` — company-scoped metadata (`parties`, invoices with i64 `total_minor`, `documents`, `exceptions`, retention + immutable-journal note); writes `gdpr_export.json`; no binary blobs. Prompt / INSTALL / gdpr-erase-party skill.
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).

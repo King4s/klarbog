@@ -12,6 +12,14 @@ description: >-
 - Erase personal data for a CRM party after a deletion request.
 - Preview first (`confirm` omitted/false), then confirm.
 
+## Related: company export
+
+Before erase, agents may call MCP `gdpr_export` (mirrors
+`POST /api/v1/gdpr-export` / CLI `klarbog gdpr-export`) for company-scoped
+metadata (`parties`, `invoices` with i64 `total_minor`, `documents`,
+`exceptions`, retention summary + immutable-journal note). Writes
+`gdpr_export.json` — **no** binary blobs.
+
 ## Immutable journal
 
 Confirmed journal entries are **never** rewritten. Party legs stay as historical
