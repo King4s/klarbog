@@ -269,6 +269,11 @@ button.ghost {
   background: rgba(255, 255, 255, 0.55);
 }
 
+ul.plain {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.15rem;
+}
+
 .panel.nested h2,
 h2.subhead {
   margin: 1.25rem 0 0.35rem;
