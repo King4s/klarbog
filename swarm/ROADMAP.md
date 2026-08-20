@@ -86,4 +86,8 @@ Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.
 
 50. Strengthen fail-closed bank/oauth: blank refresh, provider HTTP error preserves secrets, expired-without-refresh resolve, Stripe API import missing env (HTTP + contract-smoke) ✅
 
+## Wave 11 — demo moms-suggest (landed)
+
+51. `klarbog demo` covers `moms_post_suggestion` (i64 `#vat25` legs + optional-none; never auto-posts) ✅
+
 Advance only after verifier green. Presence of `swarm/STOP` halts dispatch.

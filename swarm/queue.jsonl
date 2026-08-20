@@ -101,3 +101,5 @@
 {"event":"wave8_contract_smoke_moms_currency","status":"done","note":"contract_smoke moms-suggest + Revolut mixed CSV→400; VERIFY_OK CONTRACT_SMOKE_OK","ts":"2026-08-20T00:00:00Z"}
 {"event":"wave9_moms_suggest_adr_skill","slice":49,"status":"done","note":"ADR-011 + docs/skills/moms-suggest.md; preview-only i64; journal skill cross-link; VERIFY_OK","ts":"2026-08-20T00:00:00Z"}
 {"event":"wave10_bank_oauth_fail_closed","status":"done","note":"oauth/stripe missing-env fail-closed; contract_smoke stripe import missing key; VERIFY_OK","ts":"2026-08-20T00:03:00Z"}
+{"event":"wave11_demo_moms_suggest","slice":51,"status":"done","note":"klarbog demo moms_post_suggestion #vat25 i64 legs + optional-none; auto_post false; VERIFY pending","ts":"2026-08-20T00:04:44Z"}
+{"event":"wave11_demo_moms_suggest","slice":51,"status":"done","note":"klarbog demo moms_post_suggestion #vat25 i64 legs + optional-none; auto_post false; VERIFY_OK","ts":"2026-08-20T00:05:00Z"}

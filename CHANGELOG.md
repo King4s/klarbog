@@ -97,6 +97,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Version
 
 - **Slice 50:** Bank/oauth fail-closed regressions — blank `refresh_token`, provider HTTP error preserves company secrets (errors never echo tokens), expired access without refresh fails closed (no network), Stripe API import missing `KLARBOG_STRIPE_SECRET_KEY` → **503** (HTTP + contract-smoke).
 
+### Added — Wave 11 (demo polish)
+
+- **`klarbog demo`:** covers optional moms-suggest (`#vat25` → net 10000 / vat 2500 i64 legs; no tag → none; `auto_post` always false).
+
 ### Added — tooling
 
 - `./scripts/verify.sh` — fmt, clippy, tests, line gates, money invariant (no `f32`/`f64` in crates).
@@ -113,7 +117,6 @@ and contributors (MIT). Domain model and agent-friendly design originate there; 
 ### Known limitations (DEV)
 
 - Loopback API only; not hardened for internet exposure.
-- Demo CLI may not cover every wave3 surface yet.
 - No packaged `.deb`/container release yet — build from source.
 
 ## Upstream reference

@@ -975,6 +975,7 @@ dependencies = [
  "klarbog-plugin-crm",
  "klarbog-plugin-invoice",
  "klarbog-plugin-retention",
+ "klarbog-plugin-rules-dk",
  "klarbog-types",
  "serde_json",
  "tempfile",

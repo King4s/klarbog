@@ -144,7 +144,7 @@ Developers editing the repo: [`docs/agent-setup/DEVELOPER.md`](agent-setup/DEVEL
 ```bash
 export KLARBOG_ALLOWLIST_ROOT="${KLARBOG_ALLOWLIST_ROOT:-$(pwd)}"
 
-# End-to-end smoke (temp company, fixtures)
+# End-to-end smoke (temp company, fixtures; includes moms-suggest i64 #vat25)
 cargo run -p klarbog-cli -- demo
 # or: ./target/release/klarbog demo
 

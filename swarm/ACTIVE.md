@@ -1,5 +1,5 @@
 # Active swarm status
 
-- **Wave 10 landed** — bank/oauth fail-closed tests + contract-smoke stripe missing-env
-- Tip VERIFY_OK / CONTRACT_SMOKE_OK; continue polish on request
+- **Wave 11 landed** — `klarbog demo` covers moms-suggest (i64 preview)
+- Tip VERIFY_OK; continue packaging/MCP polish on request
 - No sister-product names; skip scratch wave*/status markers

@@ -1,4 +1,4 @@
-//! Agent demo smoke path (slice 8 + 28) — temp company, no network.
+//! Agent demo smoke path (slice 8 + 28 + wave11) — temp company, no network.
 
 use klarbog_core::init_company;
 use klarbog_plugin_bank::{
@@ -10,6 +10,7 @@ use klarbog_plugin_invoice::{
     InvoicePlugin, InvoiceStatus, NewLine,
 };
 use klarbog_plugin_retention::{load_retention, write_gdpr_export};
+use klarbog_plugin_rules_dk::moms_post_suggestion;
 use klarbog_types::Actor;
 use serde_json::{json, Value};
 
@@ -61,6 +62,12 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
     let gdpr = write_gdpr_export(&company_path)?;
     let retention = load_retention(&company_path)?;
 
+    // Preview-only moms 25% inclusive split (i64); never posts.
+    const MOMS_GROSS: i64 = 12_500;
+    let moms = moms_post_suggestion(MOMS_GROSS, "demo expense #vat25 #receipt")?
+        .ok_or_else(|| anyhow::anyhow!("moms-suggest expected #vat25 suggestion"))?;
+    let moms_none = moms_post_suggestion(MOMS_GROSS, "demo expense #receipt")?;
+
     Ok(json!({
         "temp_company": company_path.to_string_lossy(),
         "party_id": party.id,
@@ -77,6 +84,12 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
         "gdpr_parties": gdpr.parties.len(),
         "gdpr_invoices": gdpr.invoices.len(),
         "retention_retain_days": retention.retain_days,
+        "moms_suggest_gross_minor": moms.gross_minor,
+        "moms_suggest_net_minor": moms.net_minor,
+        "moms_suggest_vat_minor": moms.vat_minor,
+        "moms_suggest_legs": moms.legs.len(),
+        "moms_suggest_auto_post": moms.auto_post,
+        "moms_suggest_optional_none": moms_none.is_none(),
     }))
 }
 
@@ -97,5 +110,11 @@ mod tests {
         assert_eq!(data["gdpr_parties"], 1);
         assert_eq!(data["gdpr_invoices"], 1);
         assert!(data["retention_retain_days"].as_i64().unwrap() > 0);
+        assert_eq!(data["moms_suggest_gross_minor"], 12_500);
+        assert_eq!(data["moms_suggest_net_minor"], 10_000);
+        assert_eq!(data["moms_suggest_vat_minor"], 2_500);
+        assert_eq!(data["moms_suggest_legs"], 2);
+        assert_eq!(data["moms_suggest_auto_post"], false);
+        assert_eq!(data["moms_suggest_optional_none"], true);
     }
 }
