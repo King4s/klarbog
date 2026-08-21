@@ -4,7 +4,7 @@ use askama::Template;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::response::Response;
-use klarbog_plugin_rules_dk::{chart_stub_entries, RULE_KNOWN_ACCOUNT};
+use klarbog_plugin_rules_dk::{chart_accounts, AccountType, RULE_KNOWN_ACCOUNT};
 
 use super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
 use crate::AppState;
@@ -12,7 +12,19 @@ use crate::AppState;
 struct AccountRow {
     code: String,
     label: String,
-    range: String,
+    kind: &'static str,
+    normal: &'static str,
+}
+
+fn kind_label(t: AccountType) -> &'static str {
+    match t {
+        AccountType::Income => "Indtægt",
+        AccountType::Expense => "Omkostning",
+        AccountType::Asset => "Aktiv",
+        AccountType::Liability => "Passiv",
+        AccountType::Equity => "Egenkapital",
+        AccountType::Vat => "Moms",
+    }
 }
 
 struct BalanceRow {
@@ -41,7 +53,6 @@ struct ChartTemplate {
     flash_err: String,
     has_company: bool,
     company: String,
-    stub: bool,
     rule_known_account: String,
     accounts: Vec<AccountRow>,
     balances: Vec<BalanceRow>,
@@ -74,7 +85,6 @@ fn chart_page(
         flash_err,
         has_company: !company.is_empty(),
         company,
-        stub: true,
         rule_known_account: RULE_KNOWN_ACCOUNT.to_string(),
         accounts,
         balances: Vec::new(),
@@ -115,18 +125,13 @@ pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Res
         Ok(p) => p,
         Err(e) => return html_ok(chart_page(&state, company, e, Vec::new())),
     };
-    let accounts = chart_stub_entries()
-        .into_iter()
-        .map(|a| {
-            let range = match (a.min, a.max) {
-                (Some(min), Some(max)) => format!("{min}–{max}"),
-                _ => a.code.to_string(),
-            };
-            AccountRow {
-                code: a.code.to_string(),
-                label: a.label.to_string(),
-                range,
-            }
+    let accounts = chart_accounts()
+        .iter()
+        .map(|a| AccountRow {
+            code: a.code.to_string(),
+            label: a.label.to_string(),
+            kind: kind_label(a.account_type),
+            normal: if a.credit_normal { "Kredit" } else { "Debet" },
         })
         .collect();
     let page = match load_balances(&path).await {

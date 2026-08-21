@@ -21,14 +21,14 @@ fn sample_entry(actor: Actor, minor: i64) -> JournalEntry {
         actor: actor.clone(),
         legs: vec![
             Leg {
-                account: "6000".into(),
+                account: "3000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
                 party_id: None,
             },
             Leg {
-                account: "5800".into(),
+                account: "2000".into(),
                 direction: Direction::Credit,
                 amount,
                 currency,

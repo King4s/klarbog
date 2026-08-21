@@ -1,12 +1,12 @@
-//! MCP `rules_chart_list` — mirror GET /api/v1/rules/chart (read-only stub).
+//! MCP `rules_chart_list` — mirror GET /api/v1/rules/chart (read-only, typed chart).
 
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
-use klarbog_plugin_rules_dk::{chart_stub_entries, RULE_KNOWN_ACCOUNT};
+use klarbog_plugin_rules_dk::{chart_accounts, RULE_KNOWN_ACCOUNT};
 use klarbog_types::Envelope;
 use serde_json::{json, Value};
 use std::path::Path;
 
-/// Mirror GET /api/v1/rules/chart — stub codes + labels; never writes journal.
+/// Mirror GET /api/v1/rules/chart — typed chart rows; never writes journal.
 pub async fn rules_chart_list(args: &Value, allowlist_root: &Path) -> Envelope<Value> {
     let actor = match parse_actor(args) {
         Ok(a) => a,
@@ -21,8 +21,8 @@ pub async fn rules_chart_list(args: &Value, allowlist_root: &Path) -> Envelope<V
     }
 
     Envelope::ok(json!({
-        "stub": true,
-        "accounts": chart_stub_entries(),
+        "stub": false,
+        "accounts": chart_accounts(),
         "rule_known_account": RULE_KNOWN_ACCOUNT,
     }))
 }
@@ -48,10 +48,10 @@ mod tests {
         let env = rules_chart_list(&args, dir.path()).await;
         assert!(env.ok);
         let data = env.data.unwrap();
-        assert_eq!(data["stub"], true);
-        assert_eq!(data["accounts"][0]["code"], "1000");
-        assert_eq!(data["accounts"][0]["label"], "Bank");
-        assert_eq!(data["accounts"][3]["code"], "4000-6999");
+        assert_eq!(data["stub"], false);
+        assert_eq!(data["accounts"][0]["code"], 1000);
+        assert_eq!(data["accounts"][0]["label"], "Omsætning, ydelser");
+        assert_eq!(data["accounts"][0]["type"], "income");
         assert_eq!(data["rule_known_account"], RULE_KNOWN_ACCOUNT);
     }
 

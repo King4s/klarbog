@@ -64,14 +64,14 @@ mod tests {
             actor: Actor::user("u"),
             legs: vec![
                 Leg {
-                    account: "6000".into(),
+                    account: "3000".into(),
                     direction: Direction::Debit,
                     amount: a,
                     currency: c.clone(),
                     party_id: None,
                 },
                 Leg {
-                    account: "5800".into(),
+                    account: "2000".into(),
                     direction: Direction::Credit,
                     amount: a,
                     currency: c,

@@ -1,7 +1,8 @@
 # ADR-019 — Kontoplan: adopt the original chart (rev. 2)
 
-Proposed (2026-08-21 — owner requested design; rev. 2 after comparing with the
-original project; implementation awaits owner GO)
+Accepted (2026-08-21 — owner GO «implementér»; Phase 1 landed on rust-dev:
+typed 48-account chart in rules-dk, type-derived rules, plugin defaults,
+all surfaces + fixtures remapped, verify + ui-smoke green)
 
 ## Context
 
@@ -50,7 +51,8 @@ normal balance). Derive all rule semantics from account `type`:
 
 - `is_expense_account_code(n)` → lookup `type == expense`; the receipt rule
   (`dk.expense.receipt_required`) fires on expense debits **except** staff
-  accounts 3500–3599 (salaries have no receipts).
+  accounts 3500–3599 (salaries have no receipts) and 5820 Afskrivninger
+  (non-cash internal booking — no receipt exists).
 - `is_known_dk_account` → membership in the table (still hint-only via
   `RULE_KNOWN_ACCOUNT`; digits-only hard-fail unchanged).
 - `chart_stub_entries` → the real table (feeds `/api/v1/rules/chart`, MCP,

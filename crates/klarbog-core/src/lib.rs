@@ -147,14 +147,14 @@ mod tests {
             actor,
             legs: vec![
                 Leg {
-                    account: "6000".into(),
+                    account: "3000".into(),
                     direction: Direction::Debit,
                     amount,
                     currency: currency.clone(),
                     party_id: None,
                 },
                 Leg {
-                    account: "5800".into(),
+                    account: "2000".into(),
                     direction: Direction::Credit,
                     amount,
                     currency,
@@ -184,11 +184,11 @@ mod tests {
         company.post(expense(owner, 100)).await.unwrap();
 
         let balances = company.account_balances().await.unwrap();
-        let b6000 = balances.iter().find(|b| b.account == "6000").unwrap();
-        assert_eq!((b6000.debit_minor, b6000.credit_minor), (350, 0));
-        assert_eq!(b6000.net_minor(), 350);
-        let b5800 = balances.iter().find(|b| b.account == "5800").unwrap();
-        assert_eq!(b5800.net_minor(), -350);
+        let b3000 = balances.iter().find(|b| b.account == "3000").unwrap();
+        assert_eq!((b3000.debit_minor, b3000.credit_minor), (350, 0));
+        assert_eq!(b3000.net_minor(), 350);
+        let b2000 = balances.iter().find(|b| b.account == "2000").unwrap();
+        assert_eq!(b2000.net_minor(), -350);
 
         let recent = company.recent_entries(10).await.unwrap();
         assert_eq!(recent.len(), 2);

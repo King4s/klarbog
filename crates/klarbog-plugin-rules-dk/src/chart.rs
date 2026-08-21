@@ -1,91 +1,141 @@
-//! Klarbog DEV chart-of-accounts stub (Danish numeric codes).
-//!
-//! Not a full SKAT chart — only codes Klarbog plugins use by default, plus the
-//! expense band used by `dk.expense.*` rules.
-//!
-//! | Code / range | Role |
-//! |---|---|
-//! | `1000` | Bank (invoice / payment default) |
-//! | `1500` | Accounts receivable (AR) |
-//! | `4400` | Accounts payable (AP) |
-//! | `4000`–`6999` | Expense band (also covers bank-CSV `5800` / income `6100` in DEV) |
-//!
-//! Digits outside this stub still validate as account strings; rules-dk only
-//! emits optional hint [`RULE_KNOWN_ACCOUNT`] (`dk.bookkeeping.known_account`).
+//! Klarbog chart of accounts — mirrors the original project's `seedAccounts`
+//! (ADR-019 Phase 1). Semantics derive from per-account **type**, not numeric
+//! bands. Digits outside the chart still validate as account strings; rules-dk
+//! only emits the optional hint [`RULE_KNOWN_ACCOUNT`].
 
 use serde::Serialize;
 
-/// Bank (invoice / payment suggestion default).
-pub const DK_CHART_BANK: i64 = 1_000;
-/// Accounts receivable.
-pub const DK_CHART_AR: i64 = 1_500;
-/// Accounts payable.
-pub const DK_CHART_AP: i64 = 4_400;
-/// Inclusive start of expense stub band.
-pub const DK_CHART_EXPENSE_MIN: i64 = 4_000;
-/// Inclusive end of expense stub band.
-pub const DK_CHART_EXPENSE_MAX: i64 = 6_999;
-
-/// Applied-rule id when a digit account is outside the stub allowlist (hint only).
+/// Applied-rule id when a digit account is outside the chart (hint only).
 pub const RULE_KNOWN_ACCOUNT: &str = "dk.bookkeeping.known_account";
 
-/// One stub chart row for HTTP/MCP read surfaces (codes + labels).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct ChartStubEntry {
-    /// Code or inclusive range string (`1000`, `4000-6999`).
-    pub code: String,
-    /// Human label (English DEV stub).
+/// Staff-cost accounts (Lønninger m.fl.) — expense type but never
+/// receipt-gated: salaries have no receipts.
+pub const DK_CHART_STAFF_MIN: i64 = 3_500;
+/// Inclusive end of the staff-cost range.
+pub const DK_CHART_STAFF_MAX: i64 = 3_599;
+/// Afskrivninger — expense type but a non-cash internal booking, exempt from
+/// the receipt rule like staff costs.
+pub const DK_CHART_DEPRECIATION: i64 = 5_820;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AccountType {
+    Income,
+    Expense,
+    Asset,
+    Liability,
+    Equity,
+    Vat,
+}
+
+/// One chart row (code, Danish label, type, normal balance).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct ChartAccount {
+    pub code: i64,
     pub label: &'static str,
-    /// Inclusive range start when `code` is a band.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub min: Option<i64>,
-    /// Inclusive range end when `code` is a band.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max: Option<i64>,
+    #[serde(rename = "type")]
+    pub account_type: AccountType,
+    /// `true` when the account is credit-normal.
+    pub credit_normal: bool,
 }
 
-/// Read-only list of documented stub codes + labels (no journal I/O).
-pub fn chart_stub_entries() -> Vec<ChartStubEntry> {
-    vec![
-        ChartStubEntry {
-            code: DK_CHART_BANK.to_string(),
-            label: "Bank",
-            min: None,
-            max: None,
-        },
-        ChartStubEntry {
-            code: DK_CHART_AR.to_string(),
-            label: "Accounts receivable",
-            min: None,
-            max: None,
-        },
-        ChartStubEntry {
-            code: DK_CHART_AP.to_string(),
-            label: "Accounts payable",
-            min: None,
-            max: None,
-        },
-        ChartStubEntry {
-            code: format!("{DK_CHART_EXPENSE_MIN}-{DK_CHART_EXPENSE_MAX}"),
-            label: "Expense band",
-            min: Some(DK_CHART_EXPENSE_MIN),
-            max: Some(DK_CHART_EXPENSE_MAX),
-        },
-    ]
+const fn acc(code: i64, label: &'static str, t: AccountType, credit_normal: bool) -> ChartAccount {
+    ChartAccount {
+        code,
+        label,
+        account_type: t,
+        credit_normal,
+    }
 }
 
-/// True when `n` is in the documented expense stub band.
+use AccountType as T;
+
+/// The chart, mirroring the original project's seed (48 accounts).
+pub const DK_CHART: &[ChartAccount] = &[
+    acc(1000, "Omsætning, ydelser", T::Income, true),
+    acc(1010, "Gebyr- og kompensationsindtægter", T::Income, true),
+    acc(1020, "Valutakursgevinst (realiseret)", T::Income, true),
+    acc(1100, "Debitorer", T::Asset, false),
+    acc(1200, "Salgsmoms", T::Vat, true),
+    acc(1300, "Forudbetalte omkostninger", T::Asset, false),
+    acc(2000, "Bank", T::Asset, false),
+    acc(3000, "Software og SaaS", T::Expense, false),
+    acc(3010, "AI-værktøjer", T::Expense, false),
+    acc(3020, "Hosting og cloud", T::Expense, false),
+    acc(3050, "Rejse og transport", T::Expense, false),
+    acc(3055, "Kørselsgodtgørelse", T::Expense, false),
+    acc(3070, "Repræsentation", T::Expense, false),
+    acc(3080, "Tab på debitorer", T::Expense, false),
+    acc(3100, "Husleje", T::Expense, false),
+    acc(3110, "El, vand og varme", T::Expense, false),
+    acc(3120, "Hardware og udstyr", T::Expense, false),
+    acc(3130, "Kontorartikler og småanskaffelser", T::Expense, false),
+    acc(3140, "Telefon og internet", T::Expense, false),
+    acc(3150, "Forsikringer", T::Expense, false),
+    acc(3160, "Revisor og bogføring", T::Expense, false),
+    acc(3170, "Advokat og rådgivning", T::Expense, false),
+    acc(3180, "Markedsføring og annoncering", T::Expense, false),
+    acc(3190, "Kontingenter og abonnementer", T::Expense, false),
+    acc(3200, "Porto og fragt", T::Expense, false),
+    acc(3300, "Gebyrer, bank og betalingskort", T::Expense, false),
+    acc(3310, "Renteudgifter", T::Expense, false),
+    acc(3320, "Valutakurstab (realiseret)", T::Expense, false),
+    acc(3500, "Lønninger", T::Expense, false),
+    acc(3510, "Pension", T::Expense, false),
+    acc(3520, "ATP og lovpligtige bidrag", T::Expense, false),
+    acc(3530, "Personaleomkostninger", T::Expense, false),
+    acc(4000, "Købsmoms", T::Vat, false),
+    acc(4500, "Momsafregning", T::Liability, true),
+    acc(5000, "Egenkapital", T::Equity, true),
+    acc(5010, "Privat hævning", T::Equity, false),
+    acc(5020, "Privat indskud", T::Equity, true),
+    acc(5800, "Driftsmidler og inventar", T::Asset, false),
+    acc(5810, "Akkumulerede afskrivninger", T::Asset, true),
+    acc(5820, "Afskrivninger", T::Expense, false),
+    acc(7000, "Leverandørgæld (kreditorer)", T::Liability, true),
+    acc(7100, "Skyldig A-skat", T::Liability, true),
+    acc(7110, "Skyldigt AM-bidrag", T::Liability, true),
+    acc(7120, "Skyldig ATP", T::Liability, true),
+    acc(7130, "Skyldig løn", T::Liability, true),
+    acc(7200, "Skyldig skat (skattekonto)", T::Liability, true),
+    acc(7300, "Skyldige omkostninger", T::Liability, true),
+    acc(
+        7310,
+        "Forudbetalt indtægt (udskudt omsætning)",
+        T::Liability,
+        true,
+    ),
+];
+
+/// Chart row lookup by numeric code.
+pub fn find_account(code: i64) -> Option<&'static ChartAccount> {
+    DK_CHART.iter().find(|a| a.code == code)
+}
+
+/// Full chart for HTTP/MCP/SSR read surfaces.
+pub fn chart_accounts() -> &'static [ChartAccount] {
+    DK_CHART
+}
+
+/// True when the code is an expense-type account in the chart.
 #[inline]
 pub fn is_expense_account_code(n: i64) -> bool {
-    (DK_CHART_EXPENSE_MIN..=DK_CHART_EXPENSE_MAX).contains(&n)
+    matches!(find_account(n), Some(a) if a.account_type == AccountType::Expense)
 }
 
-/// True when the account string parses as i64 and matches the stub allowlist.
-pub fn is_known_dk_account(account: &str) -> bool {
-    let Ok(n) = account.parse::<i64>() else {
+/// True when an expense debit on this code must carry a receipt/party signal.
+/// Staff costs and depreciation are expense-type but exempt (no receipts).
+#[inline]
+pub fn is_receipt_gated_expense_code(n: i64) -> bool {
+    if (DK_CHART_STAFF_MIN..=DK_CHART_STAFF_MAX).contains(&n) || n == DK_CHART_DEPRECIATION {
         return false;
-    };
-    n == DK_CHART_BANK || n == DK_CHART_AR || n == DK_CHART_AP || is_expense_account_code(n)
+    }
+    is_expense_account_code(n)
+}
+
+/// True when the account string parses as i64 and exists in the chart.
+pub fn is_known_dk_account(account: &str) -> bool {
+    account.parse::<i64>().ok().and_then(find_account).is_some()
 }
 
 #[cfg(test)]
@@ -93,37 +143,62 @@ mod tests {
     use super::*;
 
     #[test]
-    fn stub_codes_are_known() {
-        for code in [
-            "1000", "1500", "4400", "4000", "6000", "6999", "5800", "6100",
+    fn chart_codes_are_known_and_typed() {
+        for (code, t) in [
+            (1000, AccountType::Income),
+            (1100, AccountType::Asset),
+            (1200, AccountType::Vat),
+            (2000, AccountType::Asset),
+            (3000, AccountType::Expense),
+            (4000, AccountType::Vat),
+            (4500, AccountType::Liability),
+            (5000, AccountType::Equity),
+            (7000, AccountType::Liability),
         ] {
-            assert!(is_known_dk_account(code), "{code}");
+            let a = find_account(code).unwrap_or_else(|| panic!("{code} missing"));
+            assert_eq!(a.account_type, t, "{code}");
+            assert!(is_known_dk_account(&code.to_string()));
+        }
+        assert_eq!(DK_CHART.len(), 48);
+    }
+
+    #[test]
+    fn old_stub_codes_are_no_longer_known() {
+        for code in ["1500", "4400", "6000", "6100", "6999"] {
+            assert!(!is_known_dk_account(code), "{code}");
         }
     }
 
     #[test]
-    fn outside_stub_not_known() {
-        for code in ["2000", "3000", "7000", "9999", "1"] {
-            assert!(!is_known_dk_account(code), "{code}");
+    fn expense_semantics_from_type_not_bands() {
+        // Bank (2000) and creditors (7000) are not expenses.
+        assert!(!is_expense_account_code(2000));
+        assert!(!is_expense_account_code(7000));
+        // 3xxx operating costs are receipt-gated expenses.
+        assert!(is_expense_account_code(3000));
+        assert!(is_receipt_gated_expense_code(3000));
+        // Staff and depreciation: expense type, but exempt from the gate.
+        for code in [3500, 3510, 3520, 3530, 5820] {
+            assert!(is_expense_account_code(code), "{code}");
+            assert!(!is_receipt_gated_expense_code(code), "{code}");
         }
+        // Old stub band members are not expenses anymore.
+        assert!(!is_expense_account_code(6000));
+        assert!(!is_expense_account_code(5800));
     }
 
     #[test]
     fn non_digit_not_known() {
         assert!(!is_known_dk_account("6abc"));
         assert!(!is_known_dk_account(""));
+        assert!(!is_known_dk_account("30_00"));
     }
 
     #[test]
-    fn chart_stub_entries_codes_and_labels() {
-        let entries = chart_stub_entries();
-        assert_eq!(entries.len(), 4);
-        assert_eq!(entries[0].code, "1000");
-        assert_eq!(entries[0].label, "Bank");
-        assert_eq!(entries[1].code, "1500");
-        assert_eq!(entries[2].code, "4400");
-        assert_eq!(entries[3].code, "4000-6999");
-        assert_eq!(entries[3].min, Some(DK_CHART_EXPENSE_MIN));
-        assert_eq!(entries[3].max, Some(DK_CHART_EXPENSE_MAX));
+    fn credit_normal_matches_original_seed() {
+        assert!(find_account(1000).unwrap().credit_normal);
+        assert!(!find_account(2000).unwrap().credit_normal);
+        assert!(find_account(5810).unwrap().credit_normal, "contra-asset");
+        assert!(!find_account(4000).unwrap().credit_normal, "købsmoms debit");
     }
 }

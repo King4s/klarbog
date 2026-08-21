@@ -5,8 +5,9 @@ mod moms_post_suggestion;
 mod vat_split;
 
 pub use chart::{
-    chart_stub_entries, is_expense_account_code, is_known_dk_account, ChartStubEntry, DK_CHART_AP,
-    DK_CHART_AR, DK_CHART_BANK, DK_CHART_EXPENSE_MAX, DK_CHART_EXPENSE_MIN, RULE_KNOWN_ACCOUNT,
+    chart_accounts, find_account, is_expense_account_code, is_known_dk_account,
+    is_receipt_gated_expense_code, AccountType, ChartAccount, DK_CHART, DK_CHART_DEPRECIATION,
+    DK_CHART_STAFF_MAX, DK_CHART_STAFF_MIN, RULE_KNOWN_ACCOUNT,
 };
 pub use moms_post_suggestion::{
     memo_requests_vat25, moms_post_suggestion, MomsPostSuggestion, MomsPostSuggestionError,
@@ -110,15 +111,17 @@ fn validate_account(account: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn is_expense_account(account: &str) -> bool {
+fn is_receipt_gated_expense(account: &str) -> bool {
     account
         .parse::<i64>()
         .ok()
-        .is_some_and(is_expense_account_code)
+        .is_some_and(is_receipt_gated_expense_code)
 }
 
 fn is_expense_debit(leg: &Leg) -> bool {
-    leg.direction == Direction::Debit && leg.amount.minor() > 0 && is_expense_account(&leg.account)
+    leg.direction == Direction::Debit
+        && leg.amount.minor() > 0
+        && is_receipt_gated_expense(&leg.account)
 }
 
 /// Receipt / linked-document signal in memo (whitespace-separated tokens).

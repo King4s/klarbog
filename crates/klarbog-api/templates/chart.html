@@ -2,21 +2,22 @@
 {% block content %}
 <section class="panel">
   <h1>Kontoplan</h1>
-  <p class="lede">GET rules chart stub — kun læsning, ingen journal-skrivning · Rust SSR.</p>
+  <p class="lede">Dansk kontoplan (ADR-019) — kun læsning, ingen journal-skrivning · Rust SSR.</p>
   {% if has_company %}
   <p class="muted">Firma: <span class="money">{{ company }}</span> · rule
-    <span class="money">{{ rule_known_account }}</span>{% if stub %} · stub{% endif %}</p>
+    <span class="money">{{ rule_known_account }}</span></p>
   <table class="table">
-    <thead><tr><th>Kode</th><th>Label</th><th>Range</th></tr></thead>
+    <thead><tr><th>Kode</th><th>Navn</th><th>Type</th><th>Normal</th></tr></thead>
     <tbody>
       {% for a in accounts %}
       <tr>
         <td class="money">{{ a.code }}</td>
         <td>{{ a.label }}</td>
-        <td class="money">{{ a.range }}</td>
+        <td>{{ a.kind }}</td>
+        <td>{{ a.normal }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="3" class="muted">Tom</td></tr>
+      <tr><td colspan="4" class="muted">Tom</td></tr>
       {% endfor %}
     </tbody>
   </table>

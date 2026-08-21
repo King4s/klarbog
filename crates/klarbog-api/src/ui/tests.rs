@@ -54,7 +54,7 @@ fn ui_entry_json_roundtrip_preserves_digest() {
         actor: Actor::user("ui-dev"),
         legs: vec![
             Leg {
-                account: "5800".into(),
+                account: "2000".into(),
                 direction: Direction::Debit,
                 amount: MinorAmount::from_minor(12_500),
                 currency: Currency::new("DKK").unwrap(),
@@ -106,8 +106,8 @@ async fn ui_journal_preview_then_commit_posts() {
         super::pages::common::COMPANY_COOKIE,
         company_path.to_string_lossy()
     );
-    let form = "memo=udgift%20%23vat25%20%23receipt&account1=6000&direction1=debit&amount1=12500\
-                &account2=5800&direction2=credit&amount2=12500\
+    let form = "memo=udgift%20%23vat25%20%23receipt&account1=3000&direction1=debit&amount1=12500\
+                &account2=2000&direction2=credit&amount2=12500\
                 &moms_gross=12500&moms_memo=x&confirm_token=";
 
     let res = app

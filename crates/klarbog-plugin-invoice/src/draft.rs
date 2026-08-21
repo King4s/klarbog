@@ -17,11 +17,11 @@ pub struct InvoiceConfig {
 impl Default for InvoiceConfig {
     fn default() -> Self {
         Self {
-            ar_account: "1500".into(),
-            revenue_account: "6100".into(),
-            ap_account: "4400".into(),
-            expense_account: "6000".into(),
-            bank_account: "1000".into(),
+            ar_account: "1100".into(),
+            revenue_account: "1000".into(),
+            ap_account: "7000".into(),
+            expense_account: "3000".into(),
+            bank_account: "2000".into(),
         }
     }
 }
@@ -189,16 +189,16 @@ mod tests {
         let inv = sample_invoice(InvoiceKind::Sale);
         let entry = journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
         assert!(entry.legs.iter().all(|l| l.party_id.is_some()));
-        assert_eq!(entry.legs[0].account, "1500");
-        assert_eq!(entry.legs[1].account, "6100");
+        assert_eq!(entry.legs[0].account, "1100");
+        assert_eq!(entry.legs[1].account, "1000");
     }
 
     #[test]
     fn purchase_reverses_accounts() {
         let inv = sample_invoice(InvoiceKind::Purchase);
         let entry = journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
-        assert_eq!(entry.legs[0].account, "6000");
-        assert_eq!(entry.legs[1].account, "4400");
+        assert_eq!(entry.legs[0].account, "3000");
+        assert_eq!(entry.legs[1].account, "7000");
     }
 
     #[test]
@@ -207,8 +207,8 @@ mod tests {
         let entry =
             payment_journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
         assert!(entry.legs.iter().all(|l| l.party_id.is_some()));
-        assert_eq!(entry.legs[0].account, "1000");
-        assert_eq!(entry.legs[1].account, "1500");
+        assert_eq!(entry.legs[0].account, "2000");
+        assert_eq!(entry.legs[1].account, "1100");
     }
 
     #[test]

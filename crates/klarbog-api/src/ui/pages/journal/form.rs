@@ -36,10 +36,10 @@ impl Default for JournalFields {
     fn default() -> Self {
         Self {
             memo: "udgift #vat25 #receipt".into(),
-            account1: "6000".into(),
+            account1: "3000".into(),
             direction1: "debit".into(),
             amount1: "12500".into(),
-            account2: "5800".into(),
+            account2: "2000".into(),
             direction2: "credit".into(),
             amount2: "12500".into(),
             moms_gross: "12500".into(),

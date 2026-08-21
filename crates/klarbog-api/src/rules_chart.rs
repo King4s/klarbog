@@ -1,4 +1,4 @@
-//! GET /api/v1/rules/chart — read-only DEV chart stub (codes + labels).
+//! GET /api/v1/rules/chart — read-only typed chart of accounts (ADR-019).
 
 use crate::actor::parse_actor;
 use crate::invoice::{authorize_company, map_core};
@@ -6,7 +6,7 @@ use crate::AppState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
-use klarbog_plugin_rules_dk::{chart_stub_entries, RULE_KNOWN_ACCOUNT};
+use klarbog_plugin_rules_dk::{chart_accounts, RULE_KNOWN_ACCOUNT};
 use klarbog_types::Envelope;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -17,7 +17,7 @@ pub struct ChartQuery {
     pub company: String,
 }
 
-/// Read-only stub chart list — AuthZ/allowlist like other read tools; no journal write.
+/// Read-only chart list — AuthZ/allowlist like other read tools; no journal write.
 pub async fn rules_chart(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -33,8 +33,8 @@ pub async fn rules_chart(
         })?;
 
     Ok(Json(Envelope::ok(json!({
-        "stub": true,
-        "accounts": chart_stub_entries(),
+        "stub": false,
+        "accounts": chart_accounts(),
         "rule_known_account": RULE_KNOWN_ACCOUNT,
     }))))
 }
@@ -68,7 +68,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rules_chart_returns_stub_codes() {
+    async fn rules_chart_returns_typed_accounts() {
         let (app, _dir, company) = app_with_company().await;
         let uri = format!("/api/v1/rules/chart?company={}", company.to_string_lossy());
         let res = app
@@ -90,15 +90,17 @@ mod tests {
         let env: Envelope<Value> = serde_json::from_slice(&bytes).unwrap();
         assert!(env.ok);
         let data = env.data.unwrap();
-        assert_eq!(data["stub"], true);
+        assert_eq!(data["stub"], false);
         assert_eq!(data["rule_known_account"], RULE_KNOWN_ACCOUNT);
         let accounts = data["accounts"].as_array().unwrap();
-        assert_eq!(accounts.len(), 4);
-        assert_eq!(accounts[0]["code"], "1000");
-        assert_eq!(accounts[0]["label"], "Bank");
-        assert_eq!(accounts[3]["code"], "4000-6999");
-        assert_eq!(accounts[3]["min"], 4000);
-        assert_eq!(accounts[3]["max"], 6999);
+        assert_eq!(accounts.len(), 48);
+        assert_eq!(accounts[0]["code"], 1000);
+        assert_eq!(accounts[0]["label"], "Omsætning, ydelser");
+        assert_eq!(accounts[0]["type"], "income");
+        assert_eq!(accounts[0]["credit_normal"], true);
+        let bank = accounts.iter().find(|a| a["code"] == 2000).unwrap();
+        assert_eq!(bank["label"], "Bank");
+        assert_eq!(bank["type"], "asset");
     }
 
     #[tokio::test]

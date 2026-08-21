@@ -75,8 +75,8 @@ PARTY_ID="$(getp /ui/parties | rg -o 'name="party_id" value="[^"]*' | cut -d'"' 
 
 # --- journal: preview -> commit (digest-bound entry_json regression) ---
 JFORM=(--data-urlencode "memo=udgift #vat25 #receipt"
-  --data-urlencode account1=6000 --data-urlencode direction1=debit --data-urlencode amount1=12500
-  --data-urlencode account2=5800 --data-urlencode direction2=credit --data-urlencode amount2=12500
+  --data-urlencode account1=3000 --data-urlencode direction1=debit --data-urlencode amount1=12500
+  --data-urlencode account2=2000 --data-urlencode direction2=credit --data-urlencode amount2=12500
   --data-urlencode moms_gross=12500 --data-urlencode "moms_memo=x")
 PAGE="$(post /ui/journal --data-urlencode action=preview "${JFORM[@]}" --data-urlencode confirm_token=)"
 expect_ok "journal preview" "$PAGE"
@@ -145,8 +145,8 @@ rg -q "udgift #vat25 #receipt" <<<"$PAGE" || fail "journal: committed memo not l
 echo "ok: journal postings listed"
 CHART="$(getp /ui/chart)"
 rg -q "Saldi" <<<"$CHART" || fail "chart: balances section missing"
-# 6000 was debited 125.00 by the journal commit.
-rg -q "125.00 DKK" <<<"$CHART" || fail "chart: expected 125.00 DKK balance on 6000"
+# 3000 was debited 125.00 by the journal commit.
+rg -q "125.00 DKK" <<<"$CHART" || fail "chart: expected 125.00 DKK balance on 3000"
 echo "ok: chart balances listed"
 
 # --- reversal: reverse the newest posting via its id, commit, net returns to 0 ---

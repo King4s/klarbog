@@ -16,9 +16,9 @@ pub struct BankImportConfig {
 impl Default for BankImportConfig {
     fn default() -> Self {
         Self {
-            expense_account: "6000".into(),
-            bank_account: "5800".into(),
-            income_account: "6100".into(),
+            expense_account: "3000".into(),
+            bank_account: "2000".into(),
+            income_account: "1000".into(),
             currency: Currency::new("DKK").expect("DKK"),
         }
     }

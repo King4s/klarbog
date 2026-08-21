@@ -16,14 +16,14 @@ fn entry_with_party(memo: &str, minor: i64, party_id: Option<PartyId>) -> Journa
         actor: Actor::user("t"),
         legs: vec![
             Leg {
-                account: "6000".into(),
+                account: "3000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
                 party_id: party_id.clone(),
             },
             Leg {
-                account: "5800".into(),
+                account: "2000".into(),
                 direction: Direction::Credit,
                 amount,
                 currency,
@@ -131,22 +131,23 @@ fn allows_party_plus_receipt_tag() {
 
 #[test]
 fn no_receipt_rule_without_expense_debit() {
+    // Bank debit (money in) against revenue credit — receipt rule must not fire.
     let amount = MinorAmount::from_minor(100);
     let currency = Currency::new("DKK").unwrap();
     let e = JournalEntry {
         as_of: Utc::now(),
-        memo: "transfer".into(),
+        memo: "payment received".into(),
         actor: Actor::user("t"),
         legs: vec![
             Leg {
-                account: "1000".into(),
+                account: "2000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
                 party_id: None,
             },
             Leg {
-                account: "5800".into(),
+                account: "1000".into(),
                 direction: Direction::Credit,
                 amount,
                 currency,
@@ -159,6 +160,19 @@ fn no_receipt_rule_without_expense_debit() {
 }
 
 #[test]
+fn staff_and_depreciation_debits_exempt_from_receipt_rule() {
+    for account in ["3500", "5820"] {
+        let mut e = entry("løn/afskrivning uden bilag", 500);
+        e.legs[0].account = account.into();
+        let applied = RULES_DK.validate_entry(&e).unwrap();
+        assert!(
+            !applied.iter().any(|r| r.contains("receipt")),
+            "{account}: {applied:?}"
+        );
+    }
+}
+
+#[test]
 fn hints_when_account_outside_chart_stub() {
     let amount = MinorAmount::from_minor(100);
     let currency = Currency::new("DKK").unwrap();
@@ -168,7 +182,8 @@ fn hints_when_account_outside_chart_stub() {
         actor: Actor::user("t"),
         legs: vec![
             Leg {
-                account: "2000".into(),
+                // Old stub codes are outside the chart now — hint fires.
+                account: "6000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
@@ -197,14 +212,14 @@ fn known_stub_accounts_skip_known_account_hint() {
         actor: Actor::user("t"),
         legs: vec![
             Leg {
-                account: "1000".into(),
+                account: "2000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
                 party_id: None,
             },
             Leg {
-                account: "1500".into(),
+                account: "1100".into(),
                 direction: Direction::Credit,
                 amount,
                 currency,
@@ -217,7 +232,7 @@ fn known_stub_accounts_skip_known_account_hint() {
 }
 
 #[test]
-fn ap_and_expense_band_are_known() {
+fn expense_and_creditors_are_known() {
     let amount = MinorAmount::from_minor(250);
     let currency = Currency::new("DKK").unwrap();
     let e = JournalEntry {
@@ -226,14 +241,14 @@ fn ap_and_expense_band_are_known() {
         actor: Actor::user("t"),
         legs: vec![
             Leg {
-                account: "6000".into(),
+                account: "3000".into(),
                 direction: Direction::Debit,
                 amount,
                 currency: currency.clone(),
                 party_id: None,
             },
             Leg {
-                account: "4400".into(),
+                account: "7000".into(),
                 direction: Direction::Credit,
                 amount,
                 currency,

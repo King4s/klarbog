@@ -119,9 +119,9 @@ mod tests {
         }
 
         let expense = &drafts[0];
-        assert_eq!(expense.legs[0].account, "6000");
+        assert_eq!(expense.legs[0].account, "3000");
         assert_eq!(expense.legs[0].amount.minor(), 12550);
-        assert_eq!(expense.legs[1].account, "5800");
+        assert_eq!(expense.legs[1].account, "2000");
     }
 
     #[test]

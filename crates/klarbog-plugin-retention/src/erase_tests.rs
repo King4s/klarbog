@@ -71,14 +71,14 @@ async fn confirm_anonymizes_and_strips_docs_keeps_journal() {
             actor: owner,
             legs: vec![
                 Leg {
-                    account: "6000".into(),
+                    account: "3000".into(),
                     direction: Direction::Debit,
                     amount,
                     currency: currency.clone(),
                     party_id: Some(party.id.clone()),
                 },
                 Leg {
-                    account: "5800".into(),
+                    account: "2000".into(),
                     direction: Direction::Credit,
                     amount,
                     currency,
