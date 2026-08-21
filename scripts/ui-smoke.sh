@@ -174,7 +174,11 @@ TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry
 expect_ok "b2b send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
   --data-urlencode "invoice_id=$INV3" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
-PAGE="$(post /ui/invoices --data-urlencode action=credit_preview --data-urlencode "invoice_id=$INV3")"
+# Reason is required as in the original (fail-closed without it).
+expect_err_contains "credit note without reason" "reason is required" \
+  "$(post /ui/invoices --data-urlencode action=credit_preview --data-urlencode "invoice_id=$INV3")"
+PAGE="$(post /ui/invoices --data-urlencode action=credit_preview \
+  --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=smoke fejlpris")"
 expect_ok "credit note preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
 rg -q "invoice:$INV3:credit" <<<"$EJSON" || fail "credit note: memo missing in entry_json"

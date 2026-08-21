@@ -48,12 +48,35 @@ Beløbskonventionen afhænger af modparten (dansk praksis):
 
 Fuld kreditnota på en **sendt, ubetalt** faktura er implementeret som
 to-faset flow: preview eksakt-negerer send-bogføringen (samme konti inkl.
-momsben, flippede retninger, memo `invoice:{id}:credit`); commit bogfører
-og sætter status til void. Fail-closed: kladder, betalte og delbetalte
-fakturaer afvises (`CreditWithPayments` / ugyldig transition), og
-betingelsen re-tjekkes ved commit.
+momsben, flippede retninger, memo `invoice:{id}:credit · {reason}`);
+commit bogfører og sætter status til void. Begrundelse er påkrævet som i
+originalen (DK-CREDIT-NOTE-001). Fail-closed: kladder, betalte og
+delbetalte fakturaer afvises (`CreditWithPayments` / ugyldig transition),
+og betingelsen re-tjekkes ved commit.
 
-## Deferred
+## Forhold til originalprojektet (ejerordre 2026-08-21: originalen er facit)
 
-- Delvise kreditnotaer, momssats pr. linje / momsfrie ydelser (`vat0`),
-  omvendt betalingspligt (EU-køb). Egen ADR når behovet opstår.
+Originalen (`origin/main`, TypeScript) er referencen; porten må ikke
+opfinde egen semantik. Kendte afvigelser/huller pr. denne ADR:
+
+- **Beløbskonvention**: originalen modellerer fakturalinjer **ekskl. moms**
+  (`unitPriceExVat`) med eksplicitte net/vat/gross-totaler og
+  `vatTreatment`. Partstype-konventionen (privat inkl. / erhverv ekskl.)
+  er en eksplicit ejerbeslutning 2026-08-21 for portens indtastnings-UI —
+  internt fryses net/vat/gross på fakturaen, hvilket matcher originalens
+  totals-model.
+- **Kreditnota-huller** (originalen har dem, porten endnu ikke):
+  fortløbende CN-nummerserie pr. regnskabsår (`CN-{år}-{nnnn}`,
+  `sequences`), delkreditering med kumulativt loft mod original-brutto,
+  negation afledt af den oprindelige posterings linjer, kreditnota som
+  dokument (sha256, retention, audit).
+- **Statusmodel**: originalen afleder status af beløb (open/paid/credited/
+  refunded/overpaid/written_off); porten har en eksplicit statusmaskine
+  (draft/sent/part_paid/paid/void). Portens `record_payment` fail-closer
+  på overbetaling hvor originalen registrerer og markerer `overpaid`.
+- **Moms-huller**: originalen har `vat_code` pr. journallinje,
+  evidensbaseret momssemantik, momsangivelse med rubrikker, omvendt
+  betalingspligt (§46 + EU), OSS og momsfrie ydelser. Porten har fast
+  25 %-split på faste konti (1200/4000/4500).
+
+Videre arbejde porteres fra originalens featureliste — ikke fra egne idéer.

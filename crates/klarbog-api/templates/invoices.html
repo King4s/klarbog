@@ -41,6 +41,7 @@
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="credit_preview" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="credit_reason" placeholder="begrundelse (påkrævet)" required style="width:11rem" />
             <button class="ghost" type="submit">Kreditnota (preview)</button>
           </form>
           {% endif %}

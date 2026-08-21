@@ -180,6 +180,8 @@ pub enum InvoiceError {
     NothingRemaining,
     #[error("cannot credit: invoice has recorded payments")]
     CreditWithPayments,
+    #[error("credit note reason is required")]
+    MissingCreditReason,
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

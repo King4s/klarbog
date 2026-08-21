@@ -33,6 +33,8 @@ pub struct InvoiceActionForm {
     pub part_amount_minor: Option<String>,
     pub entry_json: Option<String>,
     pub confirm_token: Option<String>,
+    /// Credit note reason — required, as in the original (DK-CREDIT-NOTE-001).
+    pub credit_reason: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

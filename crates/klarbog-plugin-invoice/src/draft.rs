@@ -113,15 +113,22 @@ pub fn journal_suggestion(
     Ok(entry)
 }
 
-/// Full credit note (ADR-020): exact negation of the send booking — same
-/// accounts (incl. VAT leg), flipped directions, memo `invoice:{id}:credit`.
+/// Full credit note: exact negation of the send booking — same accounts
+/// (incl. VAT leg), flipped directions, memo `invoice:{id}:credit · {reason}`.
+/// As in the original project a reason is required (DK-CREDIT-NOTE-001).
 /// Fail-closed: only a sent invoice with no recorded payments; partial
-/// credit notes are out of scope (ADR-020 Deferred).
+/// credit notes and the CN number sequence are original features not yet
+/// ported (see ADR-020).
 pub fn credit_journal_suggestion(
     invoice: &Invoice,
+    reason: &str,
     actor: &Actor,
     cfg: &InvoiceConfig,
 ) -> Result<JournalEntry, InvoiceError> {
+    let reason = reason.trim();
+    if reason.is_empty() {
+        return Err(InvoiceError::MissingCreditReason);
+    }
     if invoice.status != InvoiceStatus::Sent {
         return Err(InvoiceError::InvalidTransition {
             from: invoice.status,
@@ -135,7 +142,7 @@ pub fn credit_journal_suggestion(
     let credit = entry.reversal(
         Utc::now(),
         actor.clone(),
-        format!("invoice:{}:credit", invoice.id),
+        format!("invoice:{}:credit · {reason}", invoice.id),
     );
     credit.validate().map_err(InvoiceError::Journal)?;
     Ok(credit)
@@ -309,9 +316,17 @@ mod tests {
     fn credit_note_negates_send_booking_incl_vat() {
         let mut inv = vat_invoice(InvoiceKind::Sale);
         inv.status = InvoiceStatus::Sent;
-        let entry =
-            credit_journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
-        assert_eq!(entry.memo, format!("invoice:{}:credit", inv.id));
+        let entry = credit_journal_suggestion(
+            &inv,
+            "forkert beløb",
+            &Actor::user("t"),
+            &InvoiceConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            entry.memo,
+            format!("invoice:{}:credit · forkert beløb", inv.id)
+        );
         assert_eq!(entry.legs.len(), 3);
         // AR credited gross, revenue debited net, salgsmoms debited vat.
         assert_eq!(entry.legs[0].account, "1100");
@@ -328,8 +343,9 @@ mod tests {
     #[test]
     fn credit_note_refuses_draft_and_paid_invoices() {
         let draft = vat_invoice(InvoiceKind::Sale);
-        let err = credit_journal_suggestion(&draft, &Actor::user("t"), &InvoiceConfig::default())
-            .unwrap_err();
+        let err =
+            credit_journal_suggestion(&draft, "fejl", &Actor::user("t"), &InvoiceConfig::default())
+                .unwrap_err();
         assert!(matches!(err, InvoiceError::InvalidTransition { .. }));
 
         let mut with_payment = vat_invoice(InvoiceKind::Sale);
@@ -339,10 +355,24 @@ mod tests {
             amount_minor: 1_000,
             currency: Currency::new("DKK").unwrap(),
         });
-        let err =
-            credit_journal_suggestion(&with_payment, &Actor::user("t"), &InvoiceConfig::default())
-                .unwrap_err();
+        let err = credit_journal_suggestion(
+            &with_payment,
+            "fejl",
+            &Actor::user("t"),
+            &InvoiceConfig::default(),
+        )
+        .unwrap_err();
         assert!(matches!(err, InvoiceError::CreditWithPayments));
+    }
+
+    #[test]
+    fn credit_note_requires_reason_as_in_original() {
+        let mut inv = vat_invoice(InvoiceKind::Sale);
+        inv.status = InvoiceStatus::Sent;
+        let err =
+            credit_journal_suggestion(&inv, "  ", &Actor::user("t"), &InvoiceConfig::default())
+                .unwrap_err();
+        assert!(matches!(err, InvoiceError::MissingCreditReason));
     }
 
     #[test]

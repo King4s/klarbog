@@ -48,11 +48,12 @@ pub(super) async fn credit_preview(
     form: &InvoiceActionForm,
 ) -> Response {
     let id = InvoiceId::new(form.invoice_id.clone().unwrap_or_default());
+    let reason = form.credit_reason.clone().unwrap_or_default();
     let invoice = match creditable(path, &id) {
         Ok(inv) => inv,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
-    match credit_journal_suggestion(&invoice, actor, &InvoiceConfig::default()) {
+    match credit_journal_suggestion(&invoice, &reason, actor, &InvoiceConfig::default()) {
         Ok(entry) => {
             preview_with_pending(
                 state,
