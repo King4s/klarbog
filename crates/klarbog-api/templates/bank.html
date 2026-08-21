@@ -77,6 +77,7 @@
     <form method="post" action="/ui/bank">
       <input type="hidden" name="action" value="commit_apply" />
       <input type="hidden" name="provider" value="{{ provider }}" />
+      <input type="hidden" name="invoice_id" value="{{ pending_invoice_id }}" />
       <input type="hidden" name="entry_json" value="{{ pending_entry_json }}" />
       <input type="hidden" name="confirm_token" value="{{ pending_token }}" />
       <button class="primary" type="submit">Bekræft afstemning (commit)</button>

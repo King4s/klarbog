@@ -7,10 +7,10 @@ mod status;
 mod store;
 
 pub use draft::{
-    journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
-    InvoiceConfig,
+    credit_journal_suggestion, journal_suggestion, payment_journal_suggestion,
+    payment_journal_suggestion_amount, InvoiceConfig,
 };
-pub use lifecycle::{mark_paid_preview, mark_part_paid_preview, patch_status};
+pub use lifecycle::{mark_paid_preview, mark_part_paid_preview, patch_status, record_payment};
 pub use status::InvoiceStatus;
 pub use store::{
     create_draft, create_draft_from_new, get_invoice, list_invoices, NewLine, INVOICES_FILENAME,
@@ -178,6 +178,8 @@ pub enum InvoiceError {
     },
     #[error("cannot mark paid: remaining balance is 0")]
     NothingRemaining,
+    #[error("cannot credit: invoice has recorded payments")]
+    CreditWithPayments,
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

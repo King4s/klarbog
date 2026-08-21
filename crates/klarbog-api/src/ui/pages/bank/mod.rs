@@ -1,5 +1,6 @@
 //! Bank SSR — CSV import preview, reconcile suggest, apply→journal preview.
 
+mod commit;
 mod form;
 mod post;
 mod view;

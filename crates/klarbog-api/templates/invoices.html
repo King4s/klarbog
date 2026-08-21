@@ -37,6 +37,13 @@
             <button class="ghost" type="submit">Bogfør + send (preview)</button>
           </form>
           {% endif %}
+          {% if inv.can_credit %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="credit_preview" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <button class="ghost" type="submit">Kreditnota (preview)</button>
+          </form>
+          {% endif %}
           {% if inv.can_collect %}
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="part_paid_preview" />

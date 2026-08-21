@@ -44,7 +44,16 @@ Beløbskonventionen afhænger af modparten (dansk praksis):
 - Momsafregningen på kontoplansiden nettoficerer nu salgs- og købsmoms fra
   både journal-momssplit og fakturaflowet.
 
+## Kreditnotaer
+
+Fuld kreditnota på en **sendt, ubetalt** faktura er implementeret som
+to-faset flow: preview eksakt-negerer send-bogføringen (samme konti inkl.
+momsben, flippede retninger, memo `invoice:{id}:credit`); commit bogfører
+og sætter status til void. Fail-closed: kladder, betalte og delbetalte
+fakturaer afvises (`CreditWithPayments` / ugyldig transition), og
+betingelsen re-tjekkes ved commit.
+
 ## Deferred
 
-- Momssats pr. linje / momsfrie ydelser (`vat0`), omvendt betalingspligt
-  (EU-køb), kreditnotaer. Egen ADR når behovet opstår.
+- Delvise kreditnotaer, momssats pr. linje / momsfrie ydelser (`vat0`),
+  omvendt betalingspligt (EU-køb). Egen ADR når behovet opstår.

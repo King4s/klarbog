@@ -140,6 +140,13 @@ pub async fn invoices_post(
         // commit books it and first then flips status to sent (send.rs).
         "send" => super::send::send_preview(&state, &company, &path, &actor, &form).await,
         "commit_send" => super::send::commit_send(&state, &company, &path, &actor, form).await,
+        // Two-phase credit note (ADR-020): negate the send booking, then void.
+        "credit_preview" => {
+            super::credit::credit_preview(&state, &company, &path, &actor, &form).await
+        }
+        "commit_credit" => {
+            super::credit::commit_credit(&state, &company, &path, &actor, form).await
+        }
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
             match mark_paid_preview(&path, &id, &actor, &InvoiceConfig::default()) {

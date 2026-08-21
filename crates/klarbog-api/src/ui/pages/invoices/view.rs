@@ -121,6 +121,7 @@ pub(super) async fn load_page(
                 party_id: inv.party_id.to_string(),
                 can_send: inv.status == InvoiceStatus::Draft,
                 can_collect: inv.status.allows_mark_paid(),
+                can_credit: inv.status == InvoiceStatus::Sent && inv.payments.is_empty(),
             })
         })
         .collect();

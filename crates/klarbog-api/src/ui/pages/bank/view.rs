@@ -44,6 +44,7 @@ pub(super) struct BankTemplate {
     pub pending_label: String,
     pub pending_entry_json: String,
     pub pending_token: String,
+    pub pending_invoice_id: String,
 }
 
 #[derive(Default)]
@@ -62,6 +63,7 @@ pub(super) struct BankView {
     pub pending_label: String,
     pub pending_entry_json: String,
     pub pending_token: String,
+    pub pending_invoice_id: String,
 }
 
 pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
@@ -99,6 +101,7 @@ pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
         pending_label: v.pending_label,
         pending_entry_json: v.pending_entry_json,
         pending_token: v.pending_token,
+        pending_invoice_id: v.pending_invoice_id,
     }
 }
 

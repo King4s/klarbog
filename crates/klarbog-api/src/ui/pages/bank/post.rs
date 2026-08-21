@@ -4,7 +4,7 @@ use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
 use chrono::{DateTime, NaiveDate, Utc};
-use klarbog_core::{journal_commit, journal_preview};
+use klarbog_core::journal_preview;
 use klarbog_plugin_bank::{
     apply_match, default_source_for_rail, import_preview, suggest_matches, BankImportConfig,
     BankRow,
@@ -232,6 +232,7 @@ pub async fn bank_post(
                                     ),
                                     pending_entry_json: entry_json,
                                     pending_token: p.confirm_token.token,
+                                    pending_invoice_id: invoice_id.to_string(),
                                     ..Default::default()
                                 },
                             ))
@@ -243,29 +244,19 @@ pub async fn bank_post(
             }
         }
         "commit_apply" => {
-            let entry: klarbog_journal::JournalEntry =
-                match serde_json::from_str(form.entry_json.trim()) {
-                    Ok(e) => e,
-                    Err(e) => {
-                        return html_ok(empty(String::new(), format!("Ugyldig entry_json: {e}")));
-                    }
-                };
-            match journal_commit(
-                &state.allowlist_root,
-                std::path::Path::new(&company),
-                entry,
+            match super::commit::commit_apply(
+                &state,
+                &company,
+                &path,
                 &actor,
-                form.confirm_token.trim(),
-                &state.confirm,
-                &state.registry,
+                &form.invoice_id,
+                &form.entry_json,
+                &form.confirm_token,
             )
             .await
             {
-                Ok(r) => html_ok(empty(
-                    format!("Afstemning bogført · posted {}", r.posted.id),
-                    String::new(),
-                )),
-                Err(e) => html_ok(empty(String::new(), e.to_string())),
+                Ok(ok) => html_ok(empty(ok, String::new())),
+                Err(e) => html_ok(empty(String::new(), e)),
             }
         }
         _ => html_ok(empty(

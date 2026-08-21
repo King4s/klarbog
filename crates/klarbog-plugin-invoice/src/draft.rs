@@ -1,6 +1,6 @@
 //! Balanced journal entry suggestions for invoice drafts (no posting).
 
-use crate::{Invoice, InvoiceError, InvoiceKind};
+use crate::{Invoice, InvoiceError, InvoiceKind, InvoiceStatus};
 use chrono::Utc;
 use klarbog_journal::{Direction, JournalEntry, Leg};
 use klarbog_types::{Actor, MinorAmount};
@@ -111,6 +111,34 @@ pub fn journal_suggestion(
     };
     entry.validate().map_err(InvoiceError::Journal)?;
     Ok(entry)
+}
+
+/// Full credit note (ADR-020): exact negation of the send booking — same
+/// accounts (incl. VAT leg), flipped directions, memo `invoice:{id}:credit`.
+/// Fail-closed: only a sent invoice with no recorded payments; partial
+/// credit notes are out of scope (ADR-020 Deferred).
+pub fn credit_journal_suggestion(
+    invoice: &Invoice,
+    actor: &Actor,
+    cfg: &InvoiceConfig,
+) -> Result<JournalEntry, InvoiceError> {
+    if invoice.status != InvoiceStatus::Sent {
+        return Err(InvoiceError::InvalidTransition {
+            from: invoice.status,
+            to: InvoiceStatus::Void,
+        });
+    }
+    if !invoice.payments.is_empty() {
+        return Err(InvoiceError::CreditWithPayments);
+    }
+    let entry = journal_suggestion(invoice, actor, cfg)?;
+    let credit = entry.reversal(
+        Utc::now(),
+        actor.clone(),
+        format!("invoice:{}:credit", invoice.id),
+    );
+    credit.validate().map_err(InvoiceError::Journal)?;
+    Ok(credit)
 }
 
 pub fn payment_journal_suggestion(
@@ -275,6 +303,46 @@ mod tests {
         let entry = journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
         assert_eq!(entry.legs[0].account, "3000");
         assert_eq!(entry.legs[1].account, "7000");
+    }
+
+    #[test]
+    fn credit_note_negates_send_booking_incl_vat() {
+        let mut inv = vat_invoice(InvoiceKind::Sale);
+        inv.status = InvoiceStatus::Sent;
+        let entry =
+            credit_journal_suggestion(&inv, &Actor::user("t"), &InvoiceConfig::default()).unwrap();
+        assert_eq!(entry.memo, format!("invoice:{}:credit", inv.id));
+        assert_eq!(entry.legs.len(), 3);
+        // AR credited gross, revenue debited net, salgsmoms debited vat.
+        assert_eq!(entry.legs[0].account, "1100");
+        assert_eq!(entry.legs[0].direction, Direction::Credit);
+        assert_eq!(entry.legs[0].amount.minor(), 31_250);
+        assert_eq!(entry.legs[1].account, "1000");
+        assert_eq!(entry.legs[1].direction, Direction::Debit);
+        assert_eq!(entry.legs[1].amount.minor(), 25_000);
+        assert_eq!(entry.legs[2].account, "1200");
+        assert_eq!(entry.legs[2].direction, Direction::Debit);
+        assert_eq!(entry.legs[2].amount.minor(), 6_250);
+    }
+
+    #[test]
+    fn credit_note_refuses_draft_and_paid_invoices() {
+        let draft = vat_invoice(InvoiceKind::Sale);
+        let err = credit_journal_suggestion(&draft, &Actor::user("t"), &InvoiceConfig::default())
+            .unwrap_err();
+        assert!(matches!(err, InvoiceError::InvalidTransition { .. }));
+
+        let mut with_payment = vat_invoice(InvoiceKind::Sale);
+        with_payment.status = InvoiceStatus::Sent;
+        with_payment.payments.push(crate::InvoicePayment {
+            unix_ms: 0,
+            amount_minor: 1_000,
+            currency: Currency::new("DKK").unwrap(),
+        });
+        let err =
+            credit_journal_suggestion(&with_payment, &Actor::user("t"), &InvoiceConfig::default())
+                .unwrap_err();
+        assert!(matches!(err, InvoiceError::CreditWithPayments));
     }
 
     #[test]

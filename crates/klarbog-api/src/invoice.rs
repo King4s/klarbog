@@ -92,7 +92,7 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::Money(_)
         | InvoiceError::Journal(_)
         | InvoiceError::Vat(_) => (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()])),
-        InvoiceError::InvalidTransition { .. } => {
+        InvoiceError::InvalidTransition { .. } | InvoiceError::CreditWithPayments => {
             (StatusCode::CONFLICT, Envelope::err([err.to_string()]))
         }
         InvoiceError::Crm(e) => (

@@ -87,6 +87,44 @@ pub fn mark_paid_preview(
     Ok((updated, entry))
 }
 
+/// Record an already-booked payment on the invoice (e.g. bank reconcile
+/// commit): append ledger row and derive status. No journal suggestion —
+/// the entry was committed elsewhere. Fail-closed on overpay/zero.
+pub fn record_payment(
+    company: &Path,
+    id: &InvoiceId,
+    amount_minor: i64,
+) -> Result<Invoice, InvoiceError> {
+    let mut file = crate::store::load(company)?;
+    let invoice = file
+        .invoices
+        .iter_mut()
+        .find(|inv| inv.id == *id)
+        .ok_or_else(|| InvoiceError::NotFound(id.to_string()))?;
+    if !invoice.status.allows_mark_paid() {
+        return Err(InvoiceError::InvalidTransition {
+            from: invoice.status,
+            to: InvoiceStatus::Paid,
+        });
+    }
+    let remaining = invoice.remaining_minor()?;
+    if amount_minor <= 0 || amount_minor > remaining {
+        return Err(InvoiceError::Overpay {
+            amount_minor,
+            remaining_minor: remaining,
+        });
+    }
+    push_payment(invoice, amount_minor)?;
+    invoice.status = if amount_minor == remaining {
+        InvoiceStatus::Paid
+    } else {
+        InvoiceStatus::PartPaid
+    };
+    let updated = invoice.clone();
+    crate::store::save(company, &file)?;
+    Ok(updated)
+}
+
 /// Partial payment preview: append ledger row, status → `part_paid`.
 pub fn mark_part_paid_preview(
     company: &Path,

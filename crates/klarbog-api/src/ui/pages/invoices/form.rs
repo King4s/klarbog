@@ -13,6 +13,8 @@ pub(super) struct InvoiceRow {
     pub party_id: String,
     pub can_send: bool,
     pub can_collect: bool,
+    /// Sent and unpaid — eligible for a full credit note (ADR-020).
+    pub can_credit: bool,
 }
 
 pub(super) struct PartyOption {

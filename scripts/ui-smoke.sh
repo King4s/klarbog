@@ -147,7 +147,14 @@ TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry
 expect_ok "bank commit" "$(post /ui/bank --data-urlencode action=commit_apply \
   --data-urlencode provider=generic_dk --data-urlencode csv= --data-urlencode row_date= \
   --data-urlencode row_text= --data-urlencode row_amount= \
+  --data-urlencode "invoice_id=$INV2" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+# The reconciled payment must land on the invoice (paid), so it can no
+# longer be collected or credited.
+getp /ui/invoices | rg -q "$INV2</td>\s*<td>paid" \
+  || getp /ui/invoices | rg -U -q "$INV2.*\n.*paid" \
+  || fail "bank commit: $INV2 not marked paid"
+echo "ok: bank payment recorded on invoice (paid)"
 
 # --- ADR-020: erhvervspart faktureres ekskl. moms (10000 net -> 12500 brutto) ---
 post /ui/parties --data-urlencode action=create \
@@ -158,6 +165,25 @@ expect_ok "b2b invoice create" "$(post /ui/invoices --data-urlencode action=crea
   --data-urlencode description=B2B --data-urlencode amount_minor=10000)"
 getp /ui/invoices | rg -q '125.00 DKK' || fail "invoices: expected brutto 125.00 DKK on b2b draft"
 echo "ok: b2b invoice ekskl. moms (brutto 125.00 DKK)"
+
+# --- kreditnota: send b2b, then full credit note voids it and negates moms ---
+INV3="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
+PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV3")"
+expect_ok "b2b send preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+expect_ok "b2b send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
+  --data-urlencode "invoice_id=$INV3" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+PAGE="$(post /ui/invoices --data-urlencode action=credit_preview --data-urlencode "invoice_id=$INV3")"
+expect_ok "credit note preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+rg -q "invoice:$INV3:credit" <<<"$EJSON" || fail "credit note: memo missing in entry_json"
+rg -q '1200' <<<"$EJSON" || fail "credit note: no salgsmoms leg in entry_json"
+expect_ok "credit note commit" "$(post /ui/invoices --data-urlencode action=commit_credit \
+  --data-urlencode "invoice_id=$INV3" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+getp /ui/invoices | rg -q 'void' || fail "credit note: invoice not voided"
+echo "ok: credit note booked and invoice voided"
 
 # --- bilag: upload -> exception close -> gdpr export -> remove ---
 echo smoke > "$WORK/kvit.txt"
