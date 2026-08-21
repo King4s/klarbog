@@ -1,109 +1,117 @@
-# ADR-019 — Dansk standardkontoplan v1 (chart restructure)
+# ADR-019 — Kontoplan: adopt the original chart (rev. 2)
 
-Proposed (2026-08-21 — owner requested design; implementation awaits owner GO)
+Proposed (2026-08-21 — owner requested design; rev. 2 after comparing with the
+original project; implementation awaits owner GO)
 
 ## Context
 
-The DEV chart stub ([ADR-011](ADR-011-moms-suggest.md) era) is internally
-inconsistent, discovered while adding ledger read views:
+The Rust DEV chart stub is internally inconsistent, discovered while adding
+ledger read views:
 
 | Problem | Detail |
 |---|---|
-| Revenue inside expense band | `InvoiceConfig.revenue_account = "6100"` and `BankImportConfig.income_account = "6100"` sit inside the expense band 4000–6999 (`is_expense_account_code`). A P&L grouping on current bands would count revenue as expense. |
-| Two bank accounts | Invoice plugin books bank as `1000`; bank plugin books bank as `5800`. The same real-world account has two codes, so bank saldo splits across two rows. |
-| Bank inside expense band | `5800` ∈ 4000–6999, so bank **debits** (money in) are subject to the fail-closed expense receipt rule (`dk.expense.receipt_required`). Flows only pass today because legs happen to carry `party_id`. Wrong semantics that accidentally validates. |
+| Revenue inside expense band | `InvoiceConfig.revenue_account = "6100"` and `BankImportConfig.income_account = "6100"` sit inside the expense band 4000–6999 (`is_expense_account_code`). |
+| Two bank accounts | Invoice plugin books bank as `1000`; bank plugin books bank as `5800`. Bank saldo splits across two rows. |
+| Bank inside expense band | `5800` ∈ 4000–6999, so bank **debits** (money in) hit the fail-closed expense receipt rule. Flows only pass because legs happen to carry `party_id`. |
 | AP inside expense band | `4400` (accounts payable) also sits inside 4000–6999. |
 
-Current code touchpoints (survey 2026-08-21): `klarbog-plugin-rules-dk`
-(`chart.rs` constants + bands, receipt rule in `lib.rs`), `InvoiceConfig`
-(draft.rs), `BankImportConfig` (map.rs), UI journal form defaults
-(6000/5800), CLI `smoke-post`, MCP journal tool, `core::journal_ops` and
-plugin test fixtures, `rules_chart` HTTP/MCP read surfaces, ui-smoke.
+**Original-project comparison (rev. 2 finding).** The original TS codebase on
+`main` does NOT have this problem — it solved it properly:
 
-## Decision (target chart)
+- `seedAccounts` (src/core/ledger.ts) seeds ~50 Danish accounts, each with
+  explicit metadata: `type` (income/expense/asset/liability/equity/vat),
+  `normal_balance`, `default_vat_code`. Semantics come from **metadata, not
+  numeric bands**.
+- `seedNativeAccountRoles` (src/core/account-roles.ts) adds a **role
+  indirection**: booking code resolves semantic roles → account numbers via an
+  audited `account_role_mappings` table (proposals, explicit confirmation,
+  compatibility checks). Nothing hardcodes numbers.
+- Native numbering: 1xxx income + debitorer (1100) + salgsmoms (1200),
+  2000 Bank, 3xxx driftsomkostninger + staff (3500–3599), 4000 Købsmoms,
+  4500 Momsafregning, 5xxx equity + anlæg, 7xxx kortfristet gæld
+  (7000 kreditorer).
 
-Adopt the common Danish SMB standardkontoplan structure (e-conomic-style
-numbering). Bands are disjoint; every plugin default gets one canonical code.
+The Rust stub invented a **conflicting** numbering — worst case `1000`, which
+means *Bank* in the Rust stub but *Omsætning, ydelser* in the original. Any
+data or agent tooling that crosses the two worlds would misbook revenue as
+bank. Rev. 1 of this ADR proposed e-conomic-style numbering; that would have
+added a *third* incompatible scheme and is withdrawn.
 
-### Bands
+## Decision
 
-| Band | Meaning | Type |
+Adopt the **original chart** as the single source of truth for numbering and
+semantics. Two phases:
+
+### Phase 1 — static chart parity (rust-dev)
+
+Replace the band stub in `klarbog-plugin-rules-dk` with a static table
+mirroring the original `seedAccounts` rows (number, Danish label, type,
+normal balance). Derive all rule semantics from account `type`:
+
+- `is_expense_account_code(n)` → lookup `type == expense`; the receipt rule
+  (`dk.expense.receipt_required`) fires on expense debits **except** staff
+  accounts 3500–3599 (salaries have no receipts).
+- `is_known_dk_account` → membership in the table (still hint-only via
+  `RULE_KNOWN_ACCOUNT`; digits-only hard-fail unchanged).
+- `chart_stub_entries` → the real table (feeds `/api/v1/rules/chart`, MCP,
+  and the SSR Kontoplan page, which then shows label + type per account).
+
+Plugin defaults move to the original's native role numbers:
+
+| Config | Old (stub) | New (original) |
 |---|---|---|
-| 1000–1999 | Omsætning (revenue) | Resultat |
-| 2000–2999 | Vareforbrug / direkte omkostninger | Resultat (receipt-gated) |
-| 3000–3999 | Personaleomkostninger | Resultat (NOT receipt-gated) |
-| 4000–4999 | Kapacitetsomkostninger (drift) | Resultat (receipt-gated) |
-| 5000–5999 | Aktiver | Balance |
-| 6000–6999 | Passiver, gæld og moms | Balance |
+| Invoice `ar_account` | 1500 | 1100 Debitorer |
+| Invoice `revenue_account` | 6100 | 1000 Omsætning, ydelser |
+| Invoice `ap_account` | 4400 | 7000 Leverandørgæld |
+| Invoice/Bank `bank_account` | 1000 / 5800 | 2000 Bank |
+| Invoice/Bank `expense_account` | 6000 | 3000 (operational_default) |
+| Bank `income_account` | 6100 | 1000 |
+| UI journal defaults | 6000/5800 | 3000/2000 |
 
-### Named defaults (canonical codes)
+VAT accounts 1200 (salgsmoms), 4000 (købsmoms), 4500 (momsafregning) become
+known accounts; `moms_post_suggestion` stays hint-only until a VAT-legs
+feature books against them.
 
-| Code | Label | Replaces |
-|---|---|---|
-| 1010 | Salg af varer/ydelser | 6100 (revenue/income) |
-| 2010 | Vareforbrug | — (new) |
-| 4010 | Driftsomkostninger | 6000 (default expense) |
-| 5600 | Debitorer (AR) | 1500 |
-| 5810 | Kasse | — (new, band only) |
-| 5820 | Bank | 1000 **and** 5800 (unified) |
-| 6840 | Kreditorer (AP) | 4400 |
-| 6901 | Salgsmoms (udgående) | — (reserved) |
-| 6902 | Købsmoms (indgående) | — (reserved) |
-| 6903 | Momsafregning | — (reserved) |
+### Phase 2 — role indirection (later, own ADR)
 
-6901–6903 are **reserved** for a future VAT-legs feature; `moms_post_suggestion`
-stays a hint-only splitter until then.
-
-### Rule changes (`klarbog-plugin-rules-dk`)
-
-- `is_expense_account_code` → true for 2000–2999 **or** 4000–4999 (personale
-  3000–3999 exempt: salaries have no receipts; band renamed accordingly).
-- Receipt rule (`dk.expense.receipt_required`) unchanged in behavior but now
-  fires on the corrected bands — bank/AP/revenue debits no longer touch it.
-- `is_known_dk_account` allowlist = named defaults above + all six bands
-  (still hint-only via `RULE_KNOWN_ACCOUNT`; digits-only hard-fail unchanged).
-- `chart_stub_entries` lists the six bands + named defaults with Danish labels
-  (feeds `/api/v1/rules/chart`, MCP tool, and the SSR Kontoplan page).
-
-### Plugin/config defaults
-
-- `InvoiceConfig`: ar 5600 · revenue 1010 · ap 6840 · expense 4010 · bank 5820.
-- `BankImportConfig`: expense 4010 · bank 5820 · income 1010.
-- UI journal form defaults: 4010 debit / 5820 credit.
-- CLI smoke-post, MCP journal tool, core/plugin test fixtures follow.
+Port the original's `account_role_mappings` concept (roles: bank, debtors,
+creditors, output_vat, input_vat, vat_settlement, operational_default) so
+plugins resolve roles instead of constants, with audited explicit
+confirmation for imported charts. Out of scope here; Phase 1 keeps plugin
+config structs but fixes their defaults.
 
 ## Migration
 
-None — deliberately. The journal is immutable (ADR-004) and this product is
-DEV-isolated (ADR-003/ADR-014, no production data exists). Existing dev
-companies keep their history; old codes remain valid digit accounts and are
-merely flagged by the hint-only `RULE_KNOWN_ACCOUNT`. Demo/dev companies are
-recreated with the new chart. No remap table, no reversal migration.
+None — deliberately. The journal is immutable (ADR-004) and the Rust product
+is DEV-isolated (ADR-003/ADR-014, no production data). Existing dev companies
+keep their history; old stub codes remain postable digit accounts flagged by
+the hint-only known-account rule. Demo/dev companies are recreated.
 
-Residual risk (accepted, DEV): mixed-chart history in old dev companies shows
-old codes without band labels; the receipt rule no longer gates legacy 6000
-debits. Recreate the company to get coherent data.
+Residual risk (accepted, DEV): mixed-chart history in old dev companies; the
+receipt rule no longer gates legacy 6000 debits. Recreate to get coherent data.
 
 ## Implementation plan (slices, each VERIFY_OK + ui-smoke green)
 
-1. **rules-dk**: new constants/bands/labels, `is_expense_account_code`,
-   `is_known_dk_account`, `chart_stub_entries`, unit tests (incl. negative:
-   bank debit no longer receipt-gated; 3000-band exempt).
-2. **Plugins**: `InvoiceConfig` + `BankImportConfig` defaults + their tests.
+1. **rules-dk**: static account table (number/label/type/normal-balance) from
+   the original seed, type-derived predicates, staff exemption, unit tests
+   (incl. negative: 2000 bank debit not receipt-gated; 3500 løn exempt;
+   1000 credit books as revenue not bank).
+2. **Plugins**: `InvoiceConfig` + `BankImportConfig` defaults + tests.
 3. **Surfaces**: UI journal defaults, CLI smoke-post, MCP journal tool,
-   core/plugin fixtures, ui-smoke account assertions (incl. new negative
-   check: expense debit on 4010 without receipt fails closed).
-4. **Docs**: this ADR → Accepted; ADR-018 pattern note unchanged.
+   core/plugin fixtures, ui-smoke account assertions (new negative check:
+   expense debit on 3000 without receipt fails closed).
+4. **Docs**: this ADR → Accepted; Kontoplan page gains type column.
 
-Slices 1–3 must land back-to-back on `rust-dev` (mixed defaults across slices
-would break the cross-plugin smoke); the branch CI gate covers each push.
+Slices 1–3 land back-to-back on `rust-dev` (mixed defaults across pushes
+would break the cross-plugin smoke); branch CI gates each push.
 
 ## Consequences
 
-- Bank saldo becomes one row (5820); parties' AR moves to 5600; P&L grouping
-  by band becomes possible (1000s revenue vs 2000s/4000s costs) — unblocks a
-  future resultatopgørelse view.
-- The receipt fail-closed rule finally matches its intent: only real expense
-  debits require receipt/party.
-- Any tooling that hardcoded 6000/5800 (agents, docs, saved smoke payloads)
-  must move to 4010/5820; the old codes stay postable but are flagged unknown.
+- Rust port and original agree on what every account number means; agent
+  tooling and fixtures port across without renumbering.
+- One bank row (2000), debitor-saldi on 1100, and P&L grouping via account
+  `type` — unblocks the resultatopgørelse view without band guesswork.
+- The receipt fail-closed rule matches intent: only real expense debits
+  (minus staff) require receipt/party.
+- The Kontoplan SSR page upgrades from 4 stub rows to the real chart with
+  Danish labels.
