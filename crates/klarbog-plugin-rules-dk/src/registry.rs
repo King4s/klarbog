@@ -94,9 +94,12 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 7, stk. 1", "§ 9, stk. 2"],
             severity: "hard_stop",
-            enforced_by: "bank-plugin: import-preview bevarer dato/tekst/beløb pr. række; ingen stiltiende mutation",
-            proven_by: &["klarbog-plugin-bank map/import tests"],
-            gaps: &["sporbar kilde-batch (source batch id) på importerede rækker"],
+            enforced_by: "bank-plugin: commit_import persisterer dato/tekst/beløb med import_batch_id, source_file_hash og deterministisk transaction_hash; dubletter sprunget over (forbid duplicate fingerprint)",
+            proven_by: &[
+                "klarbog-plugin-bank store::tests::commit_assigns_batch_hash_and_skips_duplicates",
+                "klarbog-plugin-bank batch::tests::identical_rows_get_distinct_occurrence_fingerprints",
+            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-BOOKKEEPING-RECONCILIATION-001",
@@ -165,11 +168,7 @@ mod tests {
         // partially satisfies must say so — the original's coverage report
         // warns against self-attestation.
         let rules = registered_rules();
-        for id in [
-            "DK-CREDIT-NOTE-001",
-            "DK-BOOKKEEPING-RETENTION-001",
-            "DK-BOOKKEEPING-BANK-IMPORT-001",
-        ] {
+        for id in ["DK-CREDIT-NOTE-001", "DK-BOOKKEEPING-RETENTION-001"] {
             let rule = rules.iter().find(|r| r.rule_id == id).expect(id);
             assert!(!rule.gaps.is_empty(), "{id} must declare gaps");
         }

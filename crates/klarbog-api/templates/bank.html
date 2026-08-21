@@ -47,6 +47,12 @@
         {% endfor %}
       </tbody>
     </table>
+    <form method="post" action="/ui/bank" class="actions">
+      <input type="hidden" name="action" value="import_commit" />
+      <input type="hidden" name="provider" value="{{ provider }}" />
+      <input type="hidden" name="csv" value="{{ csv }}" />
+      <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Gem import (batch + fingerprint)</button>
+    </form>
   </div>
   {% endif %}
 
@@ -87,7 +93,7 @@
 
   <div class="panel nested">
     <h2>Afstemningsrapport (periode)</h2>
-    <p class="muted">Matchede/umatchede importerede transaktioner · kræver CSV fra import-preview · §11-kontrol.</p>
+    <p class="muted">Matchede/umatchede importerede transaktioner · CSV-preview eller gemt import · §11-kontrol.</p>
     <form class="grid" method="post" action="/ui/bank">
       <input type="hidden" name="action" value="report" />
       <input type="hidden" name="provider" value="{{ provider }}" />

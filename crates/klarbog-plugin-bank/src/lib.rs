@@ -7,6 +7,7 @@ pub(crate) static ENV_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::co
 
 mod amount;
 mod api;
+mod batch;
 mod config;
 mod csv;
 mod import;
@@ -20,6 +21,7 @@ mod reconcile_report;
 #[cfg(test)]
 mod reconcile_tests;
 mod revolut;
+mod store;
 mod stripe;
 mod stripe_reconcile;
 #[cfg(test)]
@@ -35,6 +37,10 @@ pub use amount::{parse_amount_minor, BankAmountError};
 pub use api::{
     fetch_revolut_transactions, fetch_stripe_balance_transactions, parse_revolut_api_json,
     parse_stripe_api_json, BankApiError, HttpClient, ReqwestHttpClient,
+};
+pub use batch::{
+    content_fingerprint, fingerprints_for_rows, make_import_batch_id, source_file_hash,
+    transaction_fingerprint,
 };
 pub use config::{
     BankApiConfigError, RevolutApiConfig, RevolutOAuthConfig, StripeApiConfig, StripeWebhookConfig,
@@ -59,6 +65,10 @@ pub use reconcile_apply::{apply_match, ApplyMatchResult};
 pub use reconcile_report::{
     reconciliation_report, BankPostedRef, ReconcileReportError, ReconciliationReport,
     ReconciliationRow, RECONCILIATION_RULE_ID,
+};
+pub use store::{
+    commit_import, list_bank_transactions, rows_from_transactions, BankStoreError, BankTransaction,
+    ImportCommitResult, BANK_TRANSACTIONS_FILENAME,
 };
 pub use stripe_reconcile::{
     apply_preview_from_stripe_consume, apply_preview_from_stripe_consume_with,

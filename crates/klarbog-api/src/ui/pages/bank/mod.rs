@@ -2,6 +2,7 @@
 
 mod commit;
 mod form;
+mod import_commit;
 mod post;
 mod report;
 mod view;

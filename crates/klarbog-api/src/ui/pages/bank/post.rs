@@ -243,6 +243,12 @@ pub async fn bank_post(
                 Err(e) => html_ok(empty(String::new(), e.to_string())),
             }
         }
+        "import_commit" => {
+            super::import_commit::import_commit(
+                &state, company, &path, &actor, provider, provider_s, &cfg, &form,
+            )
+            .await
+        }
         "report" => {
             super::report::report(
                 &state, company, &path, &actor, provider, provider_s, &cfg, &form,

@@ -179,6 +179,30 @@ expect_err_contains "bank report inverted period" "period_start" \
     --data-urlencode period_from=2026-06-01 --data-urlencode period_to=2026-05-01)"
 echo "ok: reconciliation period report (DK-BOOKKEEPING-RECONCILIATION-001)"
 
+# --- DK-BOOKKEEPING-BANK-IMPORT-001: gem import med batch + fingerprint ---
+ICSV=$'Dato;Tekst;Beløb\n2026-05-20;Batch Smoke;50,00\n2026-05-21;Batch Smoke 2;-10,00'
+PAGE="$(post /ui/bank --data-urlencode action=import_preview --data-urlencode provider=generic_dk \
+  --data-urlencode "csv=$ICSV")"
+expect_ok "bank import preview" "$PAGE"
+PAGE="$(post /ui/bank --data-urlencode action=import_commit --data-urlencode provider=generic_dk \
+  --data-urlencode "csv=$ICSV")"
+expect_ok "bank import commit" "$PAGE"
+rg -q 'Import gemt · batch BANK-' <<<"$PAGE" || fail "bank import: batch id missing in flash"
+rg -q '2 nye' <<<"$PAGE" || fail "bank import: expected 2 imported"
+# Re-commit same CSV → duplicates skipped, no new rows.
+PAGE="$(post /ui/bank --data-urlencode action=import_commit --data-urlencode provider=generic_dk \
+  --data-urlencode "csv=$ICSV")"
+expect_ok "bank import commit dedupe" "$PAGE"
+rg -q '0 nye' <<<"$PAGE" || fail "bank import: expected 0 new on re-import"
+rg -q '2 dubletter' <<<"$PAGE" || fail "bank import: expected 2 skipped duplicates"
+# Rapport uden CSV bruger gemt import (batch i flash).
+PAGE="$(post /ui/bank --data-urlencode action=report --data-urlencode provider=generic_dk \
+  --data-urlencode csv= \
+  --data-urlencode period_from=2026-05-01 --data-urlencode period_to=2026-05-31)"
+expect_ok "bank report from stored import" "$PAGE"
+rg -q 'gemt import · BANK-' <<<"$PAGE" || fail "bank report: stored batch missing"
+echo "ok: bank import batch trail (DK-BOOKKEEPING-BANK-IMPORT-001)"
+
 # --- ADR-020: erhvervspart faktureres ekskl. moms (10000 net -> 12500 brutto) ---
 post /ui/parties --data-urlencode action=create \
   --data-urlencode "display_name=Smoke Erhverv" --data-urlencode kind=business >/dev/null
