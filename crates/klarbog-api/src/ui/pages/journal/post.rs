@@ -8,7 +8,9 @@ use klarbog_plugin_rules_dk::moms_post_suggestion;
 use klarbog_types::Actor;
 
 use super::super::common::{authorize_company, company_from, format_dkk, html_ok, ACTOR};
-use super::form::{build_entry, fields_from_form, JournalActionForm, JournalFields};
+use super::form::{
+    build_entry, build_moms_split_entry, fields_from_form, JournalActionForm, JournalFields,
+};
 use super::view::journal_page;
 use crate::AppState;
 
@@ -159,18 +161,63 @@ pub async fn journal_post(
                 )),
             }
         }
+        // Book the suggestion as a real 3-leg VAT split (net → expense,
+        // vat → Købsmoms 4000, gross → credit) through preview→commit.
         "moms_apply" => {
-            let gross: i64 = form.moms_gross.trim().parse().unwrap_or(12500);
-            fields.amount1 = gross.to_string();
-            fields.amount2 = gross.to_string();
+            let gross: i64 = match form.moms_gross.trim().parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    return html_ok(journal_page(
+                        &state,
+                        company,
+                        fields,
+                        String::new(),
+                        "Brutto skal være heltal (øre).".into(),
+                    ));
+                }
+            };
+            let suggestion = match moms_post_suggestion(gross, &form.moms_memo) {
+                Ok(Some(s)) => s,
+                Ok(None) => {
+                    return html_ok(journal_page(
+                        &state,
+                        company,
+                        fields,
+                        String::new(),
+                        "Memo mangler momstag (#vat25 / moms:25 / #moms25).".into(),
+                    ));
+                }
+                Err(e) => {
+                    return html_ok(journal_page(
+                        &state,
+                        company,
+                        fields,
+                        String::new(),
+                        e.to_string(),
+                    ));
+                }
+            };
+            let entry = match build_moms_split_entry(
+                &form.moms_memo,
+                suggestion.net_minor,
+                suggestion.vat_minor,
+                suggestion.gross_minor,
+                &fields.account1,
+                &fields.account2,
+            ) {
+                Ok(e) => e,
+                Err(e) => return html_ok(journal_page(&state, company, fields, String::new(), e)),
+            };
             fields.memo = form.moms_memo.clone();
-            html_ok(journal_page(
-                &state,
-                company,
-                fields,
-                "Anvendt brutto på begge ben.".into(),
-                String::new(),
-            ))
+            fields.amount1 = suggestion.net_minor.to_string();
+            fields.amount2 = suggestion.gross_minor.to_string();
+            fields.has_moms = true;
+            fields.moms_suggested = true;
+            fields.moms_gross_minor = suggestion.gross_minor.to_string();
+            fields.moms_net_minor = suggestion.net_minor.to_string();
+            fields.moms_vat_minor = suggestion.vat_minor.to_string();
+            fields.moms_rate_bps = suggestion.rate_bps.to_string();
+            render_preview(&state, company, &actor, entry, fields).await
         }
         "preview" => match build_entry(&form) {
             Ok(entry) => render_preview(&state, company, &actor, entry, fields).await,

@@ -36,7 +36,9 @@
         <input type="hidden" name="action" value="moms_apply" />
         <input type="hidden" name="moms_gross" value="{{ moms_gross_minor }}" />
         <input type="hidden" name="moms_memo" value="{{ moms_memo }}" />
-        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Anvend brutto på begge ben</button>
+        <input type="hidden" name="account1" value="{{ account1 }}" />
+        <input type="hidden" name="account2" value="{{ account2 }}" />
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Bogfør momssplit (preview)</button>
       </form>
       {% else %}
       <p class="muted">Ingen forslag ({{ moms_reason }}).</p>

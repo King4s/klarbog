@@ -106,6 +106,108 @@ fn ui_entry_json_roundtrip_preserves_digest() {
     assert_eq!(before, after, "entry JSON round-trip must keep the digest");
 }
 
+/// moms_apply must produce a bookable 3-leg VAT split (net → expense, vat →
+/// Købsmoms 4000, gross → credit) through the digest-bound preview→commit.
+#[tokio::test]
+async fn ui_moms_apply_books_three_leg_vat_split() {
+    use crate::AppState;
+    use klarbog_core::{default_registry, init_company, ConfirmStore};
+    use klarbog_types::Actor;
+    use std::sync::Arc;
+
+    let dir = tempfile::tempdir().unwrap();
+    let company_path = dir.path().join("co");
+    init_company(&company_path, "Demo", &Actor::user("ui-dev"))
+        .await
+        .unwrap();
+    let state = AppState {
+        confirm: Arc::new(ConfirmStore::default()),
+        allowlist_root: dir.path().to_path_buf(),
+        registry: Arc::new(default_registry()),
+        api_token: None,
+        session_secret: None,
+        session_cookie_secure: false,
+    };
+    let app = router(state);
+    let cookie = format!(
+        "{}={}",
+        super::pages::common::COMPANY_COOKIE,
+        company_path.to_string_lossy()
+    );
+
+    // 12500 øre gross @25% → net 10000, vat 2500.
+    let body = "action=moms_apply&moms_gross=12500\
+                &moms_memo=kontor%20%23vat25%20%23receipt&account1=3000&account2=2000";
+    let res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/ui/journal")
+                .header("cookie", &cookie)
+                .header("content-type", "application/x-www-form-urlencoded")
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let html = String::from_utf8(
+        axum::body::to_bytes(res.into_body(), 1024 * 1024)
+            .await
+            .unwrap()
+            .to_vec(),
+    )
+    .unwrap();
+    let token = extract_input_value(&html, "confirm_token").unwrap_or_else(|| {
+        panic!(
+            "token in moms_apply preview; flash: {}",
+            html.lines()
+                .filter(|l| l.contains("flash"))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )
+    });
+    let entry_json = extract_input_value(&html, "entry_json").expect("entry_json in preview");
+    assert!(entry_json.contains("\"4000\""), "VAT leg on Købsmoms 4000");
+    assert!(entry_json.contains("10000"), "net on expense leg");
+    assert!(entry_json.contains("2500"), "vat amount");
+
+    let body = format!(
+        "action=commit&confirm_token={}&entry_json={}",
+        urlencoding_encode(&token),
+        urlencoding_encode(&entry_json)
+    );
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/ui/journal")
+                .header("cookie", &cookie)
+                .header("content-type", "application/x-www-form-urlencoded")
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let html = String::from_utf8(
+        axum::body::to_bytes(res.into_body(), 1024 * 1024)
+            .await
+            .unwrap()
+            .to_vec(),
+    )
+    .unwrap();
+    assert!(
+        html.contains("Commit ok"),
+        "moms split commit, got: {}",
+        html.lines()
+            .filter(|l| l.contains("flash"))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    );
+}
+
 /// Regression: the journal UI must commit the *previewed* entry (carried as
 /// entry_json), not rebuild it from form fields — rebuilding stamps a fresh
 /// `as_of` and the digest-bound token fails closed ("payload mismatch").

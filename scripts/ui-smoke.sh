@@ -85,6 +85,18 @@ TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry
 expect_ok "journal commit" "$(post /ui/journal --data-urlencode action=commit "${JFORM[@]}" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 
+# --- journal: moms_apply books a 3-leg VAT split via preview -> commit ---
+PAGE="$(post /ui/journal --data-urlencode action=moms_apply \
+  --data-urlencode moms_gross=12500 --data-urlencode "moms_memo=kontor #vat25 #receipt" \
+  --data-urlencode account1=3000 --data-urlencode account2=2000)"
+expect_ok "moms split preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+[[ -n "$TOKEN" && -n "$EJSON" ]] || fail "moms split: missing token/entry_json"
+rg -q '4000' <<<"$EJSON" || fail "moms split: no Købsmoms 4000 leg in entry_json"
+expect_ok "moms split commit" "$(post /ui/journal --data-urlencode action=commit \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+getp /ui/chart | rg -q '4000' || fail "moms split: 4000 missing from chart balances"
+
 # --- invoices: create -> send -> paid preview -> commit ---
 expect_ok "invoice create" "$(post /ui/invoices --data-urlencode action=create \
   --data-urlencode "party_id=$PARTY_ID" --data-urlencode kind=sale \
@@ -145,9 +157,11 @@ rg -q "udgift #vat25 #receipt" <<<"$PAGE" || fail "journal: committed memo not l
 echo "ok: journal postings listed"
 CHART="$(getp /ui/chart)"
 rg -q "Saldi" <<<"$CHART" || fail "chart: balances section missing"
-# 3000 was debited 125.00 by the journal commit.
-rg -q "125.00 DKK" <<<"$CHART" || fail "chart: expected 125.00 DKK balance on 3000"
-echo "ok: chart balances listed"
+# 3000: 125.00 journal commit + 100.00 net from the moms split = 225.00.
+rg -q "225.00 DKK" <<<"$CHART" || fail "chart: expected 225.00 DKK balance on 3000"
+# 4000 Købsmoms carries the 25.00 VAT leg from the split.
+rg -q "4000" <<<"$CHART" || fail "chart: expected Købsmoms 4000 row"
+echo "ok: chart balances listed (incl. moms split)"
 
 # --- reversal: reverse the newest posting via its id, commit, net returns to 0 ---
 EID="$(input_value "$PAGE" entry_id)"

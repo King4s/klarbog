@@ -129,15 +129,72 @@ pub(super) fn build_entry(form: &JournalActionForm) -> Result<JournalEntry, Stri
     })
 }
 
+/// Købsmoms (indgående moms) — chart account for the VAT leg of a split.
+pub(super) const VAT_PURCHASE_ACCOUNT: &str = "4000";
+
+/// 3-leg VAT split: expense net debit, Købsmoms vat debit, credit gross.
+pub(super) fn build_moms_split_entry(
+    memo: &str,
+    net: i64,
+    vat: i64,
+    gross: i64,
+    expense_account: &str,
+    credit_account: &str,
+) -> Result<JournalEntry, String> {
+    if memo.trim().is_empty() {
+        return Err("Memo kræves".into());
+    }
+    let currency = Currency::new("DKK").map_err(|e| e.to_string())?;
+    Ok(JournalEntry {
+        as_of: Utc::now(),
+        memo: memo.trim().to_string(),
+        actor: Actor::user(ACTOR),
+        legs: vec![
+            Leg {
+                account: expense_account.to_string(),
+                direction: Direction::Debit,
+                amount: MinorAmount::from_minor(net),
+                currency: currency.clone(),
+                party_id: None,
+            },
+            Leg {
+                account: VAT_PURCHASE_ACCOUNT.to_string(),
+                direction: Direction::Debit,
+                amount: MinorAmount::from_minor(vat),
+                currency: currency.clone(),
+                party_id: None,
+            },
+            Leg {
+                account: credit_account.to_string(),
+                direction: Direction::Credit,
+                amount: MinorAmount::from_minor(gross),
+                currency,
+                party_id: None,
+            },
+        ],
+    })
+}
+
+fn or_default(value: &str, default: String) -> String {
+    if value.trim().is_empty() {
+        default
+    } else {
+        value.to_string()
+    }
+}
+
+/// Form values win; empty fields (e.g. the moms forms only submit moms_*)
+/// fall back to defaults so dropdowns keep a sensible selection.
 pub(super) fn fields_from_form(form: &JournalActionForm) -> JournalFields {
+    let d = JournalFields::default();
     JournalFields {
         memo: form.memo.clone(),
-        account1: form.account1.clone(),
-        direction1: form.direction1.clone(),
-        amount1: form.amount1.clone(),
-        account2: form.account2.clone(),
-        direction2: form.direction2.clone(),
-        amount2: form.amount2.clone(),
+        account1: or_default(&form.account1, d.account1),
+        direction1: or_default(&form.direction1, d.direction1),
+        amount1: or_default(&form.amount1, d.amount1),
+        account2: or_default(&form.account2, d.account2),
+        direction2: or_default(&form.direction2, d.direction2),
+        amount2: or_default(&form.amount2, d.amount2),
         moms_gross: form.moms_gross.clone(),
         moms_memo: form.moms_memo.clone(),
         ..Default::default()
