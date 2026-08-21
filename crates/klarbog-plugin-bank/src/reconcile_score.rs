@@ -204,7 +204,8 @@ pub(crate) fn open_target_for_invoice(
     let journal_memo = journal_suggestion(&invoice, &actor, &cfg)
         .map(|e| e.memo)
         .unwrap_or_default();
-    let total_minor = invoice.total_minor()?;
+    // Bank rows carry the gross (VAT-inclusive) amount — match on that (ADR-020).
+    let total_minor = invoice.gross_minor()?;
     Ok(OpenTarget {
         invoice,
         party_name,

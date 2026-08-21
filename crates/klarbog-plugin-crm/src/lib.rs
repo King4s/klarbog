@@ -9,10 +9,39 @@ use klarbog_types::PartyId;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+/// Beløbskonvention pr. partstype (ADR-020): privat faktureres inkl. moms,
+/// erhverv ekskl. moms.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PartyKind {
+    #[default]
+    Private,
+    Business,
+}
+
+impl PartyKind {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "private" | "privat" => Some(Self::Private),
+            "business" | "erhverv" => Some(Self::Business),
+            _ => None,
+        }
+    }
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Private => "private",
+            Self::Business => "business",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Party {
     pub id: PartyId,
     pub display_name: String,
+    /// Legacy parties.json without the field deserializes as `private`.
+    #[serde(default)]
+    pub kind: PartyKind,
 }
 
 pub struct CrmPlugin;
@@ -29,8 +58,9 @@ impl CrmPlugin {
         company: &Path,
         display_name: impl Into<String>,
         id: Option<PartyId>,
+        kind: PartyKind,
     ) -> Result<Party, CrmError> {
-        upsert_party(company, id, display_name.into())
+        upsert_party(company, id, display_name.into(), kind)
     }
 
     pub fn get(&self, company: &Path, id: &PartyId) -> Result<Option<Party>, CrmError> {
@@ -72,9 +102,23 @@ mod tests {
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
         let crm = CrmPlugin;
-        let party = crm.upsert(&co, "Nordic Supply", None).unwrap();
-        assert!(crm.get(&co, &party.id).unwrap().is_some());
+        let party = crm
+            .upsert(&co, "Nordic Supply", None, PartyKind::Business)
+            .unwrap();
+        let got = crm.get(&co, &party.id).unwrap().unwrap();
+        assert_eq!(got.kind, PartyKind::Business);
         assert_eq!(crm.list(&co).unwrap().len(), 1);
         assert!(co.join(PARTIES_FILENAME).exists());
+    }
+
+    #[test]
+    fn legacy_party_without_kind_is_private() {
+        let json = r#"{"parties":[{"id":"party_x","display_name":"X"}]}"#;
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        fs::write(co.join(PARTIES_FILENAME), json).unwrap();
+        let listed = list_parties(&co).unwrap();
+        assert_eq!(listed[0].kind, PartyKind::Private);
     }
 }

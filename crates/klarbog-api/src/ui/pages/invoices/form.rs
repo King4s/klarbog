@@ -7,6 +7,9 @@ pub(super) struct InvoiceRow {
     pub id: String,
     pub status: String,
     pub total: String,
+    /// "—" for legacy invoices without frozen VAT (ADR-020).
+    pub moms: String,
+    pub brutto: String,
     pub party_id: String,
     pub can_send: bool,
     pub can_collect: bool,

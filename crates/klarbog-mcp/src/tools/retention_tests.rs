@@ -53,7 +53,13 @@ async fn gdpr_export_writes_metadata_file() {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Export Me".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Export Me".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let args = json!({
         "company": company_path.to_string_lossy(),
         "actor_kind": "user",
@@ -92,7 +98,13 @@ async fn gdpr_erase_party_dry_run_then_confirm() {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Erase Me".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Erase Me".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let dry_args = json!({
         "company": company_path.to_string_lossy(),
         "party_id": party.id.to_string(),
@@ -144,7 +156,13 @@ async fn gdpr_erase_party_authz_denied() {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "X".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "X".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let args = json!({
         "company": company_path.to_string_lossy(),
         "party_id": party.id.to_string(),
@@ -162,7 +180,13 @@ async fn gdpr_erase_party_outside_allowlist() {
     let owner = Actor::user("owner");
     let company_path = other.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Y".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Y".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let args = json!({
         "company": company_path.to_string_lossy(),
         "party_id": party.id.to_string(),

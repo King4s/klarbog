@@ -151,7 +151,13 @@ mod tests {
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
         crate::ensure_retention(&co).unwrap();
-        let party = upsert_party(&co, None, "Vendor".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Vendor".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         attach_document(
             &co,
             DocumentKind::Receipt,

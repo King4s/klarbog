@@ -6,7 +6,7 @@ use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use klarbog_core::{assert_company_path, open_existing, CoreError};
-use klarbog_plugin_crm::{get_party, list_parties, upsert_party, CrmError};
+use klarbog_plugin_crm::{get_party, list_parties, upsert_party, CrmError, PartyKind};
 use klarbog_types::{Actor, Envelope, PartyId};
 use serde::Deserialize;
 use serde_json::Value;
@@ -17,6 +17,8 @@ pub struct UpsertBody {
     pub company: String,
     pub display_name: String,
     pub party_id: Option<String>,
+    /// `private` (default) or `business` — billing convention (ADR-020).
+    pub kind: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -92,7 +94,18 @@ pub async fn upsert(
             (s, Json(env))
         })?;
     let id = body.party_id.map(PartyId::new);
-    let party = upsert_party(&path, id, body.display_name).map_err(|e| {
+    let kind = match body.kind.as_deref() {
+        None => PartyKind::default(),
+        Some(raw) => PartyKind::parse(raw).ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(Envelope::err([format!(
+                    "kind must be private or business, got {raw:?}"
+                )])),
+            )
+        })?,
+    };
+    let party = upsert_party(&path, id, body.display_name, kind).map_err(|e| {
         let (s, env) = map_crm(e);
         (s, Json(env))
     })?;

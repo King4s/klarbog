@@ -42,7 +42,13 @@ async fn manifest_lists_files_and_digests() {
     let actor = Actor::user("owner");
     init_company(&co, "Backup Test ApS", &actor).await.unwrap();
     ensure_company_extras(&co).unwrap();
-    upsert_party(&co, None, "Vendor".into()).unwrap();
+    upsert_party(
+        &co,
+        None,
+        "Vendor".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let company = klarbog_core::open_existing(&co).await.unwrap();
     let posted = company.post(expense(actor, 500)).await.unwrap();
     assert!(!posted.digest.is_empty());
@@ -91,7 +97,13 @@ async fn manifest_includes_invoice_payments_summary_when_present() {
     let actor = Actor::user("owner");
     init_company(&co, "Pay Backup", &actor).await.unwrap();
     ensure_company_extras(&co).unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let unpaid = create_draft_from_new(
         &co,
         party.id.clone(),

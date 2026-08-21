@@ -7,6 +7,8 @@ license.workspace = true
 [dependencies]
 klarbog-plugin = { workspace = true }
 klarbog-plugin-crm = { workspace = true }
+# vat_split: én afrundingskilde for moms i hele systemet (ADR-020)
+klarbog-plugin-rules-dk = { workspace = true }
 klarbog-journal = { workspace = true }
 klarbog-types = { workspace = true }
 serde = { workspace = true }

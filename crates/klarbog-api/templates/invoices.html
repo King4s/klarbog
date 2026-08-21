@@ -10,28 +10,31 @@
     <h2>Afventer bogføring</h2>
     <p class="muted">{{ pending_label }}</p>
     <form method="post" action="/ui/invoices">
-      <input type="hidden" name="action" value="commit_payment" />
+      <input type="hidden" name="action" value="{{ pending_action }}" />
+      <input type="hidden" name="invoice_id" value="{{ pending_invoice_id }}" />
       <input type="hidden" name="entry_json" value="{{ pending_entry_json }}" />
       <input type="hidden" name="confirm_token" value="{{ pending_token }}" />
-      <button class="primary" type="submit">Bekræft betaling (commit)</button>
+      <button class="primary" type="submit">Bekræft bogføring (commit)</button>
     </form>
   </div>
   {% endif %}
   <table class="table">
-    <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Part</th><th>Handling</th></tr></thead>
+    <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Moms</th><th>Brutto</th><th>Part</th><th>Handling</th></tr></thead>
     <tbody>
       {% for inv in invoices %}
       <tr>
         <td class="money">{{ inv.id }}</td>
         <td>{{ inv.status }}</td>
         <td class="money">{{ inv.total }}</td>
+        <td class="money">{{ inv.moms }}</td>
+        <td class="money">{{ inv.brutto }}</td>
         <td class="money">{{ inv.party_id }}</td>
         <td class="actions-cell">
           {% if inv.can_send %}
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="send" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
-            <button class="ghost" type="submit">Sæt sent</button>
+            <button class="ghost" type="submit">Bogfør + send (preview)</button>
           </form>
           {% endif %}
           {% if inv.can_collect %}
@@ -50,13 +53,13 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="muted">Ingen fakturaer</td></tr>
+      <tr><td colspan="7" class="muted">Ingen fakturaer</td></tr>
       {% endfor %}
     </tbody>
   </table>
   <div class="panel nested">
     <h2>Ny kladde</h2>
-    <p class="muted">Beløb i øre (i64). Returnerer journalforslag via API — poster ikke automatisk.</p>
+    <p class="muted">Beløb i øre (i64). Privat part: beløb er inkl. moms · Erhverv: ekskl. moms (ADR-020).</p>
     <form class="grid" method="post" action="/ui/invoices">
       <input type="hidden" name="action" value="create" />
       <div class="grid two">

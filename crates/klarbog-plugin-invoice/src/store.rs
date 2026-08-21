@@ -1,8 +1,9 @@
 //! Per-company `invoices.json` persistence (slice 6).
 
 use crate::status::InvoiceStatus;
-use crate::{Invoice, InvoiceError, InvoiceId, InvoiceKind, InvoiceLine};
-use klarbog_plugin_crm::get_party;
+use crate::{Invoice, InvoiceError, InvoiceId, InvoiceKind, InvoiceLine, InvoiceVat};
+use klarbog_plugin_crm::{get_party, PartyKind};
+use klarbog_plugin_rules_dk::{split_vat25_inclusive, split_vat_from_net, DK_VAT_STANDARD_BPS};
 use klarbog_types::{Currency, PartyId};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -44,6 +45,21 @@ pub fn get_invoice(company: &Path, id: &InvoiceId) -> Result<Option<Invoice>, In
         .find(|inv| inv.id == *id))
 }
 
+/// ADR-020: private parties are invoiced gross-inclusive, business parties
+/// net-exclusive. Frozen on the invoice at creation.
+fn vat_for(kind: PartyKind, line_total_minor: i64) -> Result<InvoiceVat, InvoiceError> {
+    let split = match kind {
+        PartyKind::Private => split_vat25_inclusive(line_total_minor)?,
+        PartyKind::Business => split_vat_from_net(line_total_minor, DK_VAT_STANDARD_BPS)?,
+    };
+    Ok(InvoiceVat {
+        net_minor: split.net_minor,
+        vat_minor: split.vat_minor,
+        gross_minor: split.gross_minor,
+        rate_bps: split.rate_bps,
+    })
+}
+
 pub fn create_draft(
     company: &Path,
     party_id: PartyId,
@@ -53,17 +69,19 @@ pub fn create_draft(
     if lines.is_empty() {
         return Err(InvoiceError::NoLines);
     }
-    get_party(company, &party_id)?
+    let party = get_party(company, &party_id)?
         .ok_or_else(|| InvoiceError::PartyNotFound(party_id.to_string()))?;
-    let invoice = Invoice {
+    let mut invoice = Invoice {
         id: InvoiceId::generate(),
         party_id,
         kind,
         lines,
         status: InvoiceStatus::Draft,
         payments: Vec::new(),
+        vat: None,
     };
     invoice.validate_lines()?;
+    invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);
     let mut file = load(company)?;
     file.invoices.push(invoice.clone());
     save(company, &file)?;
@@ -108,6 +126,7 @@ pub fn create_draft_from_new(
 mod tests {
     use super::*;
     use klarbog_plugin_crm::upsert_party;
+    use klarbog_plugin_crm::PartyKind;
     use tempfile::tempdir;
 
     #[test]
@@ -115,7 +134,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer ApS".into()).unwrap();
+        let party = upsert_party(&co, None, "Buyer ApS".into(), PartyKind::Business).unwrap();
         let line = InvoiceLine {
             description: "Consulting".into(),
             amount_minor: 10_000,
@@ -124,8 +143,35 @@ mod tests {
         let inv = create_draft(&co, party.id.clone(), InvoiceKind::Sale, vec![line]).unwrap();
         assert!(co.join(INVOICES_FILENAME).exists());
         assert_eq!(inv.status, InvoiceStatus::Draft);
+        // Business → excl. VAT: net 10000, vat 2500, gross 12500.
+        let vat = inv.vat.unwrap();
+        assert_eq!(
+            (vat.net_minor, vat.vat_minor, vat.gross_minor),
+            (10_000, 2_500, 12_500)
+        );
         assert_eq!(list_invoices(&co).unwrap().len(), 1);
         assert!(get_invoice(&co, &inv.id).unwrap().is_some());
+    }
+
+    #[test]
+    fn private_party_amount_is_gross_inclusive() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(&co, None, "Privat Kunde".into(), PartyKind::Private).unwrap();
+        let line = InvoiceLine {
+            description: "Ydelse".into(),
+            amount_minor: 12_500,
+            currency: Currency::new("DKK").unwrap(),
+        };
+        let inv = create_draft(&co, party.id, InvoiceKind::Sale, vec![line]).unwrap();
+        // Private → incl. VAT: gross 12500 splits to net 10000 + vat 2500.
+        let vat = inv.vat.unwrap();
+        assert_eq!(
+            (vat.net_minor, vat.vat_minor, vat.gross_minor),
+            (10_000, 2_500, 12_500)
+        );
+        assert_eq!(inv.gross_minor().unwrap(), 12_500);
     }
 
     #[test]

@@ -141,7 +141,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         let inv = create_draft_from_new(
             &co,
             party.id.clone(),
@@ -180,7 +186,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         let inv = create_draft_from_new(
             &co,
             party.id,
@@ -222,7 +234,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         let inv = create_draft_from_new(
             &co,
             party.id,
@@ -254,7 +272,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         let inv = create_draft_from_new(
             &co,
             party.id,

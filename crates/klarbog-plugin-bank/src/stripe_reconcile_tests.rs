@@ -28,7 +28,13 @@ fn dry_run_pipeline_matches_open_sale() {
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     fs::create_dir_all(&company).unwrap();
-    let party = upsert_party(&company, None, "Customer payment".into()).unwrap();
+    let party = upsert_party(
+        &company,
+        None,
+        "Customer payment".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company,
         party.id,
@@ -87,7 +93,13 @@ fn unique_safe_applies_journal_suggestion() {
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     fs::create_dir_all(&company).unwrap();
-    let party = upsert_party(&company, None, "Customer payment".into()).unwrap();
+    let party = upsert_party(
+        &company,
+        None,
+        "Customer payment".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company,
         party.id,
@@ -116,7 +128,13 @@ fn no_safe_match_skips_apply() {
     let dir = tempdir().unwrap();
     let company = dir.path().join("co");
     fs::create_dir_all(&company).unwrap();
-    let party = upsert_party(&company, None, "Other Party".into()).unwrap();
+    let party = upsert_party(
+        &company,
+        None,
+        "Other Party".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company,
         party.id,
@@ -148,7 +166,13 @@ fn unique_safe_apply_closes_prior_unmatched_exception() {
     assert_eq!(list_unmatched_bank_exceptions(&company).unwrap().len(), 1);
     assert!(!raised.exceptions_raised.is_empty());
 
-    let party = upsert_party(&company, None, "Customer payment".into()).unwrap();
+    let party = upsert_party(
+        &company,
+        None,
+        "Customer payment".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company,
         party.id,

@@ -67,6 +67,18 @@ pub struct InvoicePayment {
     pub currency: Currency,
 }
 
+/// VAT captured at creation from the party kind (ADR-020): private parties
+/// are invoiced gross-inclusive, business parties net-exclusive. Frozen on
+/// the invoice so a later party-kind change never rewrites existing drafts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvoiceVat {
+    pub net_minor: i64,
+    pub vat_minor: i64,
+    pub gross_minor: i64,
+    /// Basis points (2500 = 25 %).
+    pub rate_bps: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: InvoiceId,
@@ -75,9 +87,12 @@ pub struct Invoice {
     pub lines: Vec<InvoiceLine>,
     #[serde(default)]
     pub status: InvoiceStatus,
-    /// Cumulative payment ledger; remaining = total − sum(amount_minor).
+    /// Cumulative payment ledger; remaining = gross − sum(amount_minor).
     #[serde(default)]
     pub payments: Vec<InvoicePayment>,
+    /// `None` = legacy invoice (pre ADR-020) → booked without VAT legs.
+    #[serde(default)]
+    pub vat: Option<InvoiceVat>,
 }
 
 impl Invoice {
@@ -108,6 +123,15 @@ impl Invoice {
         })
     }
 
+    /// Payable amount incl. VAT — what hits the bank. Legacy invoices
+    /// (`vat: None`) fall back to the line total.
+    pub fn gross_minor(&self) -> Result<i64, InvoiceError> {
+        match &self.vat {
+            Some(v) => Ok(v.gross_minor),
+            None => self.total_minor(),
+        }
+    }
+
     pub fn paid_minor(&self) -> Result<i64, InvoiceError> {
         self.payments.iter().try_fold(0i64, |acc, p| {
             if p.amount_minor <= 0 {
@@ -118,11 +142,11 @@ impl Invoice {
         })
     }
 
-    /// Open balance: `total_minor − paid_minor` (i64 only; fail-closed on overflow).
+    /// Open balance: `gross_minor − paid_minor` (i64 only; fail-closed on overflow).
     pub fn remaining_minor(&self) -> Result<i64, InvoiceError> {
-        let total = self.total_minor()?;
+        let gross = self.gross_minor()?;
         let paid = self.paid_minor()?;
-        total.checked_sub(paid).ok_or(InvoiceError::Overflow)
+        gross.checked_sub(paid).ok_or(InvoiceError::Overflow)
     }
 }
 
@@ -169,6 +193,8 @@ pub enum InvoiceError {
     Journal(#[from] klarbog_journal::JournalError),
     #[error(transparent)]
     Crm(#[from] klarbog_plugin_crm::CrmError),
+    #[error("vat: {0}")]
+    Vat(#[from] klarbog_plugin_rules_dk::VatSplitError),
 }
 
 pub struct InvoicePlugin;

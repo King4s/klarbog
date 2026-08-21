@@ -17,7 +17,13 @@ async fn mcp_mark_paid_preview() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let invoice = create_draft_from_new(
         &co,
         party.id,
@@ -53,7 +59,13 @@ async fn mcp_mark_paid_preview_issues_confirm_token() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let invoice = create_draft_from_new(
         &co,
         party.id,
@@ -92,7 +104,13 @@ async fn mcp_mark_part_paid_preview() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let invoice = create_draft_from_new(
         &co,
         party.id,
@@ -152,7 +170,13 @@ async fn mcp_mark_part_paid_preview_issues_confirm_token() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let invoice = create_draft_from_new(
         &co,
         party.id,

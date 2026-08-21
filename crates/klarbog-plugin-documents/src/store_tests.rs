@@ -138,7 +138,13 @@ async fn validates_party_and_invoice() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Vendor".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Vendor".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let inv = create_draft_from_new(
         &co,
         party.id.clone(),

@@ -1,6 +1,6 @@
 //! Per-company `parties.json` persistence (ADR-004: CRM domain only).
 
-use crate::Party;
+use crate::{Party, PartyKind};
 use klarbog_types::PartyId;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -65,6 +65,7 @@ pub fn upsert_party(
     company: &Path,
     id: Option<PartyId>,
     display_name: String,
+    kind: PartyKind,
 ) -> Result<Party, CrmError> {
     if display_name.trim().is_empty() {
         return Err(CrmError::EmptyName);
@@ -73,6 +74,7 @@ pub fn upsert_party(
     let party = Party {
         id: party_id.clone(),
         display_name,
+        kind,
     };
     let mut file = load(company)?;
     if let Some(existing) = file.parties.iter_mut().find(|p| p.id == party_id) {
@@ -94,10 +96,16 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
-        let first = upsert_party(&co, None, "Acme ApS".into()).unwrap();
+        let first = upsert_party(&co, None, "Acme ApS".into(), PartyKind::Business).unwrap();
         let again = get_party(&co, &first.id).unwrap().unwrap();
         assert_eq!(again.display_name, "Acme ApS");
-        upsert_party(&co, Some(first.id.clone()), "Acme A/S".into()).unwrap();
+        upsert_party(
+            &co,
+            Some(first.id.clone()),
+            "Acme A/S".into(),
+            PartyKind::Business,
+        )
+        .unwrap();
         let listed = list_parties(&co).unwrap();
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].display_name, "Acme A/S");

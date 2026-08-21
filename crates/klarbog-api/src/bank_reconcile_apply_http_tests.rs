@@ -32,7 +32,13 @@ async fn seeded_apply_app() -> (
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Nordic Supply".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Nordic Supply".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let inv = create_draft_from_new(
         &company_path,
         party.id,

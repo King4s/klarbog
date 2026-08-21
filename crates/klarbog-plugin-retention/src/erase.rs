@@ -63,7 +63,17 @@ pub async fn erase_party(
     }
 
     if !dry_run {
-        upsert_party(company, Some(party_id.clone()), ERASED_DISPLAY_NAME.into())?;
+        // Preserve the party kind — anonymization must not flip the ADR-020
+        // billing convention on the record.
+        let kind = klarbog_plugin_crm::get_party(company, party_id)?
+            .map(|p| p.kind)
+            .unwrap_or_default();
+        upsert_party(
+            company,
+            Some(party_id.clone()),
+            ERASED_DISPLAY_NAME.into(),
+            kind,
+        )?;
     }
 
     let docs_touched = documents_stripped.len() + documents_deleted.len();

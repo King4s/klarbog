@@ -2,6 +2,7 @@
 
 mod form;
 mod post;
+mod send;
 mod view;
 
 pub use post::invoices_post;

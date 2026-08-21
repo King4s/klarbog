@@ -26,7 +26,12 @@ pub async fn run_agent_demo() -> anyhow::Result<Value> {
     init_company(&company_path, "Agent Demo ApS", &actor).await?;
 
     let crm = CrmPlugin;
-    let party = crm.upsert(&company_path, "Demo Customer ApS", None)?;
+    let party = crm.upsert(
+        &company_path,
+        "Demo Customer ApS",
+        None,
+        klarbog_plugin_crm::PartyKind::Business,
+    )?;
 
     let invoice = InvoicePlugin.create(
         &company_path,
@@ -148,7 +153,8 @@ mod tests {
     async fn agent_demo_smoke() {
         let _token_guard = EnvGuard::unset("KLARBOG_REVOLUT_API_TOKEN");
         let data = run_agent_demo().await.expect("demo");
-        assert_eq!(data["journal_suggestion_legs"], 2);
+        // Business party (ADR-020): 10000 net + 2500 salgsmoms = 12500 gross → 3 legs.
+        assert_eq!(data["journal_suggestion_legs"], 3);
         assert_eq!(data["bank_draft_count_generic_dk"], 3);
         assert_eq!(data["bank_draft_count_revolut"], 3);
         assert_eq!(data["revolut_import_source"], "csv");
@@ -157,7 +163,8 @@ mod tests {
         assert_eq!(data["invoice_status"], "part_paid");
         assert_eq!(data["part_paid_amount_minor"], 4_000);
         assert_eq!(data["part_paid_journal_legs"], 2);
-        assert_eq!(data["remaining_minor"], 6_000);
+        // Remaining is gross-based: 12500 − 4000 part-paid.
+        assert_eq!(data["remaining_minor"], 8_500);
         assert_eq!(data["gdpr_parties"], 1);
         assert_eq!(data["gdpr_invoices"], 1);
         assert!(data["retention_retain_days"].as_i64().unwrap() > 0);

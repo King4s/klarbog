@@ -146,7 +146,13 @@ async fn contract_smoke() {
     }
 
     // reconcile suggest (open sale + matching bank row)
-    let party2 = upsert_party(&company_path, None, "Nordic Supply".into()).unwrap();
+    let party2 = upsert_party(
+        &company_path,
+        None,
+        "Nordic Supply".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company_path,
         party2.id,

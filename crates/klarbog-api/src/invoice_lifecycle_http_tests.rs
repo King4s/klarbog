@@ -24,7 +24,13 @@ fn actor_headers(actor: &Actor) -> (&'static str, String) {
 async fn seed_invoice(company_path: &std::path::Path) -> (Actor, String) {
     let owner = Actor::user("owner");
     init_company(company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(company_path, None, "Buyer ApS".into()).unwrap();
+    let party = upsert_party(
+        company_path,
+        None,
+        "Buyer ApS".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let invoice = create_draft_from_new(
         company_path,
         party.id,

@@ -6,8 +6,8 @@ use axum::response::Response;
 use klarbog_core::{journal_commit, journal_preview};
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    create_draft_from_new, mark_paid_preview, mark_part_paid_preview, patch_status, InvoiceConfig,
-    InvoiceId, InvoiceKind, InvoiceStatus, NewLine,
+    create_draft_from_new, mark_paid_preview, mark_part_paid_preview, InvoiceConfig, InvoiceId,
+    InvoiceKind, NewLine,
 };
 use klarbog_types::{Actor, PartyId};
 
@@ -16,15 +16,16 @@ use super::form::InvoiceActionForm;
 use super::view::load_page;
 use crate::AppState;
 
-/// Journal-preview the payment entry and render a pending-commit panel
-/// carrying the serialized entry + confirm token (digest-bound, fail-closed).
-async fn preview_with_pending(
+/// Journal-preview the entry and render a pending-commit panel carrying the
+/// serialized entry + confirm token (digest-bound, fail-closed).
+pub(super) async fn preview_with_pending(
     state: &AppState,
     company: &str,
     actor: &Actor,
     invoice_id: &klarbog_plugin_invoice::InvoiceId,
     entry: klarbog_journal::JournalEntry,
     kind_label: &str,
+    commit_action: &str,
 ) -> Response {
     let preview = journal_preview(
         &state.allowlist_root,
@@ -57,6 +58,8 @@ async fn preview_with_pending(
             page.pending_label = format!("{kind_label} · {invoice_id} · {}", entry.memo);
             page.pending_entry_json = entry_json;
             page.pending_token = p.confirm_token.token;
+            page.pending_action = commit_action.to_string();
+            page.pending_invoice_id = invoice_id.to_string();
             html_ok(page)
         }
         Err(e) => html_ok(load_page(state, company, String::new(), e.to_string()).await),
@@ -87,8 +90,8 @@ pub async fn invoices_post(
         }
     };
     let actor = Actor::user(ACTOR);
-    let action = form.action.trim();
-    match action {
+    let action = form.action.trim().to_string();
+    match action.as_str() {
         "create" => {
             let party_raw = form.party_id.unwrap_or_default();
             let desc = form.description.unwrap_or_default().trim().to_string();
@@ -133,26 +136,24 @@ pub async fn invoices_post(
                 Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
             }
         }
-        "send" => {
-            let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
-            match patch_status(&path, &id, InvoiceStatus::Sent) {
-                Ok(_) => html_ok(
-                    load_page(
-                        &state,
-                        &company,
-                        format!("{id} sat til sent"),
-                        String::new(),
-                    )
-                    .await,
-                ),
-                Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
-            }
-        }
+        // Two-phase: preview the sale/purchase entry (incl. VAT legs, ADR-020),
+        // commit books it and first then flips status to sent (send.rs).
+        "send" => super::send::send_preview(&state, &company, &path, &actor, &form).await,
+        "commit_send" => super::send::commit_send(&state, &company, &path, &actor, form).await,
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
             match mark_paid_preview(&path, &id, &actor, &InvoiceConfig::default()) {
                 Ok((inv, entry)) => {
-                    preview_with_pending(&state, &company, &actor, &inv.id, entry, "Betalt").await
+                    preview_with_pending(
+                        &state,
+                        &company,
+                        &actor,
+                        &inv.id,
+                        entry,
+                        "Betalt",
+                        "commit_payment",
+                    )
+                    .await
                 }
                 Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
             }
@@ -175,8 +176,16 @@ pub async fn invoices_post(
             };
             match mark_part_paid_preview(&path, &id, amount, &actor, &InvoiceConfig::default()) {
                 Ok((inv, entry)) => {
-                    preview_with_pending(&state, &company, &actor, &inv.id, entry, "Delbetalt")
-                        .await
+                    preview_with_pending(
+                        &state,
+                        &company,
+                        &actor,
+                        &inv.id,
+                        entry,
+                        "Delbetalt",
+                        "commit_payment",
+                    )
+                    .await
                 }
                 Err(e) => html_ok(load_page(&state, &company, String::new(), e.to_string()).await),
             }

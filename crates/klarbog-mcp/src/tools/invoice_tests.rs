@@ -14,7 +14,13 @@ async fn mcp_invoice_create_list_patch_status() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
 
     let create = invoice_create_draft(
         &json!({
@@ -86,7 +92,13 @@ async fn mcp_invoice_create_rejects_non_positive_amount() {
     std::fs::create_dir_all(&co).unwrap();
     let owner = Actor::user("owner");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let env = invoice_create_draft(
         &json!({
             "company": co.to_string_lossy(),

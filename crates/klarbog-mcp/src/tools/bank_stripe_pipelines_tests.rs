@@ -21,7 +21,13 @@ async fn company_with_charge(match_amount: bool) -> (tempfile::TempDir, std::pat
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Customer payment".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Customer payment".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let amount = if match_amount { 24_275 } else { 99_999 };
     create_draft_from_new(
         &company_path,

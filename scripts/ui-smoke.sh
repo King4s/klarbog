@@ -69,7 +69,8 @@ getp() { curl -s -b "$JAR" "$BASE$1"; }
 post /ui/settings --data-urlencode "company=$COMPANY" >/dev/null
 post /ui/parties --data-urlencode action=create --data-urlencode "display_name=Smoke Kunde" >/dev/null
 getp /ui/parties | rg -q "Smoke Kunde" || fail "party missing after create"
-echo "ok: party create · listed"
+getp /ui/parties | rg -q "Privat" || fail "party kind column missing (default Privat)"
+echo "ok: party create · listed (Privat default)"
 PARTY_ID="$(getp /ui/parties | rg -o 'name="party_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
 [[ -n "$PARTY_ID" ]] || fail "no party_id on parties page"
 
@@ -97,13 +98,21 @@ expect_ok "moms split commit" "$(post /ui/journal --data-urlencode action=commit
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 getp /ui/chart | rg -q '4000' || fail "moms split: 4000 missing from chart balances"
 
-# --- invoices: create -> send -> paid preview -> commit ---
+# --- invoices: create -> send (two-phase, books salgsmoms) -> paid -> commit ---
 expect_ok "invoice create" "$(post /ui/invoices --data-urlencode action=create \
   --data-urlencode "party_id=$PARTY_ID" --data-urlencode kind=sale \
   --data-urlencode description=Smoke --data-urlencode amount_minor=50000)"
 INV="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
 [[ -n "$INV" ]] || fail "no invoice_id on invoices page"
-expect_ok "invoice send" "$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV")"
+# Private party (ADR-020): 50000 gross = 40000 net + 10000 salgsmoms.
+PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV")"
+expect_ok "invoice send preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+[[ -n "$TOKEN" && -n "$EJSON" ]] || fail "invoice send: missing token/entry_json"
+rg -q '1200' <<<"$EJSON" || fail "invoice send: no Salgsmoms 1200 leg in entry_json"
+expect_ok "invoice send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
+  --data-urlencode "invoice_id=$INV" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 PAGE="$(post /ui/invoices --data-urlencode action=paid_preview --data-urlencode "invoice_id=$INV")"
 expect_ok "invoice paid preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
@@ -115,7 +124,12 @@ expect_ok "bank invoice create" "$(post /ui/invoices --data-urlencode action=cre
   --data-urlencode "party_id=$PARTY_ID" --data-urlencode kind=sale \
   --data-urlencode description=Bankmatch --data-urlencode amount_minor=70000)"
 INV2="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
-expect_ok "bank invoice send" "$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV2")"
+PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV2")"
+expect_ok "bank invoice send preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+expect_ok "bank invoice send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
+  --data-urlencode "invoice_id=$INV2" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 
 BROW=(--data-urlencode provider=generic_dk --data-urlencode csv=
   --data-urlencode row_date=2026-05-20 --data-urlencode "row_text=Betaling Bankmatch"
@@ -134,6 +148,16 @@ expect_ok "bank commit" "$(post /ui/bank --data-urlencode action=commit_apply \
   --data-urlencode provider=generic_dk --data-urlencode csv= --data-urlencode row_date= \
   --data-urlencode row_text= --data-urlencode row_amount= \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+
+# --- ADR-020: erhvervspart faktureres ekskl. moms (10000 net -> 12500 brutto) ---
+post /ui/parties --data-urlencode action=create \
+  --data-urlencode "display_name=Smoke Erhverv" --data-urlencode kind=business >/dev/null
+getp /ui/parties | rg -q "Erhverv" || fail "parties: Erhverv kind not listed"
+expect_ok "b2b invoice create" "$(post /ui/invoices --data-urlencode action=create \
+  --data-urlencode party_id=party_smoke_erhverv --data-urlencode kind=sale \
+  --data-urlencode description=B2B --data-urlencode amount_minor=10000)"
+getp /ui/invoices | rg -q '125.00 DKK' || fail "invoices: expected brutto 125.00 DKK on b2b draft"
+echo "ok: b2b invoice ekskl. moms (brutto 125.00 DKK)"
 
 # --- bilag: upload -> exception close -> gdpr export -> remove ---
 echo smoke > "$WORK/kvit.txt"
@@ -161,7 +185,9 @@ rg -q "Saldi" <<<"$CHART" || fail "chart: balances section missing"
 rg -q "225.00 DKK" <<<"$CHART" || fail "chart: expected 225.00 DKK balance on 3000"
 # 4000 Købsmoms carries the 25.00 VAT leg from the split.
 rg -q "4000" <<<"$CHART" || fail "chart: expected Købsmoms 4000 row"
-echo "ok: chart balances listed (incl. moms split)"
+# Salgsmoms from the two sale sends: 100.00 + 140.00 = 240.00 credit on 1200.
+rg -q "240.00 DKK" <<<"$CHART" || fail "chart: expected 240.00 DKK salgsmoms on 1200"
+echo "ok: chart balances listed (incl. moms split + salgsmoms)"
 
 # --- momsafregning: settle Købsmoms into 4500 via two-phase ---
 PAGE2="$(post /ui/chart --data-urlencode action=settle_preview)"

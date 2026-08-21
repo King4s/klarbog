@@ -31,7 +31,13 @@ async fn company_with_charge() -> (tempfile::TempDir, std::path::PathBuf) {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Customer payment".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Customer payment".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &company_path,
         party.id,

@@ -1,7 +1,7 @@
 //! CRM parties MCP tools — mirror POST/GET /api/v1/crm/parties (no journal write).
 
 use super::auth::{authorize_company, map_core_error, parse_actor, parse_company};
-use klarbog_plugin_crm::{get_party, list_parties, upsert_party, CrmError};
+use klarbog_plugin_crm::{get_party, list_parties, upsert_party, CrmError, PartyKind};
 use klarbog_types::{Envelope, PartyId};
 use serde_json::Value;
 use std::path::Path;
@@ -29,11 +29,21 @@ pub async fn crm_upsert_party(args: &Value, allowlist_root: &Path) -> Envelope<V
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .map(|s| PartyId::new(s.to_string()));
+    // `private` (default) or `business` — billing convention (ADR-020).
+    let kind = match args.get("kind").and_then(|v| v.as_str()) {
+        None | Some("") => PartyKind::default(),
+        Some(raw) => match PartyKind::parse(raw) {
+            Some(k) => k,
+            None => {
+                return Envelope::err([format!("kind must be private or business, got {raw:?}")])
+            }
+        },
+    };
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    match upsert_party(&path, party_id, display_name) {
+    match upsert_party(&path, party_id, display_name, kind) {
         Ok(party) => Envelope::ok(serde_json::to_value(party).unwrap()),
         Err(e) => map_crm(e),
     }

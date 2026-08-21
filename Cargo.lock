@@ -1187,6 +1187,7 @@ dependencies = [
  "klarbog-journal",
  "klarbog-plugin",
  "klarbog-plugin-crm",
+ "klarbog-plugin-rules-dk",
  "klarbog-types",
  "serde",
  "serde_json",

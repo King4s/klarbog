@@ -36,6 +36,9 @@ pub(super) struct InvoicesTemplate {
     pub pending_label: String,
     pub pending_entry_json: String,
     pub pending_token: String,
+    /// Which commit action the pending panel posts (commit_send / commit_payment).
+    pub pending_action: String,
+    pub pending_invoice_id: String,
 }
 
 pub(super) async fn load_page(
@@ -68,6 +71,8 @@ pub(super) async fn load_page(
         pending_label: String::new(),
         pending_entry_json: String::new(),
         pending_token: String::new(),
+        pending_action: String::new(),
+        pending_invoice_id: String::new(),
     };
     if company.is_empty() {
         return base;
@@ -87,7 +92,15 @@ pub(super) async fn load_page(
         .into_iter()
         .map(|p| PartyOption {
             id: p.id.to_string(),
-            label: format!("{} ({})", p.display_name, p.id),
+            label: format!(
+                "{} ({}) · {}",
+                p.display_name,
+                p.id,
+                match p.kind {
+                    klarbog_plugin_crm::PartyKind::Private => "Privat, beløb inkl. moms",
+                    klarbog_plugin_crm::PartyKind::Business => "Erhverv, beløb ekskl. moms",
+                }
+            ),
         })
         .collect();
     let invoices = list_invoices(&path)
@@ -95,10 +108,16 @@ pub(super) async fn load_page(
         .into_iter()
         .filter_map(|inv| {
             let total = inv.total_minor().ok()?;
+            let gross = inv.gross_minor().ok()?;
             Some(InvoiceRow {
                 id: inv.id.to_string(),
                 status: status_label(inv.status).into(),
                 total: format_dkk(total),
+                moms: inv
+                    .vat
+                    .map(|v| format_dkk(v.vat_minor))
+                    .unwrap_or_else(|| "—".into()),
+                brutto: format_dkk(gross),
                 party_id: inv.party_id.to_string(),
                 can_send: inv.status == InvoiceStatus::Draft,
                 can_collect: inv.status.allows_mark_paid(),

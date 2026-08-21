@@ -24,7 +24,13 @@ async fn invoice_create_and_list() {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    let party = upsert_party(&company_path, None, "Buyer ApS".into()).unwrap();
+    let party = upsert_party(
+        &company_path,
+        None,
+        "Buyer ApS".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let state = AppState {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),
@@ -113,7 +119,13 @@ async fn invoice_actor_denied() {
     let owner = Actor::user("owner");
     let company_path = dir.path().join("co");
     init_company(&company_path, "Demo", &owner).await.unwrap();
-    upsert_party(&company_path, None, "Buyer".into()).unwrap();
+    upsert_party(
+        &company_path,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let state = AppState {
         confirm: Arc::new(ConfirmStore::default()),
         allowlist_root: dir.path().to_path_buf(),

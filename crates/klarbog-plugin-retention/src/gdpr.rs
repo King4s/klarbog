@@ -186,7 +186,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Test Person".into()).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Test Person".into(),
+            klarbog_plugin_crm::PartyKind::Private,
+        )
+        .unwrap();
         let inv = create_draft(
             &co,
             party.id.clone(),

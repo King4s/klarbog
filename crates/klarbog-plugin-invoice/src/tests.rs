@@ -16,7 +16,13 @@ fn draft_roundtrip_with_journal_suggestion() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Nordic Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Nordic Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     assert!(co.join(PARTIES_FILENAME).exists());
     let plugin = InvoicePlugin;
     let invoice = plugin
@@ -50,7 +56,13 @@ fn lifecycle_patch_and_mark_paid() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let plugin = InvoicePlugin;
     let invoice = plugin
         .create(
@@ -81,7 +93,13 @@ fn lifecycle_mark_part_paid() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Buyer".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let plugin = InvoicePlugin;
     let invoice = plugin
         .create(

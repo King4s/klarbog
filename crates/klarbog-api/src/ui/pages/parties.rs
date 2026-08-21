@@ -4,7 +4,7 @@ use askama::Template;
 use axum::extract::{Form, State};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Redirect, Response};
-use klarbog_plugin_crm::{list_parties, upsert_party};
+use klarbog_plugin_crm::{list_parties, upsert_party, PartyKind};
 use klarbog_plugin_retention::{erase_party, ErasePartyOptions, ErasePartyReport};
 use klarbog_types::PartyId;
 use serde::Deserialize;
@@ -15,6 +15,8 @@ use crate::AppState;
 struct PartyRow {
     id: String,
     display_name: String,
+    /// Billing convention (ADR-020): Privat = inkl. moms, Erhverv = ekskl.
+    kind: &'static str,
     /// Debit-positive net over party-tagged legs; "—" when never posted.
     saldo: String,
 }
@@ -71,6 +73,10 @@ async fn load_parties(state: &AppState, company: &str) -> Result<Vec<PartyRow>, 
             PartyRow {
                 id,
                 display_name: p.display_name,
+                kind: match p.kind {
+                    PartyKind::Private => "Privat",
+                    PartyKind::Business => "Erhverv",
+                },
                 saldo,
             }
         })
@@ -149,6 +155,9 @@ pub struct PartyForm {
     pub party_id: String,
     #[serde(default)]
     pub delete_documents: String,
+    /// `private` (default) or `business` (ADR-020).
+    #[serde(default)]
+    pub kind: String,
 }
 
 fn wants_delete_docs(raw: &str) -> bool {
@@ -176,7 +185,21 @@ pub async fn parties_post(
     match form.action.trim() {
         "" | "create" => {
             let name = form.display_name.trim().to_string();
-            match upsert_party(&path, None, name) {
+            let kind = match form.kind.trim() {
+                "" => PartyKind::default(),
+                raw => match PartyKind::parse(raw) {
+                    Some(k) => k,
+                    None => {
+                        return page_err(
+                            &state,
+                            company,
+                            format!("Ugyldig partstype: {raw:?} (privat/erhverv)"),
+                        )
+                        .await;
+                    }
+                },
+            };
+            match upsert_party(&path, None, name, kind) {
                 Ok(_) => Redirect::to("/ui/parties").into_response(),
                 Err(e) => page_err(&state, company, e.to_string()).await,
             }

@@ -20,7 +20,13 @@ fn matches_sale_by_amount_and_party_name() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Nordic Supply".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Nordic Supply".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &co,
         party.id,
@@ -46,7 +52,13 @@ fn purchase_outgoing_match() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Nordic Supply".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Nordic Supply".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &co,
         party.id,
@@ -70,7 +82,13 @@ fn amount_only_stays_below_safe_and_sets_unsafe_reason() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Hidden Vendor".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Hidden Vendor".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     create_draft_from_new(
         &co,
         party.id,
@@ -109,7 +127,13 @@ fn apply_safe_match_returns_payment_suggestion() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Nordic Supply".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Nordic Supply".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let inv = create_draft_from_new(
         &co,
         party.id,
@@ -137,7 +161,13 @@ fn apply_rejects_unsafe_without_force() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Hidden Vendor".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Hidden Vendor".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let inv = create_draft_from_new(
         &co,
         party.id,
@@ -160,7 +190,13 @@ fn apply_force_user_closes_unmatched_exception() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");
     fs::create_dir_all(&co).unwrap();
-    let party = upsert_party(&co, None, "Hidden Vendor".into()).unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "Hidden Vendor".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     let inv = create_draft_from_new(
         &co,
         party.id,

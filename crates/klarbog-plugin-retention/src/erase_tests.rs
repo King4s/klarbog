@@ -14,7 +14,13 @@ async fn dry_run_does_not_mutate() {
     let owner = Actor::user("owner");
     let co = dir.path().join("co");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = crm_upsert(&co, None, "Person A".into()).unwrap();
+    let party = crm_upsert(
+        &co,
+        None,
+        "Person A".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     attach_document(
         &co,
         DocumentKind::Receipt,
@@ -49,7 +55,13 @@ async fn confirm_anonymizes_and_strips_docs_keeps_journal() {
     let owner = Actor::user("owner");
     let co = dir.path().join("co");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = crm_upsert(&co, None, "Person B".into()).unwrap();
+    let party = crm_upsert(
+        &co,
+        None,
+        "Person B".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     attach_document(
         &co,
         DocumentKind::Other,
@@ -116,7 +128,13 @@ async fn confirm_delete_documents_uses_object_delete() {
     let owner = Actor::user("owner");
     let co = dir.path().join("co");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = crm_upsert(&co, None, "Person C".into()).unwrap();
+    let party = crm_upsert(
+        &co,
+        None,
+        "Person C".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     attach_document(
         &co,
         DocumentKind::Receipt,
@@ -157,7 +175,13 @@ async fn confirm_appends_erase_audit_jsonl_no_secrets() {
     let owner = Actor::user("owner");
     let co = dir.path().join("co");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = crm_upsert(&co, None, "Secret Name".into()).unwrap();
+    let party = crm_upsert(
+        &co,
+        None,
+        "Secret Name".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     attach_document(
         &co,
         DocumentKind::Receipt,
@@ -203,7 +227,13 @@ async fn dry_run_also_records_audit_mode() {
     let owner = Actor::user("owner");
     let co = dir.path().join("co");
     init_company(&co, "Demo", &owner).await.unwrap();
-    let party = crm_upsert(&co, None, "Preview".into()).unwrap();
+    let party = crm_upsert(
+        &co,
+        None,
+        "Preview".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+    )
+    .unwrap();
     erase_party(&co, &party.id, ErasePartyOptions::default())
         .await
         .unwrap();
