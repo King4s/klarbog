@@ -111,5 +111,23 @@
   {% else %}
   <p class="muted">Kør preview for at få et confirm_token.</p>
   {% endif %}
+
+  {% if !postings.is_empty() %}
+  <h2 class="subhead">Seneste posteringer</h2>
+  <table class="table">
+    <thead><tr><th>Dato</th><th>Memo</th><th>Konto</th><th>Debet</th><th>Kredit</th></tr></thead>
+    <tbody>
+      {% for p in postings %}
+      <tr>
+        <td class="money">{{ p.date }}</td>
+        <td>{{ p.memo }}</td>
+        <td class="money">{{ p.account }}</td>
+        <td class="money">{{ p.debit }}</td>
+        <td class="money">{{ p.credit }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </section>
 {% endblock %}

@@ -16,6 +16,7 @@ use anyhow::Context;
 use klarbog_journal::{JournalEntry, PostedEntry};
 use klarbog_plugin_retention::ensure_company_extras;
 use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
+pub use klarbog_store_sqlite::{AccountBalance, PostedEntryView, PostedLegView};
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -111,6 +112,14 @@ impl Company {
         self.store.append(&posted).await?;
         Ok(posted)
     }
+
+    pub async fn account_balances(&self) -> Result<Vec<AccountBalance>, CoreError> {
+        Ok(self.store.account_balances().await?)
+    }
+
+    pub async fn recent_entries(&self, limit: i64) -> Result<Vec<PostedEntryView>, CoreError> {
+        Ok(self.store.recent_entries(limit).await?)
+    }
 }
 
 #[cfg(test)]
@@ -156,6 +165,33 @@ mod tests {
         assert!(dir.path().join("templates/expense_memo.md").exists());
         let posted = company.post(expense(owner, 250)).await.unwrap();
         assert!(!posted.digest.is_empty());
+    }
+
+    #[tokio::test]
+    async fn balances_and_recent_entries_reflect_posts() {
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company = init_company(dir.path(), "Demo ApS", &owner).await.unwrap();
+        company.post(expense(owner.clone(), 250)).await.unwrap();
+        company.post(expense(owner, 100)).await.unwrap();
+
+        let balances = company.account_balances().await.unwrap();
+        let b6000 = balances.iter().find(|b| b.account == "6000").unwrap();
+        assert_eq!((b6000.debit_minor, b6000.credit_minor), (350, 0));
+        assert_eq!(b6000.net_minor(), 350);
+        let b5800 = balances.iter().find(|b| b.account == "5800").unwrap();
+        assert_eq!(b5800.net_minor(), -350);
+
+        let recent = company.recent_entries(10).await.unwrap();
+        assert_eq!(recent.len(), 2);
+        // Newest first, each with both legs.
+        assert_eq!(recent[0].legs.len(), 2);
+        assert_eq!(recent[0].legs[0].amount_minor, 100);
+        assert_eq!(recent[1].legs[0].amount_minor, 250);
+
+        let limited = company.recent_entries(1).await.unwrap();
+        assert_eq!(limited.len(), 1);
+        assert_eq!(limited[0].legs[0].amount_minor, 100);
     }
 
     #[tokio::test]

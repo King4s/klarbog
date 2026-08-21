@@ -20,6 +20,23 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <h2 class="subhead">Saldi</h2>
+  <table class="table">
+    <thead><tr><th>Konto</th><th>Debet</th><th>Kredit</th><th>Netto</th></tr></thead>
+    <tbody>
+      {% for b in balances %}
+      <tr>
+        <td class="money">{{ b.account }}</td>
+        <td class="money">{{ b.debit }}</td>
+        <td class="money">{{ b.credit }}</td>
+        <td class="money">{{ b.net }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">Ingen posteringer endnu</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
   {% else %}
   <p class="muted">Sæt firmasti under Indstillinger.</p>
   {% endif %}

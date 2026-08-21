@@ -5,9 +5,18 @@ use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::response::Response;
 
-use super::super::common::{company_from, foot, html_ok, nav};
+use super::super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
 use super::form::JournalFields;
 use crate::AppState;
+
+/// One leg per row; entry columns only on the first leg.
+pub(super) struct PostingRow {
+    pub date: String,
+    pub memo: String,
+    pub account: String,
+    pub debit: String,
+    pub credit: String,
+}
 
 #[derive(Template)]
 #[template(path = "journal.html")]
@@ -49,6 +58,7 @@ pub(super) struct JournalTemplate {
     pub expires_unix_ms: String,
     pub payload_digest: String,
     pub entry_json: String,
+    pub postings: Vec<PostingRow>,
 }
 
 pub(super) fn journal_page(
@@ -97,16 +107,66 @@ pub(super) fn journal_page(
         expires_unix_ms: fields.expires_unix_ms,
         payload_digest: fields.payload_digest,
         entry_json: fields.entry_json,
+        postings: Vec::new(),
     }
+}
+
+/// Flatten recent posted entries to leg rows (entry info on first leg only).
+async fn load_postings(path: &std::path::Path, limit: i64) -> Result<Vec<PostingRow>, String> {
+    let company = klarbog_core::open_existing(path)
+        .await
+        .map_err(|e| e.to_string())?;
+    let entries = company
+        .recent_entries(limit)
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut rows = Vec::new();
+    for e in entries {
+        let date = e.as_of.chars().take(10).collect::<String>();
+        for (i, leg) in e.legs.iter().enumerate() {
+            let (debit, credit) = match leg.direction.as_str() {
+                "debit" => (format_dkk(leg.amount_minor), String::new()),
+                _ => (String::new(), format_dkk(leg.amount_minor)),
+            };
+            rows.push(PostingRow {
+                date: if i == 0 { date.clone() } else { String::new() },
+                memo: if i == 0 {
+                    e.memo.clone()
+                } else {
+                    String::new()
+                },
+                account: leg.account.clone(),
+                debit,
+                credit,
+            });
+        }
+    }
+    Ok(rows)
 }
 
 pub async fn journal_get(State(state): State<AppState>, headers: HeaderMap) -> Response {
     let company = company_from(&headers);
-    html_ok(journal_page(
+    let mut page = journal_page(
         &state,
-        company,
+        company.clone(),
         JournalFields::default(),
         String::new(),
         String::new(),
-    ))
+    );
+    if !company.is_empty() {
+        match authorize_company(&state, &company).await {
+            Ok(path) => match load_postings(&path, 15).await {
+                Ok(rows) => page.postings = rows,
+                Err(e) => {
+                    page.has_flash_err = true;
+                    page.flash_err = e;
+                }
+            },
+            Err(e) => {
+                page.has_flash_err = true;
+                page.flash_err = e;
+            }
+        }
+    }
+    html_ok(page)
 }

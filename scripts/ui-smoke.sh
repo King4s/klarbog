@@ -138,4 +138,14 @@ expect_ok "gdpr export" "$(post /ui/bilag --data-urlencode action=gdpr_export)"
 expect_ok "bilag remove" "$(post /ui/bilag --data-urlencode action=remove_document \
   --data-urlencode "document_id=$DOC" --data-urlencode delete_object=1)"
 
+# --- ledger views reflect the three commits above ---
+getp /ui/journal | rg -q "Seneste posteringer" || fail "journal: postings section missing"
+getp /ui/journal | rg -q "udgift #vat25 #receipt" || fail "journal: committed memo not listed"
+echo "ok: journal postings listed"
+PAGE="$(getp /ui/chart)"
+rg -q "Saldi" <<<"$PAGE" || fail "chart: balances section missing"
+# 6000 was debited 125.00 by the journal commit.
+rg -q "125.00 DKK" <<<"$PAGE" || fail "chart: expected 125.00 DKK balance on 6000"
+echo "ok: chart balances listed"
+
 echo "UI_SMOKE_OK"

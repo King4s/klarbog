@@ -2,6 +2,8 @@
 
 mod open;
 mod persist;
+mod query;
 
 pub use open::{open_company, CompanyStore, StoreError};
 pub use persist::JournalDigestSummary;
+pub use query::{AccountBalance, PostedEntryView, PostedLegView};

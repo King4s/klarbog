@@ -6,13 +6,20 @@ use axum::http::HeaderMap;
 use axum::response::Response;
 use klarbog_plugin_rules_dk::{chart_stub_entries, RULE_KNOWN_ACCOUNT};
 
-use super::common::{authorize_company, company_from, foot, html_ok, nav};
+use super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
 use crate::AppState;
 
 struct AccountRow {
     code: String,
     label: String,
     range: String,
+}
+
+struct BalanceRow {
+    account: String,
+    debit: String,
+    credit: String,
+    net: String,
 }
 
 #[derive(Template)]
@@ -37,6 +44,7 @@ struct ChartTemplate {
     stub: bool,
     rule_known_account: String,
     accounts: Vec<AccountRow>,
+    balances: Vec<BalanceRow>,
 }
 
 fn chart_page(
@@ -67,7 +75,27 @@ fn chart_page(
         stub: true,
         rule_known_account: RULE_KNOWN_ACCOUNT.to_string(),
         accounts,
+        balances: Vec::new(),
     }
+}
+
+async fn load_balances(path: &std::path::Path) -> Result<Vec<BalanceRow>, String> {
+    let company = klarbog_core::open_existing(path)
+        .await
+        .map_err(|e| e.to_string())?;
+    let balances = company
+        .account_balances()
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(balances
+        .into_iter()
+        .map(|b| BalanceRow {
+            account: b.account.clone(),
+            debit: format_dkk(b.debit_minor),
+            credit: format_dkk(b.credit_minor),
+            net: format_dkk(b.net_minor()),
+        })
+        .collect())
 }
 
 pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Response {
@@ -75,9 +103,10 @@ pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Res
     if company.is_empty() {
         return html_ok(chart_page(&state, company, String::new(), Vec::new()));
     }
-    if let Err(e) = authorize_company(&state, &company).await {
-        return html_ok(chart_page(&state, company, e, Vec::new()));
-    }
+    let path = match authorize_company(&state, &company).await {
+        Ok(p) => p,
+        Err(e) => return html_ok(chart_page(&state, company, e, Vec::new())),
+    };
     let accounts = chart_stub_entries()
         .into_iter()
         .map(|a| {
@@ -92,5 +121,13 @@ pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Res
             }
         })
         .collect();
-    html_ok(chart_page(&state, company, String::new(), accounts))
+    let page = match load_balances(&path).await {
+        Ok(balances) => {
+            let mut p = chart_page(&state, company, String::new(), accounts);
+            p.balances = balances;
+            p
+        }
+        Err(e) => chart_page(&state, company, e, accounts),
+    };
+    html_ok(page)
 }
