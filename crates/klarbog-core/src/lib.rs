@@ -16,7 +16,7 @@ use anyhow::Context;
 use klarbog_journal::{JournalEntry, PostedEntry};
 use klarbog_plugin_retention::ensure_company_extras;
 use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
-pub use klarbog_store_sqlite::{AccountBalance, PostedEntryView, PostedLegView};
+pub use klarbog_store_sqlite::{AccountBalance, PartyBalance, PostedEntryView, PostedLegView};
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -124,6 +124,10 @@ impl Company {
     pub async fn posted_entry(&self, id: &str) -> Result<Option<PostedEntry>, CoreError> {
         Ok(self.store.get_posted_entry(id).await?)
     }
+
+    pub async fn party_balances(&self) -> Result<Vec<PartyBalance>, CoreError> {
+        Ok(self.store.party_balances().await?)
+    }
 }
 
 #[cfg(test)]
@@ -196,6 +200,22 @@ mod tests {
         let limited = company.recent_entries(1).await.unwrap();
         assert_eq!(limited.len(), 1);
         assert_eq!(limited[0].legs[0].amount_minor, 100);
+    }
+
+    #[tokio::test]
+    async fn party_balances_group_party_legs() {
+        use klarbog_types::PartyId;
+        let dir = tempdir().unwrap();
+        let owner = Actor::user("owner");
+        let company = init_company(dir.path(), "Demo ApS", &owner).await.unwrap();
+        let mut entry = expense(owner, 500);
+        entry.legs[0].party_id = Some(PartyId::new("party_a"));
+        company.post(entry).await.unwrap();
+
+        let balances = company.party_balances().await.unwrap();
+        assert_eq!(balances.len(), 1);
+        assert_eq!(balances[0].party_id, "party_a");
+        assert_eq!(balances[0].net_minor(), 500);
     }
 
     #[tokio::test]

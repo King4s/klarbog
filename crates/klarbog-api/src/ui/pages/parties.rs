@@ -9,12 +9,14 @@ use klarbog_plugin_retention::{erase_party, ErasePartyOptions, ErasePartyReport}
 use klarbog_types::PartyId;
 use serde::Deserialize;
 
-use super::common::{authorize_company, company_from, foot, html_ok, nav};
+use super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
 use crate::AppState;
 
 struct PartyRow {
     id: String,
     display_name: String,
+    /// Debit-positive net over party-tagged legs; "—" when never posted.
+    saldo: String,
 }
 
 #[derive(Template)]
@@ -49,11 +51,28 @@ async fn load_parties(state: &AppState, company: &str) -> Result<Vec<PartyRow>, 
     }
     let path = authorize_company(state, company).await?;
     let list = list_parties(&path).map_err(|e| e.to_string())?;
+    let balances: std::collections::HashMap<String, i64> = klarbog_core::open_existing(&path)
+        .await
+        .map_err(|e| e.to_string())?
+        .party_balances()
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|b| (b.party_id.clone(), b.net_minor()))
+        .collect();
     Ok(list
         .into_iter()
-        .map(|p| PartyRow {
-            id: p.id.to_string(),
-            display_name: p.display_name,
+        .map(|p| {
+            let id = p.id.to_string();
+            let saldo = balances
+                .get(&id)
+                .map(|net| format_dkk(*net))
+                .unwrap_or_else(|| "—".into());
+            PartyRow {
+                id,
+                display_name: p.display_name,
+                saldo,
+            }
         })
         .collect())
 }

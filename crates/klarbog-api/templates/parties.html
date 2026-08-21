@@ -26,12 +26,13 @@
   {% endif %}
 
   <table class="table">
-    <thead><tr><th>Id</th><th>Navn</th><th>GDPR</th></tr></thead>
+    <thead><tr><th>Id</th><th>Navn</th><th>Saldo</th><th>GDPR</th></tr></thead>
     <tbody>
       {% for p in parties %}
       <tr>
         <td class="money">{{ p.id }}</td>
         <td>{{ p.display_name }}</td>
+        <td class="money">{{ p.saldo }}</td>
         <td>
           <form method="post" action="/ui/parties" class="inline">
             <input type="hidden" name="action" value="erase_dry" />
@@ -42,7 +43,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="3" class="muted">Ingen parter</td></tr>
+      <tr><td colspan="4" class="muted">Ingen parter</td></tr>
       {% endfor %}
     </tbody>
   </table>

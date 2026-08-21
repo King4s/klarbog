@@ -22,6 +22,20 @@ impl AccountBalance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartyBalance {
+    pub party_id: String,
+    pub debit_minor: i64,
+    pub credit_minor: i64,
+}
+
+impl PartyBalance {
+    /// Debit-positive net (receivable convention; negative = we owe/received).
+    pub fn net_minor(&self) -> i64 {
+        self.debit_minor - self.credit_minor
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PostedLegView {
     pub account: String,
     pub direction: String,
@@ -73,6 +87,31 @@ impl CompanyStore {
             .into_iter()
             .map(|r| AccountBalance {
                 account: r.get("account"),
+                debit_minor: r.get("debit_minor"),
+                credit_minor: r.get("credit_minor"),
+            })
+            .collect())
+    }
+
+    /// Per-party debit/credit sums over legs that carry a party_id.
+    pub async fn party_balances(&self) -> Result<Vec<PartyBalance>, StoreError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT party_id,
+                   SUM(CASE WHEN direction = 'debit' THEN amount_minor ELSE 0 END) AS debit_minor,
+                   SUM(CASE WHEN direction = 'credit' THEN amount_minor ELSE 0 END) AS credit_minor
+            FROM journal_legs
+            WHERE party_id IS NOT NULL
+            GROUP BY party_id
+            ORDER BY party_id ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| PartyBalance {
+                party_id: r.get("party_id"),
                 debit_minor: r.get("debit_minor"),
                 credit_minor: r.get("credit_minor"),
             })

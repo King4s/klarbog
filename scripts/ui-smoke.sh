@@ -160,4 +160,18 @@ expect_ok "reversal commit" "$(post /ui/journal --data-urlencode action=commit \
 getp /ui/journal | rg -q "tilbageførsel af $EID" || fail "journal: reversal not listed"
 echo "ok: reversal listed in postings"
 
+# --- råbalance totals and party saldo ---
+CHART="$(getp /ui/chart)"
+rg -q "Råbalance" <<<"$CHART" || fail "chart: råbalance totals row missing"
+TOTALS="$(rg -o '<th class="money">[0-9.]* DKK</th>' <<<"$CHART" | sort -u | wc -l)"
+[[ "$TOTALS" == "1" ]] || fail "chart: total debet != total kredit ($TOTALS distinct totals)"
+echo "ok: råbalance totals equal"
+PAGE="$(getp /ui/parties)"
+rg -q "<th>Saldo</th>" <<<"$PAGE" || fail "parties: saldo column missing"
+# Payment entries tag both legs with the party, so a posted party shows a DKK
+# saldo (0.00 here: bank debit and AR credit cancel), never the "—" placeholder.
+rg -q '<td class="money">[0-9-]+\.[0-9]{2} DKK</td>' <<<"$PAGE" \
+  || fail "parties: expected a DKK saldo on the party"
+echo "ok: party saldo shown"
+
 echo "UI_SMOKE_OK"

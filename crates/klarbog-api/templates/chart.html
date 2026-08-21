@@ -36,6 +36,16 @@
       <tr><td colspan="4" class="muted">Ingen posteringer endnu</td></tr>
       {% endfor %}
     </tbody>
+    {% if !balances.is_empty() %}
+    <tfoot>
+      <tr>
+        <th>Råbalance</th>
+        <th class="money">{{ total_debit }}</th>
+        <th class="money">{{ total_credit }}</th>
+        <th class="money">debet = kredit</th>
+      </tr>
+    </tfoot>
+    {% endif %}
   </table>
   {% else %}
   <p class="muted">Sæt firmasti under Indstillinger.</p>

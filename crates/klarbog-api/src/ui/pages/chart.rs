@@ -45,6 +45,8 @@ struct ChartTemplate {
     rule_known_account: String,
     accounts: Vec<AccountRow>,
     balances: Vec<BalanceRow>,
+    total_debit: String,
+    total_credit: String,
 }
 
 fn chart_page(
@@ -76,10 +78,13 @@ fn chart_page(
         rule_known_account: RULE_KNOWN_ACCOUNT.to_string(),
         accounts,
         balances: Vec::new(),
+        total_debit: format_dkk(0),
+        total_credit: format_dkk(0),
     }
 }
 
-async fn load_balances(path: &std::path::Path) -> Result<Vec<BalanceRow>, String> {
+/// Balance rows plus råbalance totals (double-entry invariant: debet == kredit).
+async fn load_balances(path: &std::path::Path) -> Result<(Vec<BalanceRow>, i64, i64), String> {
     let company = klarbog_core::open_existing(path)
         .await
         .map_err(|e| e.to_string())?;
@@ -87,7 +92,9 @@ async fn load_balances(path: &std::path::Path) -> Result<Vec<BalanceRow>, String
         .account_balances()
         .await
         .map_err(|e| e.to_string())?;
-    Ok(balances
+    let total_debit: i64 = balances.iter().map(|b| b.debit_minor).sum();
+    let total_credit: i64 = balances.iter().map(|b| b.credit_minor).sum();
+    let rows = balances
         .into_iter()
         .map(|b| BalanceRow {
             account: b.account.clone(),
@@ -95,7 +102,8 @@ async fn load_balances(path: &std::path::Path) -> Result<Vec<BalanceRow>, String
             credit: format_dkk(b.credit_minor),
             net: format_dkk(b.net_minor()),
         })
-        .collect())
+        .collect();
+    Ok((rows, total_debit, total_credit))
 }
 
 pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Response {
@@ -122,9 +130,11 @@ pub async fn chart_get(State(state): State<AppState>, headers: HeaderMap) -> Res
         })
         .collect();
     let page = match load_balances(&path).await {
-        Ok(balances) => {
+        Ok((balances, total_debit, total_credit)) => {
             let mut p = chart_page(&state, company, String::new(), accounts);
             p.balances = balances;
+            p.total_debit = format_dkk(total_debit);
+            p.total_credit = format_dkk(total_credit);
             p
         }
         Err(e) => chart_page(&state, company, e, accounts),
