@@ -8,6 +8,36 @@ use axum::response::Response;
 use super::super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
 use super::form::JournalFields;
 use crate::AppState;
+use klarbog_plugin_rules_dk::chart_accounts;
+
+/// One `<option>` in an account dropdown.
+pub(super) struct AccountOption {
+    pub value: String,
+    pub text: String,
+    pub selected: bool,
+}
+
+/// Chart dropdown options with `current` preselected. A value outside the
+/// chart (legacy data) is appended as its own option so re-rendering never
+/// silently swaps the account.
+fn account_options(current: &str) -> Vec<AccountOption> {
+    let mut options: Vec<AccountOption> = chart_accounts()
+        .iter()
+        .map(|a| AccountOption {
+            value: a.code.to_string(),
+            text: format!("{} · {}", a.code, a.label),
+            selected: a.code.to_string() == current,
+        })
+        .collect();
+    if !current.is_empty() && !options.iter().any(|o| o.selected) {
+        options.push(AccountOption {
+            value: current.to_string(),
+            text: format!("{current} (uden for kontoplan)"),
+            selected: true,
+        });
+    }
+    options
+}
 
 /// One leg per row; entry columns (incl. reversal id) only on the first leg.
 pub(super) struct PostingRow {
@@ -60,6 +90,8 @@ pub(super) struct JournalTemplate {
     pub payload_digest: String,
     pub entry_json: String,
     pub postings: Vec<PostingRow>,
+    pub account1_options: Vec<AccountOption>,
+    pub account2_options: Vec<AccountOption>,
 }
 
 pub(super) fn journal_page(
@@ -70,6 +102,8 @@ pub(super) fn journal_page(
     flash_err: String,
 ) -> JournalTemplate {
     let n = nav("journal");
+    let account1_options = account_options(&fields.account1);
+    let account2_options = account_options(&fields.account2);
     JournalTemplate {
         title: "Journal",
         nav_home: n.home,
@@ -109,6 +143,8 @@ pub(super) fn journal_page(
         payload_digest: fields.payload_digest,
         entry_json: fields.entry_json,
         postings: Vec::new(),
+        account1_options,
+        account2_options,
     }
 }
 

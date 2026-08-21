@@ -53,7 +53,11 @@
       </label>
       <div class="grid two">
         <label>Konto 1
-          <input name="account1" required value="{{ account1 }}" />
+          <select name="account1" required>
+            {% for a in account1_options %}
+            <option value="{{ a.value }}"{% if a.selected %} selected{% endif %}>{{ a.text }}</option>
+            {% endfor %}
+          </select>
         </label>
         <label>Retning 1
           <select name="direction1">
@@ -67,7 +71,11 @@
       </div>
       <div class="grid two">
         <label>Konto 2
-          <input name="account2" required value="{{ account2 }}" />
+          <select name="account2" required>
+            {% for a in account2_options %}
+            <option value="{{ a.value }}"{% if a.selected %} selected{% endif %}>{{ a.text }}</option>
+            {% endfor %}
+          </select>
         </label>
         <label>Retning 2
           <select name="direction2">

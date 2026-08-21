@@ -39,6 +39,35 @@ async fn ui_home_is_rust_ssr() {
     );
 }
 
+/// The journal form must offer the typed chart as dropdowns (ADR-019), with
+/// the expense/bank defaults preselected — no free-text account fields.
+#[tokio::test]
+async fn ui_journal_accounts_are_chart_dropdowns() {
+    let app = router(default_state());
+    let res = app
+        .oneshot(
+            Request::builder()
+                .uri("/ui/journal")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(res.into_body(), 512 * 1024)
+        .await
+        .unwrap();
+    let html = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(html.contains(r#"<select name="account1""#));
+    assert!(html.contains(r#"<select name="account2""#));
+    assert!(!html.contains(r#"<input name="account1""#));
+    assert!(html.contains("3000 · Software og SaaS"));
+    assert!(html.contains("7310 · Forudbetalt indtægt (udskudt omsætning)"));
+    // Defaults: expense 3000 debit / bank 2000 credit preselected.
+    assert!(html.contains(r#"<option value="3000" selected>"#));
+    assert!(html.contains(r#"<option value="2000" selected>"#));
+}
+
 /// The invoice commit flow carries the journal entry as JSON through the
 /// form; the confirm token is digest-bound, so the serde round-trip must
 /// preserve `payload_digest` exactly or commit would fail closed.
