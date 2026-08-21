@@ -26,8 +26,11 @@ pub struct BankActionForm {
     pub action: String,
     pub provider: String,
     pub csv: String,
+    #[serde(default)]
     pub row_date: String,
+    #[serde(default)]
     pub row_text: String,
+    #[serde(default)]
     pub row_amount: String,
     #[serde(default)]
     pub invoice_id: String,
@@ -39,6 +42,17 @@ pub struct BankActionForm {
     pub entry_json: String,
     #[serde(default)]
     pub confirm_token: String,
+    #[serde(default)]
+    pub period_from: String,
+    #[serde(default)]
+    pub period_to: String,
+}
+
+pub(super) struct ReconReportRow {
+    pub date: String,
+    pub text: String,
+    pub dkk: String,
+    pub memo: String,
 }
 
 pub(super) fn parse_provider(raw: &str) -> BankProfile {

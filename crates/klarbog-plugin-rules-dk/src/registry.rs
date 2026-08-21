@@ -104,9 +104,12 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 11, stk. 1", "§ 11, stk. 2"],
             severity: "hard_stop",
-            enforced_by: "bank-plugin: reconcile suggest/apply med confidence-tærskel (fail-closed under 5000 bps uden force)",
-            proven_by: &["klarbog-plugin-bank reconcile_tests"],
-            gaps: &["periode-rapport over matchede/umatchede importerede transaktioner"],
+            enforced_by: "bank-plugin: reconcile suggest/apply med confidence-tærskel (fail-closed under 5000 bps uden force) + periode-rapport over matchede/umatchede (UI: Bank → Afstemningsrapport)",
+            proven_by: &[
+                "klarbog-plugin-bank reconcile_tests",
+                "klarbog-plugin-bank reconcile_report::tests::splits_matched_and_unmatched_with_totals",
+            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-CREDIT-NOTE-001",
@@ -164,7 +167,6 @@ mod tests {
         for id in [
             "DK-CREDIT-NOTE-001",
             "DK-BOOKKEEPING-RETENTION-001",
-            "DK-BOOKKEEPING-RECONCILIATION-001",
             "DK-BOOKKEEPING-BANK-IMPORT-001",
         ] {
             let rule = rules.iter().find(|r| r.rule_id == id).expect(id);

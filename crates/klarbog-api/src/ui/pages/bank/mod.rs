@@ -3,6 +3,7 @@
 mod commit;
 mod form;
 mod post;
+mod report;
 mod view;
 
 pub use post::bank_post;

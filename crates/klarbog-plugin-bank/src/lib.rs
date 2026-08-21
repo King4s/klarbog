@@ -16,6 +16,7 @@ mod multi_currency_tests;
 mod oauth;
 mod reconcile;
 mod reconcile_apply;
+mod reconcile_report;
 #[cfg(test)]
 mod reconcile_tests;
 mod revolut;
@@ -55,6 +56,10 @@ pub use reconcile::{
     MatchKind, MatchSuggestion, ReconcileError, EXCEPTION_UNMATCHED_BANK, SAFE_THRESHOLD_BPS,
 };
 pub use reconcile_apply::{apply_match, ApplyMatchResult};
+pub use reconcile_report::{
+    reconciliation_report, BankPostedRef, ReconcileReportError, ReconciliationReport,
+    ReconciliationRow, RECONCILIATION_RULE_ID,
+};
 pub use stripe_reconcile::{
     apply_preview_from_stripe_consume, apply_preview_from_stripe_consume_with,
     suggest_from_stripe_consume, suggest_from_stripe_consume_with, StripeReconcileApplied,

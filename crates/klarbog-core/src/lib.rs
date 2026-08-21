@@ -16,7 +16,9 @@ use anyhow::Context;
 use klarbog_journal::{JournalEntry, PostedEntry};
 use klarbog_plugin_retention::ensure_company_extras;
 use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
-pub use klarbog_store_sqlite::{AccountBalance, PartyBalance, PostedEntryView, PostedLegView};
+pub use klarbog_store_sqlite::{
+    AccountBalance, BankMemoRef, PartyBalance, PostedEntryView, PostedLegView,
+};
 use klarbog_types::Actor;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -127,6 +129,11 @@ impl Company {
 
     pub async fn party_balances(&self) -> Result<Vec<PartyBalance>, CoreError> {
         Ok(self.store.party_balances().await?)
+    }
+
+    /// Posted entries with traceable `bank:...` memos (reconciliation report).
+    pub async fn bank_posted_refs(&self) -> Result<Vec<BankMemoRef>, CoreError> {
+        Ok(self.store.bank_posted_refs().await?)
     }
 }
 

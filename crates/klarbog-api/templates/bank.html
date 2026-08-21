@@ -85,6 +85,56 @@
   </div>
   {% endif %}
 
+  <div class="panel nested">
+    <h2>Afstemningsrapport (periode)</h2>
+    <p class="muted">Matchede/umatchede importerede transaktioner · kræver CSV fra import-preview · §11-kontrol.</p>
+    <form class="grid" method="post" action="/ui/bank">
+      <input type="hidden" name="action" value="report" />
+      <input type="hidden" name="provider" value="{{ provider }}" />
+      <input type="hidden" name="csv" value="{{ csv }}" />
+      <label>Fra (YYYY-MM-DD)
+        <input name="period_from" required value="{{ period_from }}" />
+      </label>
+      <label>Til (YYYY-MM-DD)
+        <input name="period_to" required value="{{ period_to }}" />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit" {% if !has_company %}disabled{% endif %}>Kør rapport</button>
+      </div>
+    </form>
+  </div>
+
+  {% if has_recon %}
+  <div class="panel nested">
+    <h2>Rapport {{ period_from }} – {{ period_to }}</h2>
+    <p class="muted">{{ recon_matched_count }} matchede ({{ recon_matched_total }}) · {{ recon_unmatched_count }} umatchede ({{ recon_unmatched_total }})</p>
+    <h3>Matchede</h3>
+    <table class="table">
+      <thead><tr><th>Dato</th><th>Tekst</th><th>DKK</th><th>Posteret memo</th></tr></thead>
+      <tbody>
+        {% for r in recon_matched %}
+        <tr><td>{{ r.date }}</td><td>{{ r.text }}</td><td class="money">{{ r.dkk }}</td><td>{{ r.memo }}</td></tr>
+        {% endfor %}
+        {% if recon_matched.is_empty() %}
+        <tr><td colspan="4" class="muted">Ingen matchede</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    <h3>Umatchede</h3>
+    <table class="table">
+      <thead><tr><th>Dato</th><th>Tekst</th><th>DKK</th></tr></thead>
+      <tbody>
+        {% for r in recon_unmatched %}
+        <tr><td>{{ r.date }}</td><td>{{ r.text }}</td><td class="money">{{ r.dkk }}</td></tr>
+        {% endfor %}
+        {% if recon_unmatched.is_empty() %}
+        <tr><td colspan="3" class="muted">Ingen umatchede</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
   {% if has_suggest %}
   <div class="panel nested">
     <h2>Match-forslag</h2>

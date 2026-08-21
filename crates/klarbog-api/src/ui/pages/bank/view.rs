@@ -6,7 +6,7 @@ use axum::http::HeaderMap;
 use axum::response::Response;
 
 use super::super::common::{company_from, foot, html_ok, nav};
-use super::form::{DraftRow, SuggestRow};
+use super::form::{DraftRow, ReconReportRow, SuggestRow};
 use crate::AppState;
 
 #[derive(Template)]
@@ -45,6 +45,15 @@ pub(super) struct BankTemplate {
     pub pending_entry_json: String,
     pub pending_token: String,
     pub pending_invoice_id: String,
+    pub period_from: String,
+    pub period_to: String,
+    pub has_recon: bool,
+    pub recon_matched_count: String,
+    pub recon_unmatched_count: String,
+    pub recon_matched_total: String,
+    pub recon_unmatched_total: String,
+    pub recon_matched: Vec<ReconReportRow>,
+    pub recon_unmatched: Vec<ReconReportRow>,
 }
 
 #[derive(Default)]
@@ -64,6 +73,13 @@ pub(super) struct BankView {
     pub pending_entry_json: String,
     pub pending_token: String,
     pub pending_invoice_id: String,
+    pub period_from: String,
+    pub period_to: String,
+    pub recon_matched: Vec<ReconReportRow>,
+    pub recon_unmatched: Vec<ReconReportRow>,
+    pub recon_ran: bool,
+    pub recon_matched_total: String,
+    pub recon_unmatched_total: String,
 }
 
 pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
@@ -102,6 +118,15 @@ pub(super) fn bank_page(state: &AppState, v: BankView) -> BankTemplate {
         pending_entry_json: v.pending_entry_json,
         pending_token: v.pending_token,
         pending_invoice_id: v.pending_invoice_id,
+        period_from: v.period_from,
+        period_to: v.period_to,
+        has_recon: v.recon_ran,
+        recon_matched_count: v.recon_matched.len().to_string(),
+        recon_unmatched_count: v.recon_unmatched.len().to_string(),
+        recon_matched_total: v.recon_matched_total,
+        recon_unmatched_total: v.recon_unmatched_total,
+        recon_matched: v.recon_matched,
+        recon_unmatched: v.recon_unmatched,
     }
 }
 

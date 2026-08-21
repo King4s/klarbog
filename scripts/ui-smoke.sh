@@ -156,6 +156,29 @@ getp /ui/invoices | rg -q "$INV2</td>\s*<td>paid" \
   || fail "bank commit: $INV2 not marked paid"
 echo "ok: bank payment recorded on invoice (paid)"
 
+# --- DK-BOOKKEEPING-RECONCILIATION-001: periode-rapport (matchede/umatchede) ---
+RCSV=$'Dato;Tekst;Beløb\n2026-05-20;Betaling Bankmatch;700,00\n2026-05-22;Ukendt overførsel;-123,45'
+PAGE="$(post /ui/bank --data-urlencode action=report --data-urlencode provider=generic_dk \
+  --data-urlencode "csv=$RCSV" \
+  --data-urlencode period_from=2026-05-01 --data-urlencode period_to=2026-05-31)"
+expect_ok "bank report" "$PAGE"
+rg -q "1 matchede" <<<"$PAGE" || fail "bank report: expected 1 matched"
+rg -q "1 umatchede" <<<"$PAGE" || fail "bank report: expected 1 unmatched"
+rg -q "Ukendt overførsel" <<<"$PAGE" || fail "bank report: unmatched row missing"
+rg -q "bank:Betaling Bankmatch:invoice:$INV2" <<<"$PAGE" \
+  || fail "bank report: matched memo missing"
+# Period with no rows must report empty, not error.
+PAGE="$(post /ui/bank --data-urlencode action=report --data-urlencode provider=generic_dk \
+  --data-urlencode "csv=$RCSV" \
+  --data-urlencode period_from=2026-06-01 --data-urlencode period_to=2026-06-30)"
+rg -q "0 matchede · 0 umatchede" <<<"$PAGE" || fail "bank report: expected empty period"
+# Inverted period is fail-closed.
+expect_err_contains "bank report inverted period" "period_start" \
+  "$(post /ui/bank --data-urlencode action=report --data-urlencode provider=generic_dk \
+    --data-urlencode "csv=$RCSV" \
+    --data-urlencode period_from=2026-06-01 --data-urlencode period_to=2026-05-01)"
+echo "ok: reconciliation period report (DK-BOOKKEEPING-RECONCILIATION-001)"
+
 # --- ADR-020: erhvervspart faktureres ekskl. moms (10000 net -> 12500 brutto) ---
 post /ui/parties --data-urlencode action=create \
   --data-urlencode "display_name=Smoke Erhverv" --data-urlencode kind=business >/dev/null
