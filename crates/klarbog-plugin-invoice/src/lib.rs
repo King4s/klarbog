@@ -1,16 +1,27 @@
 //! Invoice plugin — drafts in `invoices.json` + journal suggestions with party_id.
 //! No journal-write capability (ADR-004).
 
+mod credit;
 mod draft;
 mod lifecycle;
+mod sequences;
 mod status;
 mod store;
+#[cfg(test)]
+mod test_fixtures;
 
+pub use credit::credit_journal_suggestion;
 pub use draft::{
-    credit_journal_suggestion, journal_suggestion, payment_journal_suggestion,
-    payment_journal_suggestion_amount, InvoiceConfig,
+    journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
+    InvoiceConfig,
 };
-pub use lifecycle::{mark_paid_preview, mark_part_paid_preview, patch_status, record_payment};
+pub use lifecycle::{
+    mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
+};
+pub use sequences::{
+    credit_note_no_from_memo, peek_credit_note_number, reserve_credit_note_number,
+    SEQUENCES_FILENAME,
+};
 pub use status::InvoiceStatus;
 pub use store::{
     create_draft, create_draft_from_new, get_invoice, list_invoices, NewLine, INVOICES_FILENAME,
@@ -93,6 +104,10 @@ pub struct Invoice {
     /// `None` = legacy invoice (pre ADR-020) → booked without VAT legs.
     #[serde(default)]
     pub vat: Option<InvoiceVat>,
+    /// Kreditnota-nummer (`CN-{regnskabsår}-{NNNN}`) sat når fakturaen
+    /// krediteres — originalens fortløbende serie.
+    #[serde(default)]
+    pub credit_note_no: Option<String>,
 }
 
 impl Invoice {
@@ -182,6 +197,10 @@ pub enum InvoiceError {
     CreditWithPayments,
     #[error("credit note reason is required")]
     MissingCreditReason,
+    #[error("sequence conflict: requested {requested} but next is {expected}")]
+    SequenceConflict { requested: u32, expected: u32 },
+    #[error("invalid credit note number: {0}")]
+    BadCreditNoteNumber(String),
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

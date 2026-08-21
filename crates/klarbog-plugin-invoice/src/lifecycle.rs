@@ -40,6 +40,32 @@ pub fn patch_status(
     Ok(updated)
 }
 
+/// Sæt kreditnota-nummer og status void efter bogført kreditnota.
+/// Fail-closed: kun sendte fakturaer uden betalinger kan krediteres.
+pub fn record_credit_note(
+    company: &Path,
+    id: &InvoiceId,
+    credit_note_no: &str,
+) -> Result<Invoice, InvoiceError> {
+    let mut file = crate::store::load(company)?;
+    let invoice = file
+        .invoices
+        .iter_mut()
+        .find(|inv| inv.id == *id)
+        .ok_or_else(|| InvoiceError::NotFound(id.to_string()))?;
+    if invoice.status != InvoiceStatus::Sent || !invoice.payments.is_empty() {
+        return Err(InvoiceError::InvalidTransition {
+            from: invoice.status,
+            to: InvoiceStatus::Void,
+        });
+    }
+    invoice.credit_note_no = Some(credit_note_no.to_string());
+    invoice.status = InvoiceStatus::Void;
+    let updated = invoice.clone();
+    crate::store::save(company, &file)?;
+    Ok(updated)
+}
+
 fn push_payment(invoice: &mut Invoice, amount_minor: i64) -> Result<(), InvoiceError> {
     invoice.validate_lines()?;
     let currency = invoice.lines[0].currency.clone();

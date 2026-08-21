@@ -74,6 +74,8 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         InvoiceError::NoLines
         | InvoiceError::EmptyDescription
         | InvoiceError::MissingCreditReason
+        | InvoiceError::SequenceConflict { .. }
+        | InvoiceError::BadCreditNoteNumber(_)
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

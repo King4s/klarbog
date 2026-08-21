@@ -204,13 +204,25 @@ PAGE="$(post /ui/invoices --data-urlencode action=credit_preview \
   --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=smoke fejlpris")"
 expect_ok "credit note preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
-rg -q "invoice:$INV3:credit" <<<"$EJSON" || fail "credit note: memo missing in entry_json"
+# Sequential CN number per fiscal year is baked into the digest-bound memo.
+CNYEAR="$(date -u +%Y)"
+rg -q "invoice:$INV3:credit:CN-$CNYEAR-0001" <<<"$EJSON" \
+  || fail "credit note: CN number missing in entry_json memo"
 rg -q '1200' <<<"$EJSON" || fail "credit note: no salgsmoms leg in entry_json"
-expect_ok "credit note commit" "$(post /ui/invoices --data-urlencode action=commit_credit \
+PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
   --data-urlencode "invoice_id=$INV3" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
-getp /ui/invoices | rg -q 'void' || fail "credit note: invoice not voided"
-echo "ok: credit note booked and invoice voided"
+expect_ok "credit note commit" "$PAGE"
+rg -q "Kreditnota CN-$CNYEAR-0001 bogført" <<<"$PAGE" \
+  || fail "credit note: CN number missing in commit flash"
+getp /ui/invoices | rg -q "void \(CN-$CNYEAR-0001\)" \
+  || fail "credit note: invoice not voided with CN number"
+# Replaying the same digest-bound entry must fail on the consumed CN number.
+expect_err_contains "credit note replay fail-closed" "kan ikke krediteres" \
+  "$(post /ui/invoices --data-urlencode action=commit_credit \
+    --data-urlencode "invoice_id=$INV3" \
+    --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+echo "ok: credit note CN-$CNYEAR-0001 booked and invoice voided"
 
 # --- bilag: upload -> exception close -> gdpr export -> remove ---
 echo smoke > "$WORK/kvit.txt"

@@ -79,6 +79,7 @@ pub fn create_draft(
         status: InvoiceStatus::Draft,
         payments: Vec::new(),
         vat: None,
+        credit_note_no: None,
     };
     invoice.validate_lines()?;
     invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);

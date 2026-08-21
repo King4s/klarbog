@@ -111,7 +111,10 @@ pub(super) async fn load_page(
             let gross = inv.gross_minor().ok()?;
             Some(InvoiceRow {
                 id: inv.id.to_string(),
-                status: status_label(inv.status).into(),
+                status: match &inv.credit_note_no {
+                    Some(cn) => format!("{} ({cn})", status_label(inv.status)),
+                    None => status_label(inv.status).into(),
+                },
                 total: format_dkk(total),
                 moms: inv
                     .vat

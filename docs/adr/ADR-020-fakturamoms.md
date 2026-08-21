@@ -48,11 +48,21 @@ Beløbskonventionen afhænger af modparten (dansk praksis):
 
 Fuld kreditnota på en **sendt, ubetalt** faktura er implementeret som
 to-faset flow: preview eksakt-negerer send-bogføringen (samme konti inkl.
-momsben, flippede retninger, memo `invoice:{id}:credit · {reason}`);
+momsben, flippede retninger, memo `invoice:{id}:credit:{CN-nr} · {reason}`);
 commit bogfører og sætter status til void. Begrundelse er påkrævet som i
 originalen (DK-CREDIT-NOTE-001). Fail-closed: kladder, betalte og
 delbetalte fakturaer afvises (`CreditWithPayments` / ugyldig transition),
 og betingelsen re-tjekkes ved commit.
+
+**CN-nummerserie** (porteret fra originalens `sequences.ts` +
+`credit-notes.ts`): fortløbende `CN-{regnskabsår}-{NNNN}` med floor fra
+allerede udstedte numre. Preview *kigger* på næste nummer uden at skrive
+og bager det ind i det digest-bundne memo; commit *reserverer* præcis det
+nummer — fail-closed hvis en anden kreditnota kom først
+(`SequenceConflict`, originalens reserveSequenceValue-semantik). Nummeret
+persisteres på fakturaen (`credit_note_no`) og vises i fakturalisten.
+Regnskabsår = kalenderår (originalens default-strategi); konfigurerbart
+regnskabsår er ikke porteret.
 
 ## Forhold til originalprojektet (ejerordre 2026-08-21: originalen er facit)
 
@@ -66,10 +76,10 @@ opfinde egen semantik. Kendte afvigelser/huller pr. denne ADR:
   internt fryses net/vat/gross på fakturaen, hvilket matcher originalens
   totals-model.
 - **Kreditnota-huller** (originalen har dem, porten endnu ikke):
-  fortløbende CN-nummerserie pr. regnskabsår (`CN-{år}-{nnnn}`,
-  `sequences`), delkreditering med kumulativt loft mod original-brutto,
-  negation afledt af den oprindelige posterings linjer, kreditnota som
-  dokument (sha256, retention, audit).
+  delkreditering med kumulativt loft mod original-brutto, negation afledt
+  af den oprindelige posterings linjer, kreditnota som dokument (sha256,
+  retention, audit), manuelt valgt CN-nummer, konfigurerbart regnskabsår.
+  CN-nummerserien pr. regnskabsår er porteret (se Kreditnotaer ovenfor).
 - **Statusmodel**: originalen afleder status af beløb (open/paid/credited/
   refunded/overpaid/written_off); porten har en eksplicit statusmaskine
   (draft/sent/part_paid/paid/void). Portens `record_payment` fail-closer

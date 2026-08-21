@@ -1,13 +1,17 @@
-//! Two-phase credit note (ADR-020): preview exact-negates the send booking
-//! (incl. VAT leg); commit posts it and first then flips status to void.
+//! Two-phase credit note (ADR-020): preview peeks the next CN number and
+//! exact-negates the send booking (incl. VAT leg); commit reserves exactly
+//! that number (fail-closed on race), posts, and records the CN on the
+//! invoice (status void).
 
 use std::path::Path;
 
 use axum::response::Response;
+use chrono::Utc;
 use klarbog_core::journal_commit;
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    credit_journal_suggestion, get_invoice, patch_status, Invoice, InvoiceConfig, InvoiceId,
+    credit_journal_suggestion, credit_note_no_from_memo, get_invoice, peek_credit_note_number,
+    record_credit_note, reserve_credit_note_number, Invoice, InvoiceConfig, InvoiceId,
     InvoiceStatus,
 };
 use klarbog_types::Actor;
@@ -53,7 +57,11 @@ pub(super) async fn credit_preview(
         Ok(inv) => inv,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
-    match credit_journal_suggestion(&invoice, &reason, actor, &InvoiceConfig::default()) {
+    let cn_no = match peek_credit_note_number(path, Utc::now()) {
+        Ok(no) => no,
+        Err(e) => return html_ok(load_page(state, company, String::new(), e.to_string()).await),
+    };
+    match credit_journal_suggestion(&invoice, &cn_no, &reason, actor, &InvoiceConfig::default()) {
         Ok(entry) => {
             preview_with_pending(
                 state,
@@ -97,6 +105,32 @@ pub(super) async fn commit_credit(
             );
         }
     };
+    // CN-nummeret kommer fra det digest-bundne memo (sat ved preview) og
+    // reserveres FØR bogføring — fail-closed hvis en anden kreditnota tog
+    // nummeret imens. Et brændt nummer ved efterfølgende commit-fejl er
+    // acceptabelt; et posteret memo med forkert nummer er det ikke.
+    let Some(cn_no) = credit_note_no_from_memo(&entry.memo) else {
+        return html_ok(
+            load_page(
+                state,
+                company,
+                String::new(),
+                "Kreditnota-memo mangler CN-nummer — kør preview igen".into(),
+            )
+            .await,
+        );
+    };
+    if let Err(e) = reserve_credit_note_number(path, entry.as_of, &cn_no) {
+        return html_ok(
+            load_page(
+                state,
+                company,
+                String::new(),
+                format!("CN-nummer kunne ikke reserveres ({cn_no}): {e} — kør preview igen"),
+            )
+            .await,
+        );
+    }
     match journal_commit(
         &state.allowlist_root,
         Path::new(company),
@@ -108,13 +142,13 @@ pub(super) async fn commit_credit(
     )
     .await
     {
-        Ok(r) => match patch_status(path, &id, InvoiceStatus::Void) {
+        Ok(r) => match record_credit_note(path, &id, &cn_no) {
             Ok(_) => html_ok(
                 load_page(
                     state,
                     company,
                     format!(
-                        "Kreditnota bogført · posted {} · {id} sat til void",
+                        "Kreditnota {cn_no} bogført · posted {} · {id} sat til void",
                         r.posted.id
                     ),
                     String::new(),
