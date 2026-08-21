@@ -42,6 +42,9 @@ enum Cmd {
     Health,
     /// End-to-end agent smoke (temp company, CRM, invoice, bank fixtures)
     Demo,
+    /// Regelregister: håndhævede DK-regler med kilde, §, bevis-tests og
+    /// åbne huller (repo-statisk; spejler originalens `reg`)
+    Reg,
     /// Write backup manifest under company `backups/<ts>/manifest.json`
     Backup {
         #[arg(long)]
@@ -93,6 +96,36 @@ async fn main() -> anyhow::Result<()> {
                 serde_json::to_string(&Envelope::ok(serde_json::json!({
                     "service": "klarbog-cli",
                     "version": env!("CARGO_PKG_VERSION")
+                })))?
+            );
+        }
+        Cmd::Reg => {
+            let rules: Vec<_> = klarbog_plugin_rules_dk::registered_rules()
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "rule_id": r.rule_id,
+                        "name": r.name,
+                        "source_id": r.source_id,
+                        "provisions": r.provisions,
+                        "severity": r.severity,
+                        "enforced_by": r.enforced_by,
+                        "proven_by": r.proven_by,
+                        "gaps": r.gaps,
+                    })
+                })
+                .collect();
+            let with_gaps = rules
+                .iter()
+                .filter(|r| !r["gaps"].as_array().unwrap().is_empty())
+                .count();
+            println!(
+                "{}",
+                serde_json::to_string(&Envelope::ok(serde_json::json!({
+                    "basis": klarbog_plugin_rules_dk::REGISTRY_BASIS,
+                    "enforced_rules": rules.len(),
+                    "rules_with_gaps": with_gaps,
+                    "rules": rules,
                 })))?
             );
         }

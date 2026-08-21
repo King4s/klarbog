@@ -2,6 +2,7 @@
 
 mod chart;
 mod moms_post_suggestion;
+mod registry;
 mod vat_split;
 
 pub use chart::{
@@ -13,6 +14,7 @@ pub use moms_post_suggestion::{
     memo_requests_vat25, moms_post_suggestion, MomsPostSuggestion, MomsPostSuggestionError,
     MomsSuggestedLeg,
 };
+pub use registry::{registered_rules, RegisteredRule, REGISTRY_BASIS};
 pub use vat_split::{
     split_vat25_inclusive, split_vat_from_net, split_vat_inclusive, VatSplitError,
     VatSplitSuggestion, BPS_PER_UNIT, DK_VAT25_INCLUSIVE_BPS, DK_VAT_STANDARD_BPS,
