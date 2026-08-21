@@ -48,6 +48,37 @@
     </tfoot>
     {% endif %}
   </table>
+
+  <h2 class="subhead">Momsafregning</h2>
+  <ul class="plain">
+    <li>Salgsmoms (1200): <span class="money">{{ moms_salgs }}</span></li>
+    <li>Købsmoms (4000): <span class="money">{{ moms_koebs }}</span></li>
+    <li>{{ moms_net_label }} (4500 ved bogføring): <span class="money">{{ moms_net }}</span></li>
+  </ul>
+  {% if can_settle %}
+  <form method="post" action="/ui/chart" class="actions">
+    <input type="hidden" name="action" value="settle_preview" />
+    <button class="primary" type="submit">Bogfør momsafregning (preview)</button>
+  </form>
+  {% else %}
+  <p class="muted">Ingen moms at afregne.</p>
+  {% endif %}
+
+  {% if has_preview %}
+  <div class="panel nested">
+    <h2>Bekræft momsafregning</h2>
+    <p class="muted">confirm_token</p>
+    <p class="token money">{{ confirm_token }}</p>
+    <p class="muted">Udløber (unix ms): {{ expires_unix_ms }}</p>
+    <p class="muted">Digest: <span class="money">{{ payload_digest }}</span></p>
+    <form method="post" action="/ui/chart" class="actions">
+      <input type="hidden" name="action" value="settle_commit" />
+      <input type="hidden" name="confirm_token" value="{{ confirm_token }}" />
+      <input type="hidden" name="entry_json" value="{{ entry_json }}" />
+      <button class="primary" type="submit">Commit momsafregning</button>
+    </form>
+  </div>
+  {% endif %}
   {% else %}
   <p class="muted">Sæt firmasti under Indstillinger.</p>
   {% endif %}

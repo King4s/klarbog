@@ -43,7 +43,7 @@ pub fn mount_ui(router: Router<AppState>) -> Router<AppState> {
             "/ui/journal",
             get(pages::journal_get).post(pages::journal_post),
         )
-        .route("/ui/chart", get(pages::chart_get))
+        .route("/ui/chart", get(pages::chart_get).post(pages::chart_post))
         .nest_service("/ui/assets", static_css)
 }
 

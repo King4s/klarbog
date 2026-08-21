@@ -163,6 +163,17 @@ rg -q "225.00 DKK" <<<"$CHART" || fail "chart: expected 225.00 DKK balance on 30
 rg -q "4000" <<<"$CHART" || fail "chart: expected Købsmoms 4000 row"
 echo "ok: chart balances listed (incl. moms split)"
 
+# --- momsafregning: settle Købsmoms into 4500 via two-phase ---
+PAGE2="$(post /ui/chart --data-urlencode action=settle_preview)"
+expect_ok "moms settle preview" "$PAGE2"
+TOKEN="$(input_value "$PAGE2" confirm_token)"; EJSON="$(input_value "$PAGE2" entry_json)"
+[[ -n "$TOKEN" && -n "$EJSON" ]] || fail "moms settle: missing token/entry_json"
+rg -q '4500' <<<"$EJSON" || fail "moms settle: no 4500 leg in entry_json"
+expect_ok "moms settle commit" "$(post /ui/chart --data-urlencode action=settle_commit \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+getp /ui/chart | rg -q "Ingen moms at afregne" || fail "moms settle: position not zeroed"
+echo "ok: moms position zeroed after settlement"
+
 # --- reversal: reverse the newest posting via its id, commit, net returns to 0 ---
 EID="$(input_value "$PAGE" entry_id)"
 [[ -n "$EID" ]] || fail "journal: no entry_id for reversal"
