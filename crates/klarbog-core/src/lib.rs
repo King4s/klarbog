@@ -120,6 +120,10 @@ impl Company {
     pub async fn recent_entries(&self, limit: i64) -> Result<Vec<PostedEntryView>, CoreError> {
         Ok(self.store.recent_entries(limit).await?)
     }
+
+    pub async fn posted_entry(&self, id: &str) -> Result<Option<PostedEntry>, CoreError> {
+        Ok(self.store.get_posted_entry(id).await?)
+    }
 }
 
 #[cfg(test)]

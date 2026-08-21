@@ -139,13 +139,25 @@ expect_ok "bilag remove" "$(post /ui/bilag --data-urlencode action=remove_docume
   --data-urlencode "document_id=$DOC" --data-urlencode delete_object=1)"
 
 # --- ledger views reflect the three commits above ---
-getp /ui/journal | rg -q "Seneste posteringer" || fail "journal: postings section missing"
-getp /ui/journal | rg -q "udgift #vat25 #receipt" || fail "journal: committed memo not listed"
+PAGE="$(getp /ui/journal)"
+rg -q "Seneste posteringer" <<<"$PAGE" || fail "journal: postings section missing"
+rg -q "udgift #vat25 #receipt" <<<"$PAGE" || fail "journal: committed memo not listed"
 echo "ok: journal postings listed"
-PAGE="$(getp /ui/chart)"
-rg -q "Saldi" <<<"$PAGE" || fail "chart: balances section missing"
+CHART="$(getp /ui/chart)"
+rg -q "Saldi" <<<"$CHART" || fail "chart: balances section missing"
 # 6000 was debited 125.00 by the journal commit.
-rg -q "125.00 DKK" <<<"$PAGE" || fail "chart: expected 125.00 DKK balance on 6000"
+rg -q "125.00 DKK" <<<"$CHART" || fail "chart: expected 125.00 DKK balance on 6000"
 echo "ok: chart balances listed"
+
+# --- reversal: reverse the newest posting via its id, commit, net returns to 0 ---
+EID="$(input_value "$PAGE" entry_id)"
+[[ -n "$EID" ]] || fail "journal: no entry_id for reversal"
+PAGE="$(post /ui/journal --data-urlencode action=reverse_preview --data-urlencode "entry_id=$EID")"
+expect_ok "reversal preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+expect_ok "reversal commit" "$(post /ui/journal --data-urlencode action=commit \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+getp /ui/journal | rg -q "tilbageførsel af $EID" || fail "journal: reversal not listed"
+echo "ok: reversal listed in postings"
 
 echo "UI_SMOKE_OK"

@@ -9,8 +9,9 @@ use super::super::common::{authorize_company, company_from, foot, format_dkk, ht
 use super::form::JournalFields;
 use crate::AppState;
 
-/// One leg per row; entry columns only on the first leg.
+/// One leg per row; entry columns (incl. reversal id) only on the first leg.
 pub(super) struct PostingRow {
+    pub id: String,
     pub date: String,
     pub memo: String,
     pub account: String,
@@ -129,6 +130,7 @@ async fn load_postings(path: &std::path::Path, limit: i64) -> Result<Vec<Posting
                 _ => (String::new(), format_dkk(leg.amount_minor)),
             };
             rows.push(PostingRow {
+                id: if i == 0 { e.id.clone() } else { String::new() },
                 date: if i == 0 { date.clone() } else { String::new() },
                 memo: if i == 0 {
                     e.memo.clone()

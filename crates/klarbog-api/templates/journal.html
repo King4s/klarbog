@@ -115,7 +115,7 @@
   {% if !postings.is_empty() %}
   <h2 class="subhead">Seneste posteringer</h2>
   <table class="table">
-    <thead><tr><th>Dato</th><th>Memo</th><th>Konto</th><th>Debet</th><th>Kredit</th></tr></thead>
+    <thead><tr><th>Dato</th><th>Memo</th><th>Konto</th><th>Debet</th><th>Kredit</th><th></th></tr></thead>
     <tbody>
       {% for p in postings %}
       <tr>
@@ -124,6 +124,15 @@
         <td class="money">{{ p.account }}</td>
         <td class="money">{{ p.debit }}</td>
         <td class="money">{{ p.credit }}</td>
+        <td>
+          {% if !p.id.is_empty() %}
+          <form method="post" action="/ui/journal" class="inline">
+            <input type="hidden" name="action" value="reverse_preview" />
+            <input type="hidden" name="entry_id" value="{{ p.id }}" />
+            <button class="ghost" type="submit">Tilbagefør</button>
+          </form>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

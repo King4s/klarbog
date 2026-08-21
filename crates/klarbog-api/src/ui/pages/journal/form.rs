@@ -61,6 +61,7 @@ impl Default for JournalFields {
 }
 
 #[derive(Deserialize, Default)]
+#[serde(default)]
 pub struct JournalActionForm {
     pub action: String,
     pub memo: String,
@@ -73,8 +74,8 @@ pub struct JournalActionForm {
     pub moms_gross: String,
     pub moms_memo: String,
     pub confirm_token: String,
-    #[serde(default)]
     pub entry_json: String,
+    pub entry_id: String,
 }
 
 fn parse_direction(s: &str) -> Direction {

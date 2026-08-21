@@ -12,6 +12,78 @@ use super::form::{build_entry, fields_from_form, JournalActionForm, JournalField
 use super::view::journal_page;
 use crate::AppState;
 
+/// Load a posted entry by id from the authorized company (fail-closed on miss).
+async fn load_posted(
+    state: &AppState,
+    company: &str,
+    id: &str,
+) -> Result<klarbog_journal::PostedEntry, String> {
+    use klarbog_core::assert_company_path;
+    let path = assert_company_path(&state.allowlist_root, std::path::Path::new(company))
+        .map_err(|e| e.to_string())?;
+    let c = klarbog_core::open_existing(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    c.posted_entry(id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Postering {id} findes ikke."))
+}
+
+/// Journal-preview `entry` and render the confirm panel; entry_json carries the
+/// exact previewed entry (digest-bound token includes as_of — never rebuild).
+async fn render_preview(
+    state: &AppState,
+    company: String,
+    actor: &Actor,
+    entry: klarbog_journal::JournalEntry,
+    mut fields: JournalFields,
+) -> Response {
+    match journal_preview(
+        &state.allowlist_root,
+        std::path::Path::new(&company),
+        &entry,
+        actor,
+        &state.confirm,
+        &state.registry,
+    )
+    .await
+    {
+        Ok(p) => {
+            fields.has_preview = true;
+            fields.confirm_token = p.confirm_token.token.clone();
+            fields.expires_unix_ms = p.confirm_token.expires_unix_ms.to_string();
+            fields.payload_digest = p.payload_digest;
+            fields.entry_json = match serde_json::to_string(&entry) {
+                Ok(j) => j,
+                Err(e) => {
+                    return html_ok(journal_page(
+                        state,
+                        company,
+                        JournalFields::default(),
+                        String::new(),
+                        e.to_string(),
+                    ));
+                }
+            };
+            html_ok(journal_page(
+                state,
+                company,
+                fields,
+                format!("Preview ok · token {}", p.confirm_token.token),
+                String::new(),
+            ))
+        }
+        Err(e) => html_ok(journal_page(
+            state,
+            company,
+            fields,
+            String::new(),
+            e.to_string(),
+        )),
+    }
+}
+
 pub async fn journal_post(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -101,53 +173,35 @@ pub async fn journal_post(
             ))
         }
         "preview" => match build_entry(&form) {
-            Ok(entry) => match journal_preview(
-                &state.allowlist_root,
-                std::path::Path::new(&company),
-                &entry,
-                &actor,
-                &state.confirm,
-                &state.registry,
-            )
-            .await
-            {
-                Ok(p) => {
-                    fields.has_preview = true;
-                    fields.confirm_token = p.confirm_token.token.clone();
-                    fields.expires_unix_ms = p.confirm_token.expires_unix_ms.to_string();
-                    fields.payload_digest = p.payload_digest;
-                    // Carry the exact previewed entry to commit: rebuilding from
-                    // form fields would stamp a new as_of and break the digest.
-                    fields.entry_json = match serde_json::to_string(&entry) {
-                        Ok(j) => j,
-                        Err(e) => {
-                            return html_ok(journal_page(
-                                &state,
-                                company,
-                                fields_from_form(&form),
-                                String::new(),
-                                e.to_string(),
-                            ));
-                        }
-                    };
-                    html_ok(journal_page(
-                        &state,
-                        company,
-                        fields,
-                        format!("Preview ok · token {}", p.confirm_token.token),
-                        String::new(),
-                    ))
-                }
-                Err(e) => html_ok(journal_page(
+            Ok(entry) => render_preview(&state, company, &actor, entry, fields).await,
+            Err(e) => html_ok(journal_page(&state, company, fields, String::new(), e)),
+        },
+        "reverse_preview" => {
+            let id = form.entry_id.trim();
+            if id.is_empty() {
+                return html_ok(journal_page(
                     &state,
                     company,
                     fields,
                     String::new(),
-                    e.to_string(),
-                )),
-            },
-            Err(e) => html_ok(journal_page(&state, company, fields, String::new(), e)),
-        },
+                    "entry_id kræves til tilbageførsel.".into(),
+                ));
+            }
+            let original = match load_posted(&state, &company, id).await {
+                Ok(p) => p,
+                Err(e) => return html_ok(journal_page(&state, company, fields, String::new(), e)),
+            };
+            let entry = original.entry.reversal(
+                chrono::Utc::now(),
+                actor.clone(),
+                format!("tilbageførsel af {id} · {}", original.entry.memo),
+            );
+            fields = JournalFields {
+                memo: entry.memo.clone(),
+                ..Default::default()
+            };
+            render_preview(&state, company, &actor, entry, fields).await
+        }
         "commit" => {
             let token = form.confirm_token.trim();
             if token.is_empty() {

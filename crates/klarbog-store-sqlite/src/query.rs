@@ -1,5 +1,7 @@
 //! Read-side queries: account balances and recent posted entries (SSR ledger).
 
+use anyhow::Context;
+use klarbog_journal::PostedEntry;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
@@ -37,6 +39,23 @@ pub struct PostedEntryView {
 }
 
 impl CompanyStore {
+    /// Full posted entry (from the immutable payload) by id, if present.
+    pub async fn get_posted_entry(&self, id: &str) -> Result<Option<PostedEntry>, StoreError> {
+        let row = sqlx::query("SELECT payload_json FROM journal_entries WHERE id = ?1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+        match row {
+            None => Ok(None),
+            Some(r) => {
+                let payload: String = r.get("payload_json");
+                Ok(Some(
+                    serde_json::from_str(&payload).context("parse posted entry payload")?,
+                ))
+            }
+        }
+    }
+
     pub async fn account_balances(&self) -> Result<Vec<AccountBalance>, StoreError> {
         let rows = sqlx::query(
             r#"
