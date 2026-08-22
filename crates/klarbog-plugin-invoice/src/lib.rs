@@ -10,7 +10,7 @@ mod store;
 #[cfg(test)]
 mod test_fixtures;
 
-pub use credit::credit_journal_suggestion;
+pub use credit::{credit_amounts_from_entry, credit_journal_suggestion};
 pub use draft::{
     journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
     InvoiceConfig,
@@ -91,6 +91,15 @@ pub struct InvoiceVat {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvoiceCredit {
+    pub unix_ms: i64,
+    pub credit_note_no: String,
+    pub gross_minor: i64,
+    pub net_minor: i64,
+    pub vat_minor: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: InvoiceId,
     pub party_id: PartyId,
@@ -101,11 +110,14 @@ pub struct Invoice {
     /// Cumulative payment ledger; remaining = gross − sum(amount_minor).
     #[serde(default)]
     pub payments: Vec<InvoicePayment>,
+    /// Cumulative credit-note ledger (DK-CREDIT-NOTE-001). Sum of
+    /// `gross_minor` must never exceed original gross.
+    #[serde(default)]
+    pub credits: Vec<InvoiceCredit>,
     /// `None` = legacy invoice (pre ADR-020) → booked without VAT legs.
     #[serde(default)]
     pub vat: Option<InvoiceVat>,
-    /// Kreditnota-nummer (`CN-{regnskabsår}-{NNNN}`) sat når fakturaen
-    /// krediteres — originalens fortløbende serie.
+    /// Seneste kreditnota-nummer — historik ligger i `credits`.
     #[serde(default)]
     pub credit_note_no: Option<String>,
 }
@@ -163,6 +175,34 @@ impl Invoice {
         let paid = self.paid_minor()?;
         gross.checked_sub(paid).ok_or(InvoiceError::Overflow)
     }
+
+    pub fn credited_gross_minor(&self) -> Result<i64, InvoiceError> {
+        self.credits.iter().try_fold(0i64, |acc, c| {
+            if c.gross_minor <= 0 {
+                return Err(InvoiceError::NonPositiveAmount);
+            }
+            acc.checked_add(c.gross_minor).ok_or(InvoiceError::Overflow)
+        })
+    }
+
+    pub fn credited_vat_minor(&self) -> Result<i64, InvoiceError> {
+        self.credits.iter().try_fold(0i64, |acc, c| {
+            acc.checked_add(c.vat_minor).ok_or(InvoiceError::Overflow)
+        })
+    }
+
+    pub fn credited_net_minor(&self) -> Result<i64, InvoiceError> {
+        self.credits.iter().try_fold(0i64, |acc, c| {
+            acc.checked_add(c.net_minor).ok_or(InvoiceError::Overflow)
+        })
+    }
+
+    /// Gross still available to credit (original − credited so far).
+    pub fn creditable_remaining_minor(&self) -> Result<i64, InvoiceError> {
+        let gross = self.gross_minor()?;
+        let credited = self.credited_gross_minor()?;
+        gross.checked_sub(credited).ok_or(InvoiceError::Overflow)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -197,6 +237,15 @@ pub enum InvoiceError {
     CreditWithPayments,
     #[error("credit note reason is required")]
     MissingCreditReason,
+    #[error("nothing left to credit")]
+    NothingCreditable,
+    #[error("credit amount {amount_minor} must be positive")]
+    CreditAmountInvalid { amount_minor: i64 },
+    #[error("credit amount {amount_minor} exceeds remaining creditable {remaining_minor}")]
+    CreditExceedsRemaining {
+        amount_minor: i64,
+        remaining_minor: i64,
+    },
     #[error("sequence conflict: requested {requested} but next is {expected}")]
     SequenceConflict { requested: u32, expected: u32 },
     #[error("invalid credit note number: {0}")]

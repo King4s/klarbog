@@ -78,6 +78,7 @@ pub fn create_draft(
         lines,
         status: InvoiceStatus::Draft,
         payments: Vec::new(),
+        credits: Vec::new(),
         vat: None,
         credit_note_no: None,
     };

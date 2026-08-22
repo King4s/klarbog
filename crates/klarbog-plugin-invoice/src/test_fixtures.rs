@@ -15,6 +15,7 @@ pub(crate) fn sample_invoice(kind: InvoiceKind) -> Invoice {
         }],
         status: InvoiceStatus::Draft,
         payments: Vec::new(),
+        credits: Vec::new(),
         vat: None,
         credit_note_no: None,
     }

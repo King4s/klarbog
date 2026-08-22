@@ -124,7 +124,9 @@ pub(super) async fn load_page(
                 party_id: inv.party_id.to_string(),
                 can_send: inv.status == InvoiceStatus::Draft,
                 can_collect: inv.status.allows_mark_paid(),
-                can_credit: inv.status == InvoiceStatus::Sent && inv.payments.is_empty(),
+                can_credit: inv.status.allows_credit()
+                    && inv.payments.is_empty()
+                    && inv.creditable_remaining_minor().unwrap_or(0) > 0,
             })
         })
         .collect();

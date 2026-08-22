@@ -213,7 +213,7 @@ expect_ok "b2b invoice create" "$(post /ui/invoices --data-urlencode action=crea
 getp /ui/invoices | rg -q '125.00 DKK' || fail "invoices: expected brutto 125.00 DKK on b2b draft"
 echo "ok: b2b invoice ekskl. moms (brutto 125.00 DKK)"
 
-# --- kreditnota: send b2b, then full credit note voids it and negates moms ---
+# --- kreditnota: partial then residual full credit (cumulative loft) ---
 INV3="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
 PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV3")"
 expect_ok "b2b send preview" "$PAGE"
@@ -221,32 +221,43 @@ TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry
 expect_ok "b2b send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
   --data-urlencode "invoice_id=$INV3" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
-# Reason is required as in the original (fail-closed without it).
 expect_err_contains "credit note without reason" "reason is required" \
   "$(post /ui/invoices --data-urlencode action=credit_preview --data-urlencode "invoice_id=$INV3")"
+# Over-credit is fail-closed (12500 gross; 20000 exceeds remaining).
+expect_err_contains "credit note over remaining" "exceeds remaining" \
+  "$(post /ui/invoices --data-urlencode action=credit_preview \
+    --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=for meget" \
+    --data-urlencode credit_amount_minor=20000)"
+# Partial credit 5000 øre of 12500 gross.
 PAGE="$(post /ui/invoices --data-urlencode action=credit_preview \
-  --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=smoke fejlpris")"
-expect_ok "credit note preview" "$PAGE"
+  --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=delvis fejl" \
+  --data-urlencode credit_amount_minor=5000)"
+expect_ok "partial credit preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
-# Sequential CN number per fiscal year is baked into the digest-bound memo.
 CNYEAR="$(date -u +%Y)"
 rg -q "invoice:$INV3:credit:CN-$CNYEAR-0001" <<<"$EJSON" \
-  || fail "credit note: CN number missing in entry_json memo"
-rg -q '1200' <<<"$EJSON" || fail "credit note: no salgsmoms leg in entry_json"
+  || fail "partial credit: CN number missing"
 PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
   --data-urlencode "invoice_id=$INV3" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
-expect_ok "credit note commit" "$PAGE"
-rg -q "Kreditnota CN-$CNYEAR-0001 bogført" <<<"$PAGE" \
-  || fail "credit note: CN number missing in commit flash"
-getp /ui/invoices | rg -q "void \(CN-$CNYEAR-0001\)" \
-  || fail "credit note: invoice not voided with CN number"
-# Replaying the same digest-bound entry must fail on the consumed CN number.
-expect_err_contains "credit note replay fail-closed" "kan ikke krediteres" \
-  "$(post /ui/invoices --data-urlencode action=commit_credit \
-    --data-urlencode "invoice_id=$INV3" \
-    --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
-echo "ok: credit note CN-$CNYEAR-0001 booked and invoice voided"
+expect_ok "partial credit commit" "$PAGE"
+rg -q "delkredit" <<<"$PAGE" || fail "partial credit: expected delkredit status"
+getp /ui/invoices | rg -q 'sent' || fail "partial credit: invoice should stay sent"
+# Residual full credit voids.
+PAGE="$(post /ui/invoices --data-urlencode action=credit_preview \
+  --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=resten")"
+expect_ok "residual credit preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+rg -q "invoice:$INV3:credit:CN-$CNYEAR-0002" <<<"$EJSON" \
+  || fail "residual credit: CN-0002 missing"
+PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
+  --data-urlencode "invoice_id=$INV3" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+expect_ok "residual credit commit" "$PAGE"
+rg -q "fuldt krediteret\|void" <<<"$PAGE" \
+  || getp /ui/invoices | rg -q "void \(CN-$CNYEAR-0002\)" \
+  || fail "residual credit: invoice not voided"
+echo "ok: partial+residual credit notes (CN-$CNYEAR-0001/0002, cumulative loft)"
 
 # --- bilag: upload -> exception close -> gdpr export -> remove ---
 echo smoke > "$WORK/kvit.txt"

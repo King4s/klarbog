@@ -40,12 +40,17 @@ pub fn patch_status(
     Ok(updated)
 }
 
-/// Sæt kreditnota-nummer og status void efter bogført kreditnota.
-/// Fail-closed: kun sendte fakturaer uden betalinger kan krediteres.
+/// Append a credit-note ledger row after the journal is posted. Voids the
+/// invoice only when cumulative credits reach original gross; otherwise
+/// stays sent (partial credit). Fail-closed: sent, no payments, amount
+/// within remaining.
 pub fn record_credit_note(
     company: &Path,
     id: &InvoiceId,
     credit_note_no: &str,
+    net_minor: i64,
+    vat_minor: i64,
+    gross_minor: i64,
 ) -> Result<Invoice, InvoiceError> {
     let mut file = crate::store::load(company)?;
     let invoice = file
@@ -53,14 +58,30 @@ pub fn record_credit_note(
         .iter_mut()
         .find(|inv| inv.id == *id)
         .ok_or_else(|| InvoiceError::NotFound(id.to_string()))?;
-    if invoice.status != InvoiceStatus::Sent || !invoice.payments.is_empty() {
+    if !invoice.status.allows_credit() || !invoice.payments.is_empty() {
         return Err(InvoiceError::InvalidTransition {
             from: invoice.status,
             to: InvoiceStatus::Void,
         });
     }
+    let remaining = invoice.creditable_remaining_minor()?;
+    if gross_minor <= 0 || gross_minor > remaining {
+        return Err(InvoiceError::CreditExceedsRemaining {
+            amount_minor: gross_minor,
+            remaining_minor: remaining,
+        });
+    }
+    invoice.credits.push(crate::InvoiceCredit {
+        unix_ms: Utc::now().timestamp_millis(),
+        credit_note_no: credit_note_no.to_string(),
+        gross_minor,
+        net_minor,
+        vat_minor,
+    });
     invoice.credit_note_no = Some(credit_note_no.to_string());
-    invoice.status = InvoiceStatus::Void;
+    if invoice.creditable_remaining_minor()? == 0 {
+        invoice.status = InvoiceStatus::Void;
+    }
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
     Ok(updated)

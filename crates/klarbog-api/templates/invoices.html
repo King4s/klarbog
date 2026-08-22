@@ -42,6 +42,7 @@
             <input type="hidden" name="action" value="credit_preview" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
             <input name="credit_reason" placeholder="begrundelse (påkrævet)" required style="width:11rem" />
+            <input name="credit_amount_minor" placeholder="øre (tom=fuld)" inputmode="numeric" style="width:7rem" />
             <button class="ghost" type="submit">Kreditnota (preview)</button>
           </form>
           {% endif %}

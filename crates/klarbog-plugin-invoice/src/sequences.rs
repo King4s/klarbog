@@ -84,13 +84,24 @@ fn format_cn(scope: &str, value: u32) -> String {
 /// creditNoteSequenceState: MAX over eksisterende dokumenter).
 fn credit_note_floor(invoices: &[Invoice], scope: &str) -> u32 {
     let prefix = format!("CN-{scope}-");
-    invoices
-        .iter()
-        .filter_map(|inv| inv.credit_note_no.as_deref())
-        .filter_map(|no| no.strip_prefix(&prefix))
-        .filter_map(|n| n.parse::<u32>().ok())
-        .max()
-        .unwrap_or(0)
+    let mut max = 0u32;
+    for inv in invoices {
+        if let Some(no) = inv.credit_note_no.as_deref() {
+            if let Some(n) = no.strip_prefix(&prefix).and_then(|s| s.parse().ok()) {
+                max = max.max(n);
+            }
+        }
+        for c in &inv.credits {
+            if let Some(n) = c
+                .credit_note_no
+                .strip_prefix(&prefix)
+                .and_then(|s| s.parse().ok())
+            {
+                max = max.max(n);
+            }
+        }
+    }
+    max
 }
 
 /// Preview: næste CN-nummer for datoen, uden at reservere.

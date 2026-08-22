@@ -64,6 +64,13 @@ persisteres på fakturaen (`credit_note_no`) og vises i fakturalisten.
 Regnskabsår = kalenderår (originalens default-strategi); konfigurerbart
 regnskabsår er ikke porteret.
 
+**Delkreditering** (porteret fra originalens `issueCreditNote`): valgfrit
+bruttobeløb i øre (tom = rest); kumulativt loft mod original-brutto;
+proportional momsfordeling med residual på den sidste note så summen
+lander præcist på original net/vat/gross. Delkredit lader fakturaen som
+sent; fuld kumulativ kredit sætter void. Kreditledger `credits[]` på
+fakturaen.
+
 ## Forhold til originalprojektet (ejerordre 2026-08-21: originalen er facit)
 
 Originalen (`origin/main`, TypeScript) er referencen; porten må ikke
@@ -76,10 +83,10 @@ opfinde egen semantik. Kendte afvigelser/huller pr. denne ADR:
   internt fryses net/vat/gross på fakturaen, hvilket matcher originalens
   totals-model.
 - **Kreditnota-huller** (originalen har dem, porten endnu ikke):
-  delkreditering med kumulativt loft mod original-brutto, negation afledt
-  af den oprindelige posterings linjer, kreditnota som dokument (sha256,
-  retention, audit), manuelt valgt CN-nummer, konfigurerbart regnskabsår.
-  CN-nummerserien pr. regnskabsår er porteret (se Kreditnotaer ovenfor).
+  kreditnota som dokument (sha256, retention, audit), manuelt valgt
+  CN-nummer, konfigurerbart regnskabsår. CN-nummerserie og delkreditering
+  med kumulativt loft (proportional moms, residual på sidste note) er
+  porteret.
 - **Statusmodel**: originalen afleder status af beløb (open/paid/credited/
   refunded/overpaid/written_off); porten har en eksplicit statusmaskine
   (draft/sent/part_paid/paid/void). Portens `record_payment` fail-closer

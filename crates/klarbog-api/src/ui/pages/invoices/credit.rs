@@ -1,7 +1,7 @@
-//! Two-phase credit note (ADR-020): preview peeks the next CN number and
-//! exact-negates the send booking (incl. VAT leg); commit reserves exactly
-//! that number (fail-closed on race), posts, and records the CN on the
-//! invoice (status void).
+//! Two-phase credit note (ADR-020 / DK-CREDIT-NOTE-001): preview peeks the
+//! next CN number and builds a (partial or full) credit entry; commit
+//! reserves the number, posts, and records the credit ledger row (void
+//! only when cumulative credits reach original gross).
 
 use std::path::Path;
 
@@ -10,9 +10,9 @@ use chrono::Utc;
 use klarbog_core::journal_commit;
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    credit_journal_suggestion, credit_note_no_from_memo, get_invoice, peek_credit_note_number,
-    record_credit_note, reserve_credit_note_number, Invoice, InvoiceConfig, InvoiceId,
-    InvoiceStatus,
+    credit_amounts_from_entry, credit_journal_suggestion, credit_note_no_from_memo, get_invoice,
+    peek_credit_note_number, record_credit_note, reserve_credit_note_number, Invoice,
+    InvoiceConfig, InvoiceId, InvoiceStatus,
 };
 use klarbog_types::Actor;
 
@@ -22,15 +22,13 @@ use super::post::preview_with_pending;
 use super::view::load_page;
 use crate::AppState;
 
-/// Fail-closed re-check used at both preview and commit: the invoice must
-/// still be sent and unpaid when the credit note is booked.
 fn creditable(path: &Path, id: &InvoiceId) -> Result<Invoice, String> {
     let invoice = match get_invoice(path, id) {
         Ok(Some(inv)) => inv,
         Ok(None) => return Err(format!("Ukendt: {id}")),
         Err(e) => return Err(e.to_string()),
     };
-    if invoice.status != InvoiceStatus::Sent {
+    if !invoice.status.allows_credit() {
         return Err(format!(
             "{id} kan ikke krediteres (status {:?}, kræver sent)",
             invoice.status
@@ -38,10 +36,23 @@ fn creditable(path: &Path, id: &InvoiceId) -> Result<Invoice, String> {
     }
     if !invoice.payments.is_empty() {
         return Err(format!(
-            "{id} har registrerede betalinger — fuld kreditnota afvist"
+            "{id} har registrerede betalinger — kreditnota afvist"
         ));
     }
-    Ok(invoice)
+    match invoice.creditable_remaining_minor() {
+        Ok(r) if r > 0 => Ok(invoice),
+        Ok(_) => Err(format!("{id} er allerede fuldt krediteret")),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+fn parse_credit_amount(raw: &Option<String>) -> Result<Option<i64>, String> {
+    let Some(s) = raw.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
+    s.parse::<i64>()
+        .map(Some)
+        .map_err(|_| format!("Kreditbeløb skal være heltal (øre), fik {s}"))
 }
 
 pub(super) async fn credit_preview(
@@ -57,22 +68,29 @@ pub(super) async fn credit_preview(
         Ok(inv) => inv,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
+    let amount = match parse_credit_amount(&form.credit_amount_minor) {
+        Ok(a) => a,
+        Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
+    };
     let cn_no = match peek_credit_note_number(path, Utc::now()) {
         Ok(no) => no,
         Err(e) => return html_ok(load_page(state, company, String::new(), e.to_string()).await),
     };
-    match credit_journal_suggestion(&invoice, &cn_no, &reason, actor, &InvoiceConfig::default()) {
+    match credit_journal_suggestion(
+        &invoice,
+        &cn_no,
+        &reason,
+        amount,
+        actor,
+        &InvoiceConfig::default(),
+    ) {
         Ok(entry) => {
-            preview_with_pending(
-                state,
-                company,
-                actor,
-                &id,
-                entry,
-                "Kreditnota",
-                "commit_credit",
-            )
-            .await
+            let label = if amount.is_some() {
+                "Delkreditnota"
+            } else {
+                "Kreditnota"
+            };
+            preview_with_pending(state, company, actor, &id, entry, label, "commit_credit").await
         }
         Err(e) => html_ok(load_page(state, company, String::new(), e.to_string()).await),
     }
@@ -105,10 +123,6 @@ pub(super) async fn commit_credit(
             );
         }
     };
-    // CN-nummeret kommer fra det digest-bundne memo (sat ved preview) og
-    // reserveres FØR bogføring — fail-closed hvis en anden kreditnota tog
-    // nummeret imens. Et brændt nummer ved efterfølgende commit-fejl er
-    // acceptabelt; et posteret memo med forkert nummer er det ikke.
     let Some(cn_no) = credit_note_no_from_memo(&entry.memo) else {
         return html_ok(
             load_page(
@@ -119,6 +133,13 @@ pub(super) async fn commit_credit(
             )
             .await,
         );
+    };
+    let cfg = InvoiceConfig::default();
+    let (net, vat, gross) = match credit_amounts_from_entry(&entry, &cfg) {
+        Ok(a) => a,
+        Err(e) => {
+            return html_ok(load_page(state, company, String::new(), e.to_string()).await);
+        }
     };
     if let Err(e) = reserve_credit_note_number(path, entry.as_of, &cn_no) {
         return html_ok(
@@ -142,19 +163,25 @@ pub(super) async fn commit_credit(
     )
     .await
     {
-        Ok(r) => match record_credit_note(path, &id, &cn_no) {
-            Ok(_) => html_ok(
-                load_page(
-                    state,
-                    company,
-                    format!(
-                        "Kreditnota {cn_no} bogført · posted {} · {id} sat til void",
-                        r.posted.id
-                    ),
-                    String::new(),
+        Ok(r) => match record_credit_note(path, &id, &cn_no, net, vat, gross) {
+            Ok(inv) => {
+                let status = match inv.status {
+                    InvoiceStatus::Void => "void (fuldt krediteret)".to_string(),
+                    other => format!("{other:?} (delkredit)"),
+                };
+                html_ok(
+                    load_page(
+                        state,
+                        company,
+                        format!(
+                            "Kreditnota {cn_no} bogført · posted {} · {id} · {status}",
+                            r.posted.id
+                        ),
+                        String::new(),
+                    )
+                    .await,
                 )
-                .await,
-            ),
+            }
             Err(e) => html_ok(
                 load_page(
                     state,

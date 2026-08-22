@@ -26,6 +26,11 @@ impl InvoiceStatus {
     pub fn allows_mark_part_paid(self) -> bool {
         matches!(self, InvoiceStatus::Sent | InvoiceStatus::PartPaid)
     }
+
+    /// Credit notes (full or partial) only from sent, unpaid invoices.
+    pub fn allows_credit(self) -> bool {
+        matches!(self, InvoiceStatus::Sent)
+    }
 }
 
 #[cfg(test)]
