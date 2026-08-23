@@ -12,8 +12,8 @@ use klarbog_journal::JournalEntry;
 use klarbog_plugin_documents::attach_credit_note;
 use klarbog_plugin_invoice::{
     credit_amounts_from_entry, credit_journal_suggestion, credit_note_no_from_memo,
-    credit_reason_from_memo, get_invoice, peek_credit_note_number, record_credit_note,
-    reserve_credit_note_number, Invoice, InvoiceConfig, InvoiceId, InvoiceStatus,
+    credit_reason_from_memo, get_invoice, record_credit_note, reserve_credit_note_number,
+    resolve_credit_note_number, Invoice, InvoiceConfig, InvoiceId, InvoiceStatus,
 };
 use klarbog_types::Actor;
 
@@ -73,10 +73,13 @@ pub(super) async fn credit_preview(
         Ok(a) => a,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
-    let cn_no = match peek_credit_note_number(path, Utc::now()) {
-        Ok(no) => no,
-        Err(e) => return html_ok(load_page(state, company, String::new(), e.to_string()).await),
-    };
+    let cn_no =
+        match resolve_credit_note_number(path, Utc::now(), form.credit_note_number.as_deref()) {
+            Ok(no) => no,
+            Err(e) => {
+                return html_ok(load_page(state, company, String::new(), e.to_string()).await)
+            }
+        };
     match credit_journal_suggestion(
         &invoice,
         &cn_no,

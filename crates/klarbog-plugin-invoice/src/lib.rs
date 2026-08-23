@@ -20,7 +20,8 @@ pub use lifecycle::{
 };
 pub use sequences::{
     credit_note_no_from_memo, credit_reason_from_memo, peek_credit_note_number,
-    reserve_credit_note_number, SEQUENCES_FILENAME,
+    reserve_credit_note_number, resolve_credit_note_number,
+    validate_manual_credit_note_number_scope, SEQUENCES_FILENAME,
 };
 pub use status::InvoiceStatus;
 pub use store::{
@@ -254,6 +255,8 @@ pub enum InvoiceError {
     SequenceConflict { requested: u32, expected: u32 },
     #[error("invalid credit note number: {0}")]
     BadCreditNoteNumber(String),
+    #[error("manual credit note number {number} does not match current fiscal scope {scope}")]
+    ManualCreditNoteScopeMismatch { number: String, scope: String },
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

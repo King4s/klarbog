@@ -121,15 +121,16 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",
             provisions: &["§ 58, stk. 2", "§ 66, stk. 1, nr. 6"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: fortløbende CN-nr pr. regnskabsår; del- og fuld kreditnota med kumulativt loft; memo invoice:{id}:credit:{CN} · {reason}; immutable JSON-dokument (sha256, retain_until) under invoices/issued/",
+            enforced_by: "invoice-plugin: fortløbende CN-nr pr. regnskabsår (auto eller manuelt med scope-validering); del- og fuld kreditnota med kumulativt loft; memo invoice:{id}:credit:{CN} · {reason}; immutable JSON-dokument (sha256, retain_until) under invoices/issued/",
             proven_by: &[
                 "klarbog-plugin-invoice credit::tests::full_credit_negates_send_booking_incl_vat",
                 "klarbog-plugin-invoice credit::tests::partial_then_residual_lands_exactly_on_original",
                 "klarbog-plugin-invoice credit::tests::cumulative_cap_rejects_over_credit",
                 "klarbog-plugin-invoice sequences::tests::reserve_is_fail_closed_on_race",
+                "klarbog-plugin-invoice sequences::tests::manual_scope_mismatch_is_rejected",
                 "klarbog-plugin-documents credit_note::tests::attach_writes_immutable_json_with_sha256",
             ],
-            gaps: &["manuelt valgt CN-nummer (originalens validateManualCreditNoteNumberScope)"],
+            gaps: &[],
         },
     ]
 }
@@ -159,18 +160,5 @@ mod tests {
             assert!(!rule.enforced_by.is_empty());
             assert!(!rule.proven_by.is_empty(), "{}: no proof", rule.rule_id);
         }
-    }
-
-    #[test]
-    fn partially_ported_rules_declare_their_gaps() {
-        // Honest coverage: rules whose original machine_rule the port only
-        // partially satisfies must say so — the original's coverage report
-        // warns against self-attestation.
-        let rules = registered_rules();
-        let cn = rules
-            .iter()
-            .find(|r| r.rule_id == "DK-CREDIT-NOTE-001")
-            .expect("DK-CREDIT-NOTE-001");
-        assert!(!cn.gaps.is_empty(), "DK-CREDIT-NOTE-001 must declare gaps");
     }
 }

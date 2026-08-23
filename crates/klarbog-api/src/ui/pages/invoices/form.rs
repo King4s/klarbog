@@ -37,6 +37,9 @@ pub struct InvoiceActionForm {
     pub credit_reason: Option<String>,
     #[serde(default)]
     pub credit_amount_minor: Option<String>,
+    /// Optional manual CN number (originalens creditNoteNumber).
+    #[serde(default)]
+    pub credit_note_number: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

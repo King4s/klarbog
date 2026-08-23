@@ -223,6 +223,10 @@ expect_ok "b2b send commit" "$(post /ui/invoices --data-urlencode action=commit_
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 expect_err_contains "credit note without reason" "reason is required" \
   "$(post /ui/invoices --data-urlencode action=credit_preview --data-urlencode "invoice_id=$INV3")"
+expect_err_contains "credit note wrong fiscal scope" "fiscal scope" \
+  "$(post /ui/invoices --data-urlencode action=credit_preview \
+    --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=scope test" \
+    --data-urlencode credit_note_number=CN-2099-0001)"
 # Over-credit is fail-closed (12500 gross; 20000 exceeds remaining).
 expect_err_contains "credit note over remaining" "exceeds remaining" \
   "$(post /ui/invoices --data-urlencode action=credit_preview \

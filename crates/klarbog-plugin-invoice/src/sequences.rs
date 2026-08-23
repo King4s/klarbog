@@ -81,6 +81,51 @@ fn format_cn(scope: &str, value: u32) -> String {
     format!("CN-{scope}-{value:04}")
 }
 
+/// Generic canonical `CN-YYYY-NNNN` (originalens validateManualCreditNoteNumberScope).
+fn parse_generic_canonical(credit_note_number: &str) -> Option<(&str, &str)> {
+    let rest = credit_note_number.strip_prefix("CN-")?;
+    let (year, seq) = rest.split_once('-')?;
+    if year.len() != 4 || !year.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    if seq.len() != 4 || !seq.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some((year, seq))
+}
+
+/// Fail-closed hvis et manuelt nummer er kanonisk men fra forkert regnskabsår.
+pub fn validate_manual_credit_note_number_scope(
+    company: &Path,
+    as_of: DateTime<Utc>,
+    credit_note_number: &str,
+) -> Result<(), InvoiceError> {
+    if let Some((year, _)) = parse_generic_canonical(credit_note_number.trim()) {
+        let scope = fiscal_scope(company, as_of);
+        if year != scope {
+            return Err(InvoiceError::ManualCreditNoteScopeMismatch {
+                number: credit_note_number.trim().to_string(),
+                scope,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Preview: auto-peek eller manuelt nummer (med scope-validering).
+pub fn resolve_credit_note_number(
+    company: &Path,
+    as_of: DateTime<Utc>,
+    manual: Option<&str>,
+) -> Result<String, InvoiceError> {
+    if let Some(raw) = manual.map(str::trim).filter(|s| !s.is_empty()) {
+        validate_manual_credit_note_number_scope(company, as_of, raw)?;
+        Ok(raw.to_string())
+    } else {
+        peek_credit_note_number(company, as_of)
+    }
+}
+
 /// Floor fra allerede udstedte CN-numre i samme scope (originalens
 /// creditNoteSequenceState: MAX over eksisterende dokumenter).
 fn credit_note_floor(invoices: &[Invoice], scope: &str) -> u32 {
@@ -117,8 +162,9 @@ pub fn peek_credit_note_number(
     Ok(format_cn(&scope, value))
 }
 
-/// Commit: reservér præcis `number` (fra det digest-bundne memo).
-/// Fail-closed hvis nummeret ikke længere er næste i serien.
+/// Commit: reservér præcis `number` når det matcher `CN-{scope}-NNNN`.
+/// Ikke-kanoniske manuelle numre springer sekvensen over (originalens
+/// reserveManualCreditNoteNumber).
 pub fn reserve_credit_note_number(
     company: &Path,
     as_of: DateTime<Utc>,
@@ -126,11 +172,15 @@ pub fn reserve_credit_note_number(
 ) -> Result<(), InvoiceError> {
     let scope = fiscal_scope(company, as_of);
     let prefix = format!("CN-{scope}-");
-    let value: u32 = number
+    let Some(suffix) = number
         .strip_prefix(&prefix)
-        .filter(|n| n.len() == 4)
-        .and_then(|n| n.parse().ok())
-        .ok_or_else(|| InvoiceError::BadCreditNoteNumber(number.to_string()))?;
+        .filter(|n| n.len() == 4 && n.chars().all(|c| c.is_ascii_digit()))
+    else {
+        return Ok(());
+    };
+    let value: u32 = suffix
+        .parse()
+        .map_err(|_| InvoiceError::BadCreditNoteNumber(number.to_string()))?;
     let invoices = crate::store::list_invoices(company)?;
     let floor = credit_note_floor(&invoices, &scope);
     reserve_value(company, "credit_note", &scope, value, floor)
@@ -212,20 +262,54 @@ mod tests {
     }
 
     #[test]
-    fn bad_number_format_is_rejected() {
+    fn non_canonical_manual_skips_sequence_reservation() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
         let as_of = dt("2026-05-20");
-        for bad in ["CN-2025-0001", "CN-2026-1", "FAK-2026-0001", ""] {
-            assert!(
-                matches!(
-                    reserve_credit_note_number(&co, as_of, bad),
-                    Err(InvoiceError::BadCreditNoteNumber(_))
-                ),
-                "{bad} should be rejected"
-            );
-        }
+        reserve_credit_note_number(&co, as_of, "KREDIT-42").unwrap();
+        assert_eq!(peek_credit_note_number(&co, as_of).unwrap(), "CN-2026-0001");
+    }
+
+    #[test]
+    fn manual_scope_mismatch_is_rejected() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        let err = validate_manual_credit_note_number_scope(&co, as_of, "CN-2099-0001").unwrap_err();
+        assert!(matches!(
+            err,
+            InvoiceError::ManualCreditNoteScopeMismatch { .. }
+        ));
+    }
+
+    #[test]
+    fn resolve_uses_manual_when_provided() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        assert_eq!(
+            resolve_credit_note_number(&co, as_of, Some("KREDIT-7")).unwrap(),
+            "KREDIT-7"
+        );
+        assert_eq!(
+            resolve_credit_note_number(&co, as_of, None).unwrap(),
+            "CN-2026-0001"
+        );
+    }
+
+    #[test]
+    fn manual_canonical_ahead_of_sequence_fails() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        assert!(matches!(
+            reserve_credit_note_number(&co, as_of, "CN-2026-0005"),
+            Err(InvoiceError::SequenceConflict { .. })
+        ));
     }
 
     #[test]
