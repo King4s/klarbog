@@ -19,7 +19,7 @@ use klarbog_store_sqlite::{open_company, CompanyStore, StoreError};
 pub use klarbog_store_sqlite::{
     AccountBalance, BankMemoRef, PartyBalance, PostedEntryView, PostedLegView,
 };
-use klarbog_types::Actor;
+use klarbog_types::{Actor, FiscalYearLabelStrategy};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -46,6 +46,40 @@ pub enum CoreError {
 pub struct CompanyPolicy {
     pub name: String,
     pub actors: Vec<String>,
+    #[serde(rename = "fiscalYearStartMonth", default = "default_fiscal_month")]
+    pub fiscal_year_start_month: u32,
+    #[serde(rename = "fiscalYearLabelStrategy", default)]
+    pub fiscal_year_label_strategy: FiscalYearLabelStrategy,
+}
+
+fn default_fiscal_month() -> u32 {
+    1
+}
+
+impl CompanyPolicy {
+    pub fn fiscal_settings(&self) -> klarbog_types::FiscalYearSettings {
+        klarbog_types::FiscalYearSettings {
+            start_month: klarbog_types::normalize_start_month(self.fiscal_year_start_month),
+            label_strategy: self.fiscal_year_label_strategy,
+        }
+    }
+}
+
+pub fn load_company_policy(company: &Path) -> Result<CompanyPolicy, CoreError> {
+    let policy: CompanyPolicy = serde_json::from_str(
+        &std::fs::read_to_string(company.join("policy.json")).context("read policy")?,
+    )
+    .context("parse policy")?;
+    Ok(policy)
+}
+
+pub fn save_company_policy(company: &Path, policy: &CompanyPolicy) -> Result<(), CoreError> {
+    std::fs::write(
+        company.join("policy.json"),
+        serde_json::to_string_pretty(policy).context("policy json")?,
+    )
+    .context("write policy")?;
+    Ok(())
 }
 
 pub struct Company {
@@ -68,6 +102,8 @@ pub async fn init_company(path: &Path, name: &str, owner: &Actor) -> Result<Comp
     let policy = CompanyPolicy {
         name: name.to_string(),
         actors: vec![owner.as_tag()],
+        fiscal_year_start_month: 1,
+        fiscal_year_label_strategy: FiscalYearLabelStrategy::EndYear,
     };
     let policy_path = path.join("policy.json");
     std::fs::write(
@@ -85,10 +121,7 @@ pub async fn init_company(path: &Path, name: &str, owner: &Actor) -> Result<Comp
 }
 
 pub async fn open_existing(path: &Path) -> Result<Company, CoreError> {
-    let policy: CompanyPolicy = serde_json::from_str(
-        &std::fs::read_to_string(path.join("policy.json")).context("read policy")?,
-    )
-    .context("parse policy")?;
+    let policy = load_company_policy(path)?;
     let store = open_company(path).await?;
     Ok(Company {
         path: path.to_path_buf(),
@@ -111,7 +144,7 @@ impl Company {
         self.authorize(&entry.actor)?;
         let prev = self.store.last_digest().await?;
         let posted = entry.post(prev).map_err(StoreError::from)?;
-        self.store.append(&posted).await?;
+        self.store.append(&posted, &self.path).await?;
         Ok(posted)
     }
 

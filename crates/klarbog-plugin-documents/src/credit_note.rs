@@ -6,7 +6,7 @@ use crate::store::append_document;
 use crate::{Document, DocumentError, DocumentId, DocumentKind};
 use klarbog_plugin_invoice::{get_invoice, InvoiceId};
 use klarbog_storage::klarbog_storage;
-use klarbog_types::{retain_until_iso, PartyId};
+use klarbog_types::{load_fiscal_settings, retain_until_iso, PartyId};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -102,7 +102,7 @@ pub async fn attach_credit_note(
         invoice_id: Some(invoice_id.clone()),
         notes: format!("Credit note {credit_note_no} for {invoice_id}"),
         created_unix_ms: issued_at.timestamp_millis(),
-        retain_until: Some(retain_until_iso(basis)),
+        retain_until: Some(retain_until_iso(basis, load_fiscal_settings(company))),
         sha256: Some(hash),
     };
     append_document(company, doc.clone())?;

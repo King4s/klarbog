@@ -2,11 +2,23 @@
 {% block content %}
 <section class="panel">
   <h1>Indstillinger</h1>
-  <p class="lede">Firmasti gemmes i cookie <span class="money">klarbog_ui_company</span> (DEV).</p>
+  <p class="lede">Firmasti gemmes i cookie <span class="money">klarbog_ui_company</span> (DEV). Regnskabsår læses fra <span class="money">policy.json</span> i firmamappen.</p>
   <form class="grid" method="post" action="/ui/settings">
     <label>Firma-sti (company)
       <input name="company" value="{{ company }}" placeholder="companies/min-aps" required />
     </label>
+    {% if has_policy %}
+    <label>Regnskabsår starter (måned 1–12)
+      <input name="fiscal_year_start_month" type="number" min="1" max="12" value="{{ fiscal_year_start_month }}" />
+    </label>
+    <label>Regnskabsårs-label
+      <select name="fiscal_year_label_strategy">
+        <option value="end-year" {% if fiscal_year_label_strategy == "end-year" %}selected{% endif %}>Slutår (end-year)</option>
+        <option value="start-year" {% if fiscal_year_label_strategy == "start-year" %}selected{% endif %}>Startår (start-year)</option>
+        <option value="span" {% if fiscal_year_label_strategy == "span" %}selected{% endif %}>Span (fx 2026/27)</option>
+      </select>
+    </label>
+    {% endif %}
     <div class="actions">
       <button class="primary" type="submit">Gem</button>
     </div>

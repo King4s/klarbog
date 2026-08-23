@@ -1,8 +1,9 @@
 use anyhow::Context;
 use klarbog_journal::{Direction, PostedEntry};
-use klarbog_types::retain_until_iso;
+use klarbog_types::{load_fiscal_settings, retain_until_iso};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use std::path::Path;
 
 use crate::open::{CompanyStore, StoreError};
 
@@ -20,11 +21,12 @@ pub struct JournalRetentionRow {
 }
 
 impl CompanyStore {
-    pub async fn append(&self, posted: &PostedEntry) -> Result<(), StoreError> {
+    pub async fn append(&self, posted: &PostedEntry, company: &Path) -> Result<(), StoreError> {
         // Re-validate at store boundary (ADR-004): empty/single/unbalanced never persist.
         posted.entry.validate()?;
         let payload = serde_json::to_string(posted).context("serialize posted entry")?;
-        let retain_until = retain_until_iso(posted.entry.as_of.date_naive());
+        let fiscal = load_fiscal_settings(company);
+        let retain_until = retain_until_iso(posted.entry.as_of.date_naive(), fiscal);
         let mut tx = self.pool.begin().await?;
         sqlx::query(
             r#"

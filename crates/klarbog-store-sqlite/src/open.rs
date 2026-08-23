@@ -91,7 +91,7 @@ mod tests {
         assert_eq!(fk, 1);
         assert!(busy >= 5000);
         let posted = balanced(100).post(None).unwrap();
-        store.append(&posted).await.unwrap();
+        store.append(&posted, dir.path()).await.unwrap();
         let rows = store.list_journal_retention_rows().await.unwrap();
         assert_eq!(rows.len(), 1);
         assert!(rows[0].retain_until.is_some());
@@ -115,6 +115,6 @@ mod tests {
             bad.entry = entry;
             bad
         };
-        assert!(store.append(&posted).await.is_err());
+        assert!(store.append(&posted, dir.path()).await.is_err());
     }
 }

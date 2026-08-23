@@ -81,15 +81,13 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 12, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "retention-plugin: retain_until på dokument/journal/bank ved oprettelse + retention-status-rapport (CLI: retention-status); global retain_days + purge dry-run→confirm",
+            enforced_by: "retention-plugin: retain_until på dokument/journal/bank ved oprettelse + retention-status-rapport (CLI: retention-status); fiscalYear* fra policy.json; global retain_days + purge dry-run→confirm",
             proven_by: &[
                 "klarbog-types retention_deadline::tests",
                 "klarbog-plugin-retention status_report::tests::report_counts_objects_and_expiry_after_deadline",
                 "klarbog-plugin-bank store::tests::commit_assigns_batch_hash_and_skips_duplicates",
             ],
-            gaps: &[
-                "konfigurerbart regnskabsår (porten bruger kalenderår Jan–Dec; originalen læser company.fiscalYearStartMonth)",
-            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-BOOKKEEPING-BANK-IMPORT-001",
@@ -131,9 +129,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-plugin-invoice sequences::tests::reserve_is_fail_closed_on_race",
                 "klarbog-plugin-documents credit_note::tests::attach_writes_immutable_json_with_sha256",
             ],
-            gaps: &[
-                "konfigurerbart regnskabsår (porten bruger kalenderår som originalens default)",
-            ],
+            gaps: &["manuelt valgt CN-nummer (originalens validateManualCreditNoteNumberScope)"],
         },
     ]
 }
@@ -171,9 +167,10 @@ mod tests {
         // partially satisfies must say so — the original's coverage report
         // warns against self-attestation.
         let rules = registered_rules();
-        for id in ["DK-CREDIT-NOTE-001", "DK-BOOKKEEPING-RETENTION-001"] {
-            let rule = rules.iter().find(|r| r.rule_id == id).expect(id);
-            assert!(!rule.gaps.is_empty(), "{id} must declare gaps");
-        }
+        let cn = rules
+            .iter()
+            .find(|r| r.rule_id == "DK-CREDIT-NOTE-001")
+            .expect("DK-CREDIT-NOTE-001");
+        assert!(!cn.gaps.is_empty(), "DK-CREDIT-NOTE-001 must declare gaps");
     }
 }

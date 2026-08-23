@@ -61,8 +61,9 @@ og bager det ind i det digest-bundne memo; commit *reserverer* præcis det
 nummer — fail-closed hvis en anden kreditnota kom først
 (`SequenceConflict`, originalens reserveSequenceValue-semantik). Nummeret
 persisteres på fakturaen (`credit_note_no`) og vises i fakturalisten.
-Regnskabsår = kalenderår (originalens default-strategi); konfigurerbart
-regnskabsår er ikke porteret.
+Regnskabsår læses fra `policy.json` (`fiscalYearStartMonth`,
+`fiscalYearLabelStrategy`) som i originalens company settings; default er
+kalenderår med end-year label.
 
 **Delkreditering** (porteret fra originalens `issueCreditNote`): valgfrit
 bruttobeløb i øre (tom = rest); kumulativt loft mod original-brutto;
@@ -83,9 +84,9 @@ opfinde egen semantik. Kendte afvigelser/huller pr. denne ADR:
   internt fryses net/vat/gross på fakturaen, hvilket matcher originalens
   totals-model.
 - **Kreditnota-huller** (originalen har dem, porten endnu ikke):
-  manuelt valgt CN-nummer, konfigurerbart regnskabsår.
-  CN-nummerserie, delkreditering med kumulativt loft og immutable
-  JSON-dokument (sha256 + retain_until under `invoices/issued/`) er porteret.
+  manuelt valgt CN-nummer.
+  CN-nummerserie, delkreditering med kumulativt loft, konfigurerbart
+  regnskabsår og immutable JSON-dokument (sha256 + retain_until) er porteret.
 - **Statusmodel**: originalen afleder status af beløb (open/paid/credited/
   refunded/overpaid/written_off); porten har en eksplicit statusmaskine
   (draft/sent/part_paid/paid/void). Portens `record_payment` fail-closer

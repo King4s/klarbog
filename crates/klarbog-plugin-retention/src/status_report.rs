@@ -4,7 +4,9 @@ use chrono::NaiveDate;
 use klarbog_plugin_bank::list_bank_transactions;
 use klarbog_plugin_documents::list_documents;
 use klarbog_store_sqlite::open_company;
-use klarbog_types::{effective_retain_until, RETENTION_RULE_ID};
+use klarbog_types::{
+    effective_retain_until, load_fiscal_settings, FiscalYearSettings, RETENTION_RULE_ID,
+};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -42,10 +44,11 @@ fn summarize_rows(
     table: RetentionStatusTable,
     pairs: &[(Option<String>, Option<String>)],
     as_of: NaiveDate,
+    fiscal: FiscalYearSettings,
 ) -> Result<RetentionStatusRow, RetentionError> {
     let mut effective: Vec<NaiveDate> = Vec::new();
     for (stored, basis) in pairs {
-        if let Some(date) = effective_retain_until(stored.as_deref(), basis.as_deref())
+        if let Some(date) = effective_retain_until(stored.as_deref(), basis.as_deref(), fiscal)
             .map_err(|e| RetentionError::Deadline(e.to_string()))?
         {
             effective.push(date);
@@ -76,6 +79,7 @@ pub async fn build_retention_status_report(
 ) -> Result<RetentionStatusReport, RetentionError> {
     let as_of_text = as_of.format("%Y-%m-%d").to_string();
 
+    let fiscal = load_fiscal_settings(company);
     let doc_pairs: Vec<_> = list_documents(company)
         .map_err(|e| RetentionError::Deadline(e.to_string()))?
         .into_iter()
@@ -104,9 +108,19 @@ pub async fn build_retention_status_report(
         .collect();
 
     let rows = vec![
-        summarize_rows(RetentionStatusTable::Documents, &doc_pairs, as_of)?,
-        summarize_rows(RetentionStatusTable::JournalEntries, &journal_pairs, as_of)?,
-        summarize_rows(RetentionStatusTable::BankTransactions, &bank_pairs, as_of)?,
+        summarize_rows(RetentionStatusTable::Documents, &doc_pairs, as_of, fiscal)?,
+        summarize_rows(
+            RetentionStatusTable::JournalEntries,
+            &journal_pairs,
+            as_of,
+            fiscal,
+        )?,
+        summarize_rows(
+            RetentionStatusTable::BankTransactions,
+            &bank_pairs,
+            as_of,
+            fiscal,
+        )?,
     ];
 
     Ok(RetentionStatusReport {

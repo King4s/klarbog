@@ -6,11 +6,11 @@
 //! Portens to-faser: preview KIGGER på næste nummer (uden at skrive),
 //! nummeret bages ind i det digest-bundne entry-memo, og commit RESERVERER
 //! præcis det nummer — afvist hvis en anden kreditnota kom først.
-//! Regnskabsår = kalenderår (originalens default, start-måned 1);
-//! konfigurerbart regnskabsår er ikke porteret endnu.
+//! Regnskabsår læses fra `policy.json` (originalens company.fiscalYear*).
 
 use crate::{Invoice, InvoiceError};
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Utc};
+use klarbog_types::{fiscal_year_identifier_label, load_fiscal_settings};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs;
@@ -71,9 +71,10 @@ fn reserve_value(
     save(company, &file)
 }
 
-/// Regnskabsårs-label for en dato (kalenderår — originalens default).
-fn fiscal_scope(as_of: DateTime<Utc>) -> String {
-    as_of.year().to_string()
+/// Regnskabsårs-label for en dato (originalens fiscalYearLabelFromDate).
+fn fiscal_scope(company: &Path, as_of: DateTime<Utc>) -> String {
+    let settings = load_fiscal_settings(company);
+    fiscal_year_identifier_label(as_of.date_naive(), settings)
 }
 
 fn format_cn(scope: &str, value: u32) -> String {
@@ -109,7 +110,7 @@ pub fn peek_credit_note_number(
     company: &Path,
     as_of: DateTime<Utc>,
 ) -> Result<String, InvoiceError> {
-    let scope = fiscal_scope(as_of);
+    let scope = fiscal_scope(company, as_of);
     let invoices = crate::store::list_invoices(company)?;
     let floor = credit_note_floor(&invoices, &scope);
     let value = peek_value(company, "credit_note", &scope, floor)?;
@@ -123,7 +124,7 @@ pub fn reserve_credit_note_number(
     as_of: DateTime<Utc>,
     number: &str,
 ) -> Result<(), InvoiceError> {
-    let scope = fiscal_scope(as_of);
+    let scope = fiscal_scope(company, as_of);
     let prefix = format!("CN-{scope}-");
     let value: u32 = number
         .strip_prefix(&prefix)
@@ -225,6 +226,22 @@ mod tests {
                 "{bad} should be rejected"
             );
         }
+    }
+
+    #[test]
+    fn july_fiscal_scope_on_cn_numbers() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        std::fs::write(
+            co.join("policy.json"),
+            r#"{"name":"T","actors":["u"],"fiscalYearStartMonth":7,"fiscalYearLabelStrategy":"end-year"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            peek_credit_note_number(&co, dt("2026-12-31")).unwrap(),
+            "CN-2027-0001"
+        );
     }
 
     #[test]

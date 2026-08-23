@@ -4,7 +4,7 @@
 use crate::batch::{fingerprints_for_rows, make_import_batch_id, source_file_hash};
 use crate::csv::BankRow;
 use chrono::{DateTime, Utc};
-use klarbog_types::retain_until_iso;
+use klarbog_types::{load_fiscal_settings, retain_until_iso};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -108,6 +108,7 @@ pub fn commit_import(
         .map(|t| t.transaction_hash.clone())
         .collect();
 
+    let fiscal = load_fiscal_settings(company);
     let mut imported = 0usize;
     let mut skipped = 0usize;
     for (row, hash) in rows.iter().zip(fingerprints.iter()) {
@@ -125,7 +126,7 @@ pub fn commit_import(
             import_batch_id: batch_id.clone(),
             transaction_hash: hash.clone(),
             status: "imported".into(),
-            retain_until: Some(retain_until_iso(row.date.date_naive())),
+            retain_until: Some(retain_until_iso(row.date.date_naive(), fiscal)),
         });
         imported += 1;
     }
