@@ -19,8 +19,8 @@ pub use lifecycle::{
     mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
 };
 pub use sequences::{
-    credit_note_no_from_memo, peek_credit_note_number, reserve_credit_note_number,
-    SEQUENCES_FILENAME,
+    credit_note_no_from_memo, credit_reason_from_memo, peek_credit_note_number,
+    reserve_credit_note_number, SEQUENCES_FILENAME,
 };
 pub use status::InvoiceStatus;
 pub use store::{
@@ -97,6 +97,10 @@ pub struct InvoiceCredit {
     pub gross_minor: i64,
     pub net_minor: i64,
     pub vat_minor: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

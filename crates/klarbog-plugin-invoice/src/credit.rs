@@ -271,6 +271,8 @@ mod tests {
             gross_minor: g1,
             net_minor: n1,
             vat_minor: v1,
+            document_id: None,
+            sha256: None,
         });
         // Second credit takes the rest — residual path.
         let remaining = inv.creditable_remaining_minor().unwrap();

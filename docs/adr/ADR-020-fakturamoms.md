@@ -83,10 +83,9 @@ opfinde egen semantik. Kendte afvigelser/huller pr. denne ADR:
   internt fryses net/vat/gross på fakturaen, hvilket matcher originalens
   totals-model.
 - **Kreditnota-huller** (originalen har dem, porten endnu ikke):
-  kreditnota som dokument (sha256, retention, audit), manuelt valgt
-  CN-nummer, konfigurerbart regnskabsår. CN-nummerserie og delkreditering
-  med kumulativt loft (proportional moms, residual på sidste note) er
-  porteret.
+  manuelt valgt CN-nummer, konfigurerbart regnskabsår.
+  CN-nummerserie, delkreditering med kumulativt loft og immutable
+  JSON-dokument (sha256 + retain_until under `invoices/issued/`) er porteret.
 - **Statusmodel**: originalen afleder status af beløb (open/paid/credited/
   refunded/overpaid/written_off); porten har en eksplicit statusmaskine
   (draft/sent/part_paid/paid/void). Portens `record_payment` fail-closer

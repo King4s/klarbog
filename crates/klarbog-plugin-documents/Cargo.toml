@@ -16,6 +16,8 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 tokio = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
 
 # INTENTIONAL: no JournalWrite capability (ADR-004)
 

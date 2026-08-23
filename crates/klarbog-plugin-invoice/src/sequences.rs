@@ -146,6 +146,17 @@ pub fn credit_note_no_from_memo(memo: &str) -> Option<String> {
     }
 }
 
+/// Udtræk begrundelsen fra et credit-memo `invoice:{id}:credit:{CN} · {reason}`.
+pub fn credit_reason_from_memo(memo: &str) -> Option<String> {
+    let tail = memo.split(":credit:").nth(1)?;
+    let reason = tail.split(" · ").nth(1)?.trim();
+    if reason.is_empty() {
+        None
+    } else {
+        Some(reason.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,5 +235,9 @@ mod tests {
             Some("CN-2026-0007")
         );
         assert_eq!(credit_note_no_from_memo("invoice:inv_1:credit · x"), None);
+        assert_eq!(
+            credit_reason_from_memo("invoice:inv_1:credit:CN-2026-0007 · forkert beløb").as_deref(),
+            Some("forkert beløb")
+        );
     }
 }

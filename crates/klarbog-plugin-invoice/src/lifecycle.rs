@@ -44,6 +44,7 @@ pub fn patch_status(
 /// invoice only when cumulative credits reach original gross; otherwise
 /// stays sent (partial credit). Fail-closed: sent, no payments, amount
 /// within remaining.
+#[allow(clippy::too_many_arguments)]
 pub fn record_credit_note(
     company: &Path,
     id: &InvoiceId,
@@ -51,6 +52,8 @@ pub fn record_credit_note(
     net_minor: i64,
     vat_minor: i64,
     gross_minor: i64,
+    document_id: Option<String>,
+    sha256: Option<String>,
 ) -> Result<Invoice, InvoiceError> {
     let mut file = crate::store::load(company)?;
     let invoice = file
@@ -77,6 +80,8 @@ pub fn record_credit_note(
         gross_minor,
         net_minor,
         vat_minor,
+        document_id,
+        sha256,
     });
     invoice.credit_note_no = Some(credit_note_no.to_string());
     if invoice.creditable_remaining_minor()? == 0 {

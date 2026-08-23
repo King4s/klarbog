@@ -100,6 +100,7 @@ fn kind_label(kind: klarbog_plugin_documents::DocumentKind) -> String {
     match kind {
         klarbog_plugin_documents::DocumentKind::Receipt => "receipt".into(),
         klarbog_plugin_documents::DocumentKind::InvoiceScan => "invoice_scan".into(),
+        klarbog_plugin_documents::DocumentKind::CreditNote => "credit_note".into(),
         klarbog_plugin_documents::DocumentKind::Other => "other".into(),
     }
 }

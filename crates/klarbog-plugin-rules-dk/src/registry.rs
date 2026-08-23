@@ -123,15 +123,15 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",
             provisions: &["§ 58, stk. 2", "§ 66, stk. 1, nr. 6"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: fortløbende CN-nr pr. regnskabsår; del- og fuld kreditnota med kumulativt loft mod original-brutto (proportional moms, residual på sidste); memo invoice:{id}:credit:{CN} · {reason}; fail-closed på betalte",
+            enforced_by: "invoice-plugin: fortløbende CN-nr pr. regnskabsår; del- og fuld kreditnota med kumulativt loft; memo invoice:{id}:credit:{CN} · {reason}; immutable JSON-dokument (sha256, retain_until) under invoices/issued/",
             proven_by: &[
                 "klarbog-plugin-invoice credit::tests::full_credit_negates_send_booking_incl_vat",
                 "klarbog-plugin-invoice credit::tests::partial_then_residual_lands_exactly_on_original",
                 "klarbog-plugin-invoice credit::tests::cumulative_cap_rejects_over_credit",
                 "klarbog-plugin-invoice sequences::tests::reserve_is_fail_closed_on_race",
+                "klarbog-plugin-documents credit_note::tests::attach_writes_immutable_json_with_sha256",
             ],
             gaps: &[
-                "kreditnota som immutabelt dokument (sha256/retention)",
                 "konfigurerbart regnskabsår (porten bruger kalenderår som originalens default)",
             ],
         },

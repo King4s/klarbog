@@ -1166,6 +1166,7 @@ name = "klarbog-plugin-documents"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hex",
  "klarbog-plugin",
  "klarbog-plugin-crm",
  "klarbog-plugin-invoice",
@@ -1173,6 +1174,7 @@ dependencies = [
  "klarbog-types",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror",
  "tokio",

@@ -1,8 +1,10 @@
 //! Documents plugin — metadata in `documents.json`, exceptions in `exceptions.json`.
 //! No journal-write capability (ADR-004). Optional binary upload via ObjectStore (ADR-007).
 
+mod credit_note;
 mod store;
 
+pub use credit_note::attach_credit_note;
 pub use store::{
     attach_document, document_ids_for_party, find_orphan_documents, get_document, get_exception,
     list_documents, list_exceptions, purge_closed_exceptions, raise_exception, remove_document,
@@ -21,6 +23,7 @@ use thiserror::Error;
 pub enum DocumentKind {
     Receipt,
     InvoiceScan,
+    CreditNote,
     Other,
 }
 
@@ -59,6 +62,9 @@ pub struct Document {
     /// ISO date YYYY-MM-DD — fiscal year end + 5 years from basis date.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retain_until: Option<String>,
+    /// Content digest for immutable snapshots (credit notes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,6 +130,10 @@ pub enum DocumentError {
     EmptyMessage,
     #[error("invalid path hint: {0}")]
     InvalidPathHint(String),
+    #[error("invalid issue date: {0}")]
+    InvalidIssueDate(String),
+    #[error("credit note already exists: {0}")]
+    CreditNoteExists(String),
     #[error(transparent)]
     Storage(#[from] klarbog_storage::StorageError),
     #[error(transparent)]

@@ -243,6 +243,8 @@ PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
 expect_ok "partial credit commit" "$PAGE"
 rg -q "delkredit" <<<"$PAGE" || fail "partial credit: expected delkredit status"
 getp /ui/invoices | rg -q 'sent' || fail "partial credit: invoice should stay sent"
+[[ -f "$COMPANY/objects/invoices/issued/CN-$CNYEAR-0001.json" ]] \
+  || fail "partial credit: immutable CN document missing on disk"
 # Residual full credit voids.
 PAGE="$(post /ui/invoices --data-urlencode action=credit_preview \
   --data-urlencode "invoice_id=$INV3" --data-urlencode "credit_reason=resten")"

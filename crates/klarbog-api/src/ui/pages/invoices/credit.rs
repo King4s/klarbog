@@ -9,10 +9,11 @@ use axum::response::Response;
 use chrono::Utc;
 use klarbog_core::journal_commit;
 use klarbog_journal::JournalEntry;
+use klarbog_plugin_documents::attach_credit_note;
 use klarbog_plugin_invoice::{
-    credit_amounts_from_entry, credit_journal_suggestion, credit_note_no_from_memo, get_invoice,
-    peek_credit_note_number, record_credit_note, reserve_credit_note_number, Invoice,
-    InvoiceConfig, InvoiceId, InvoiceStatus,
+    credit_amounts_from_entry, credit_journal_suggestion, credit_note_no_from_memo,
+    credit_reason_from_memo, get_invoice, peek_credit_note_number, record_credit_note,
+    reserve_credit_note_number, Invoice, InvoiceConfig, InvoiceId, InvoiceStatus,
 };
 use klarbog_types::Actor;
 
@@ -155,7 +156,7 @@ pub(super) async fn commit_credit(
     match journal_commit(
         &state.allowlist_root,
         Path::new(company),
-        entry,
+        entry.clone(),
         actor,
         token.trim(),
         &state.confirm,
@@ -163,38 +164,123 @@ pub(super) async fn commit_credit(
     )
     .await
     {
-        Ok(r) => match record_credit_note(path, &id, &cn_no, net, vat, gross) {
-            Ok(inv) => {
-                let status = match inv.status {
-                    InvoiceStatus::Void => "void (fuldt krediteret)".to_string(),
-                    other => format!("{other:?} (delkredit)"),
-                };
-                html_ok(
+        Ok(r) => {
+            let invoice = match get_invoice(path, &id) {
+                Ok(Some(inv)) => inv,
+                Ok(None) => {
+                    return html_ok(
+                        load_page(
+                            state,
+                            company,
+                            String::new(),
+                            format!("Kreditnota bogført ({}) men faktura mangler", r.posted.id),
+                        )
+                        .await,
+                    );
+                }
+                Err(e) => {
+                    return html_ok(
+                        load_page(
+                            state,
+                            company,
+                            String::new(),
+                            format!(
+                                "Kreditnota bogført ({}) men faktura kunne ikke læses: {e}",
+                                r.posted.id
+                            ),
+                        )
+                        .await,
+                    );
+                }
+            };
+            let credited_so_far = match invoice.credited_gross_minor() {
+                Ok(v) => v,
+                Err(e) => {
+                    return html_ok(load_page(state, company, String::new(), e.to_string()).await);
+                }
+            };
+            let remaining_before = match invoice.creditable_remaining_minor() {
+                Ok(v) => v,
+                Err(e) => {
+                    return html_ok(load_page(state, company, String::new(), e.to_string()).await);
+                }
+            };
+            let issue_date = entry.as_of.format("%Y-%m-%d").to_string();
+            let reason = credit_reason_from_memo(&entry.memo).unwrap_or_default();
+            let doc = match attach_credit_note(
+                path,
+                &cn_no,
+                &id,
+                &invoice.party_id,
+                &issue_date,
+                &reason,
+                net,
+                vat,
+                gross,
+                credited_so_far,
+                remaining_before - gross,
+                entry.as_of,
+            )
+            .await
+            {
+                Ok(d) => d,
+                Err(e) => {
+                    return html_ok(
+                        load_page(
+                            state,
+                            company,
+                            String::new(),
+                            format!(
+                                "Kreditnota bogført ({}) men dokument fejlede: {e}",
+                                r.posted.id
+                            ),
+                        )
+                        .await,
+                    );
+                }
+            };
+            match record_credit_note(
+                path,
+                &id,
+                &cn_no,
+                net,
+                vat,
+                gross,
+                Some(doc.id.to_string()),
+                doc.sha256.clone(),
+            ) {
+                Ok(inv) => {
+                    let status = match inv.status {
+                        InvoiceStatus::Void => "void (fuldt krediteret)".to_string(),
+                        other => format!("{other:?} (delkredit)"),
+                    };
+                    html_ok(
+                        load_page(
+                            state,
+                            company,
+                            format!(
+                                "Kreditnota {cn_no} bogført · posted {} · {id} · {status}",
+                                r.posted.id
+                            ),
+                            String::new(),
+                        )
+                        .await,
+                    )
+                }
+                Err(e) => html_ok(
                     load_page(
                         state,
                         company,
+                        String::new(),
                         format!(
-                            "Kreditnota {cn_no} bogført · posted {} · {id} · {status}",
+                            "Kreditnota bogført ({}) men statusskift fejlede: {e}",
                             r.posted.id
                         ),
-                        String::new(),
                     )
                     .await,
-                )
+                ),
             }
-            Err(e) => html_ok(
-                load_page(
-                    state,
-                    company,
-                    String::new(),
-                    format!(
-                        "Kreditnota bogført ({}) men statusskift fejlede: {e}",
-                        r.posted.id
-                    ),
-                )
-                .await,
-            ),
-        },
+        }
         Err(e) => html_ok(load_page(state, company, String::new(), e.to_string()).await),
     }
 }

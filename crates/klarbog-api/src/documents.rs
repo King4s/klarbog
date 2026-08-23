@@ -97,9 +97,14 @@ pub(crate) fn map_doc(err: DocumentError) -> (StatusCode, Envelope<Value>) {
         ),
         DocumentError::EmptyCode
         | DocumentError::EmptyMessage
-        | DocumentError::InvalidPathHint(_) => {
+        | DocumentError::InvalidPathHint(_)
+        | DocumentError::InvalidIssueDate(_) => {
             (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
         }
+        DocumentError::CreditNoteExists(no) => (
+            StatusCode::CONFLICT,
+            Envelope::err([format!("credit note already exists: {no}")]),
+        ),
         DocumentError::Io(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),

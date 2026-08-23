@@ -91,6 +91,12 @@ pub fn get_document(company: &Path, id: &DocumentId) -> Result<Option<Document>,
         .find(|d| d.id == *id))
 }
 
+pub(crate) fn append_document(company: &Path, doc: Document) -> Result<(), DocumentError> {
+    let mut file = load_documents(company)?;
+    file.documents.push(doc);
+    save_documents(company, &file)
+}
+
 pub async fn attach_document(
     company: &Path,
     kind: DocumentKind,
@@ -122,6 +128,7 @@ pub async fn attach_document(
         notes: notes.unwrap_or_default(),
         created_unix_ms: created.timestamp_millis(),
         retain_until: Some(retain_until_iso(created.date_naive())),
+        sha256: None,
     };
     let mut file = load_documents(company)?;
     file.documents.push(doc.clone());
