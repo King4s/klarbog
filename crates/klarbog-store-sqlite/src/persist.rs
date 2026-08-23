@@ -1,5 +1,6 @@
 use anyhow::Context;
 use klarbog_journal::{Direction, PostedEntry};
+use klarbog_types::retain_until_iso;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
@@ -12,16 +13,23 @@ pub struct JournalDigestSummary {
     pub prev_digest: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JournalRetentionRow {
+    pub retain_until: Option<String>,
+    pub as_of: String,
+}
+
 impl CompanyStore {
     pub async fn append(&self, posted: &PostedEntry) -> Result<(), StoreError> {
         // Re-validate at store boundary (ADR-004): empty/single/unbalanced never persist.
         posted.entry.validate()?;
         let payload = serde_json::to_string(posted).context("serialize posted entry")?;
+        let retain_until = retain_until_iso(posted.entry.as_of.date_naive());
         let mut tx = self.pool.begin().await?;
         sqlx::query(
             r#"
-            INSERT INTO journal_entries(id, as_of, memo, actor, payload_json, digest, prev_digest)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            INSERT INTO journal_entries(id, as_of, memo, actor, payload_json, digest, prev_digest, retain_until)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
             "#,
         )
         .bind(posted.id.to_string())
@@ -31,6 +39,7 @@ impl CompanyStore {
         .bind(&payload)
         .bind(&posted.digest)
         .bind(&posted.prev_digest)
+        .bind(&retain_until)
         .execute(&mut *tx)
         .await?;
         for leg in &posted.entry.legs {
@@ -110,6 +119,22 @@ impl CompanyStore {
             .fetch_one(&self.pool)
             .await?;
         Ok(row.get::<Option<i64>, _>("v").unwrap_or(0))
+    }
+
+    pub async fn list_journal_retention_rows(
+        &self,
+    ) -> Result<Vec<JournalRetentionRow>, StoreError> {
+        let rows =
+            sqlx::query("SELECT retain_until, as_of FROM journal_entries ORDER BY rowid ASC")
+                .fetch_all(&self.pool)
+                .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| JournalRetentionRow {
+                retain_until: r.get("retain_until"),
+                as_of: r.get("as_of"),
+            })
+            .collect())
     }
 
     pub async fn pragmas(&self) -> Result<(String, i64, i64), StoreError> {

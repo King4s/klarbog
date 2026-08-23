@@ -79,6 +79,7 @@ fn map_retention(err: RetentionError) -> (StatusCode, Envelope<Value>) {
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
         ),
+        RetentionError::Deadline(msg) => (StatusCode::BAD_REQUEST, Envelope::err([msg])),
     }
 }
 

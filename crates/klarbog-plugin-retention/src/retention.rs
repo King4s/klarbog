@@ -18,6 +18,8 @@ pub enum RetentionError {
     Json(#[from] serde_json::Error),
     #[error("retain_days must be positive")]
     InvalidRetainDays,
+    #[error("deadline: {0}")]
+    Deadline(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

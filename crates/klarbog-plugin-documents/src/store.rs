@@ -6,7 +6,7 @@ use crate::{
 use klarbog_plugin_crm::get_party;
 use klarbog_plugin_invoice::{get_invoice, InvoiceId};
 use klarbog_storage::klarbog_storage;
-use klarbog_types::PartyId;
+use klarbog_types::{retain_until_iso, PartyId};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
@@ -112,6 +112,7 @@ pub async fn attach_document(
     if let Some(bytes) = content {
         storage.put(&path_hint, bytes).await?;
     }
+    let created = chrono::Utc::now();
     let doc = Document {
         id: DocumentId::generate(),
         kind,
@@ -119,7 +120,8 @@ pub async fn attach_document(
         party_id,
         invoice_id,
         notes: notes.unwrap_or_default(),
-        created_unix_ms: chrono::Utc::now().timestamp_millis(),
+        created_unix_ms: created.timestamp_millis(),
+        retain_until: Some(retain_until_iso(created.date_naive())),
     };
     let mut file = load_documents(company)?;
     file.documents.push(doc.clone());

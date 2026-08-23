@@ -8,6 +8,7 @@ mod erase_audit;
 mod gdpr;
 mod purge;
 mod retention;
+mod status_report;
 mod template;
 
 pub use backup::{
@@ -29,6 +30,9 @@ pub use purge::{run_retention_purge, PurgeError, PurgeOptions, PurgeReport};
 pub use retention::{
     ensure_retention, load_retention, save_retention, RetentionError, RetentionPolicy,
     DEFAULT_RETAIN_DAYS, RETENTION_FILENAME,
+};
+pub use status_report::{
+    build_retention_status_report, RetentionStatusReport, RetentionStatusRow, RetentionStatusTable,
 };
 pub use template::{ensure_expense_memo_template, EXPENSE_MEMO_TEMPLATE, TEMPLATE_REL_PATH};
 

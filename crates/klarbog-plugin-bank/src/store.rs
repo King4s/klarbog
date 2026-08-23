@@ -4,6 +4,7 @@
 use crate::batch::{fingerprints_for_rows, make_import_batch_id, source_file_hash};
 use crate::csv::BankRow;
 use chrono::{DateTime, Utc};
+use klarbog_types::retain_until_iso;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -24,6 +25,8 @@ pub struct BankTransaction {
     pub import_batch_id: String,
     pub transaction_hash: String,
     pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_until: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -122,6 +125,7 @@ pub fn commit_import(
             import_batch_id: batch_id.clone(),
             transaction_hash: hash.clone(),
             status: "imported".into(),
+            retain_until: Some(retain_until_iso(row.date.date_naive())),
         });
         imported += 1;
     }
@@ -183,6 +187,7 @@ mod tests {
         assert_eq!(listed[0].import_batch_id, r1.import_batch_id);
         assert_eq!(listed[0].source_file_hash, r1.source_file_hash);
         assert!(!listed[0].transaction_hash.is_empty());
+        assert_eq!(listed[0].retain_until.as_deref(), Some("2031-12-31"));
 
         // Re-import same fingerprint → skip, no second row.
         let r2 = commit_import(&co, csv, &rows, as_of).unwrap();

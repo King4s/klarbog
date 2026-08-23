@@ -11,6 +11,7 @@ klarbog-store-sqlite = { workspace = true }
 klarbog-plugin-crm = { workspace = true }
 klarbog-plugin-invoice = { workspace = true }
 klarbog-plugin-documents = { workspace = true }
+klarbog-plugin-bank = { workspace = true }
 klarbog-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -27,4 +28,5 @@ tempfile = "3"
 tokio = { workspace = true }
 klarbog-core = { workspace = true }
 klarbog-journal = { workspace = true }
+klarbog-plugin-bank = { workspace = true }
 klarbog-types = { workspace = true }

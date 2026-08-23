@@ -81,11 +81,14 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 12, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "retention-plugin: RetentionPolicy (retain_days) + purge dry-run→confirm",
-            proven_by: &["klarbog-plugin-retention retention/backup/purge tests"],
+            enforced_by: "retention-plugin: retain_until på dokument/journal/bank ved oprettelse + retention-status-rapport (CLI: retention-status); global retain_days + purge dry-run→confirm",
+            proven_by: &[
+                "klarbog-types retention_deadline::tests",
+                "klarbog-plugin-retention status_report::tests::report_counts_objects_and_expiry_after_deadline",
+                "klarbog-plugin-bank store::tests::commit_assigns_batch_hash_and_skips_duplicates",
+            ],
             gaps: &[
-                "retain_until pr. dokument/postering/banktransaktion (porten har global retain_days)",
-                "retention-status-rapport pr. skæringsdato",
+                "konfigurerbart regnskabsår (porten bruger kalenderår Jan–Dec; originalen læser company.fiscalYearStartMonth)",
             ],
         },
         RegisteredRule {

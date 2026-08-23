@@ -5,9 +5,9 @@ use clap::{Parser, Subcommand};
 use klarbog_core::{init_company, open_existing};
 use klarbog_journal::{Direction, JournalEntry, Leg};
 use klarbog_plugin_retention::{
-    erase_party, load_retention, run_retention_purge, write_backup_manifest, write_gdpr_export,
-    BackupManifest, ErasePartyOptions, ErasePartyReport, GdprExport, PurgeOptions, PurgeReport,
-    RetentionPolicy,
+    build_retention_status_report, erase_party, load_retention, run_retention_purge,
+    write_backup_manifest, write_gdpr_export, BackupManifest, ErasePartyOptions, ErasePartyReport,
+    GdprExport, PurgeOptions, PurgeReport, RetentionPolicy, RetentionStatusReport,
 };
 use klarbog_types::{Actor, Currency, Envelope, MinorAmount, PartyId};
 use std::path::PathBuf;
@@ -54,6 +54,13 @@ enum Cmd {
     Retention {
         #[arg(long)]
         company: PathBuf,
+    },
+    /// Retention deadline status report (documents, journal, bank) as of a date
+    RetentionStatus {
+        #[arg(long)]
+        company: PathBuf,
+        #[arg(long)]
+        as_of: Option<String>,
     },
     /// Write company-scoped GDPR export v1 metadata (`gdpr_export.json`)
     GdprExport {
@@ -197,6 +204,17 @@ async fn main() -> anyhow::Result<()> {
             open_existing(&company).await?;
             let policy: RetentionPolicy = load_retention(&company)?;
             println!("{}", serde_json::to_string(&Envelope::ok(policy))?);
+        }
+        Cmd::RetentionStatus { company, as_of } => {
+            open_existing(&company).await?;
+            let as_of_date = match as_of {
+                Some(text) => chrono::NaiveDate::parse_from_str(&text, "%Y-%m-%d")
+                    .map_err(|_| anyhow::anyhow!("asOf must be YYYY-MM-DD"))?,
+                None => Utc::now().date_naive(),
+            };
+            let report: RetentionStatusReport =
+                build_retention_status_report(&company, as_of_date).await?;
+            println!("{}", serde_json::to_string(&Envelope::ok(report))?);
         }
         Cmd::GdprExport { company } => {
             open_existing(&company).await?;

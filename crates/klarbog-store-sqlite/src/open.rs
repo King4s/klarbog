@@ -85,13 +85,16 @@ mod tests {
     async fn wal_fk_and_balanced_append() {
         let dir = tempdir().unwrap();
         let store = open_company(dir.path()).await.unwrap();
-        assert_eq!(store.schema_version().await.unwrap(), 1);
+        assert_eq!(store.schema_version().await.unwrap(), 2);
         let (mode, fk, busy) = store.pragmas().await.unwrap();
         assert_eq!(mode.to_lowercase(), "wal");
         assert_eq!(fk, 1);
         assert!(busy >= 5000);
         let posted = balanced(100).post(None).unwrap();
         store.append(&posted).await.unwrap();
+        let rows = store.list_journal_retention_rows().await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].retain_until.is_some());
         assert_eq!(
             store.last_digest().await.unwrap().as_deref(),
             Some(posted.digest.as_str())

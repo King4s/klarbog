@@ -325,4 +325,10 @@ rg -q '<td class="money">[0-9-]+\.[0-9]{2} DKK</td>' <<<"$PAGE" \
   || fail "parties: expected a DKK saldo on the party"
 echo "ok: party saldo shown"
 
+# --- retention status: CLI report over smoke company data ---
+RET_JSON="$(./target/debug/klarbog retention-status --company "$COMPANY")"
+echo "$RET_JSON" | rg -q '"ok":true' || fail "retention-status: expected ok"
+echo "$RET_JSON" | rg -q 'journal_entries' || fail "retention-status: journal row missing"
+echo "ok: retention status report"
+
 echo "UI_SMOKE_OK"

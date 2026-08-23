@@ -6,6 +6,6 @@ mod query;
 mod reconcile_query;
 
 pub use open::{open_company, CompanyStore, StoreError};
-pub use persist::JournalDigestSummary;
+pub use persist::{JournalDigestSummary, JournalRetentionRow};
 pub use query::{AccountBalance, PartyBalance, PostedEntryView, PostedLegView};
 pub use reconcile_query::BankMemoRef;

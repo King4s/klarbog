@@ -56,6 +56,9 @@ pub struct Document {
     pub invoice_id: Option<InvoiceId>,
     pub notes: String,
     pub created_unix_ms: i64,
+    /// ISO date YYYY-MM-DD — fiscal year end + 5 years from basis date.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_until: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
