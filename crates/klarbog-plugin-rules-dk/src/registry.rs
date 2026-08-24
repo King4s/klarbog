@@ -212,7 +212,6 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-plugin-documents issued_invoice::tests::attach_writes_immutable_json",
             ],
             gaps: &[
-                "manuelt valgt fakturanummer (validateManualInvoiceNumberScope)",
                 "PDF-snapshot ved udstedelse",
                 "valuta/FX i issued snapshot",
             ],

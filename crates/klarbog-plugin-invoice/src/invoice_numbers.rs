@@ -16,9 +16,10 @@ fn format_invoice_no(scope: &str, value: u32) -> String {
     format!("{scope}-{value:04}")
 }
 
-fn parse_canonical_invoice_no(number: &str) -> Option<(&str, u32)> {
+/// `<scope>-<digits>` (originalens MANUAL_INVOICE_NUMBER_RE).
+fn parse_manual_invoice_number(number: &str) -> Option<(&str, u32)> {
     let (scope, suffix) = number.trim().rsplit_once('-')?;
-    if suffix.len() != 4 || !suffix.chars().all(|c| c.is_ascii_digit()) {
+    if suffix.is_empty() || !suffix.chars().all(|c| c.is_ascii_digit()) {
         return None;
     }
     Some((scope, suffix.parse().ok()?))
@@ -28,7 +29,7 @@ fn issued_invoice_floor(invoices: &[Invoice], scope: &str) -> u32 {
     let mut max = 0u32;
     for inv in invoices {
         if let Some(no) = inv.invoice_no.as_deref() {
-            if let Some((s, n)) = parse_canonical_invoice_no(no) {
+            if let Some((s, n)) = parse_manual_invoice_number(no) {
                 if s == scope {
                     max = max.max(n);
                 }
@@ -43,14 +44,18 @@ pub fn validate_manual_invoice_number_scope(
     as_of: DateTime<Utc>,
     invoice_number: &str,
 ) -> Result<(), InvoiceError> {
-    if let Some((year, _)) = parse_canonical_invoice_no(invoice_number.trim()) {
-        let scope = fiscal_scope(company, as_of);
-        if year != scope {
-            return Err(InvoiceError::ManualInvoiceScopeMismatch {
-                number: invoice_number.trim().to_string(),
-                scope,
-            });
-        }
+    let raw = invoice_number.trim();
+    let Some((year, _)) = parse_manual_invoice_number(raw) else {
+        return Err(InvoiceError::BadInvoiceNumber(format!(
+            "manual invoice number {raw} must be of the form <scope>-<number>"
+        )));
+    };
+    let scope = fiscal_scope(company, as_of);
+    if year != scope {
+        return Err(InvoiceError::ManualInvoiceScopeMismatch {
+            number: raw.to_string(),
+            scope,
+        });
     }
     Ok(())
 }
@@ -70,7 +75,9 @@ pub fn resolve_invoice_number(
 ) -> Result<String, InvoiceError> {
     if let Some(raw) = manual.map(str::trim).filter(|s| !s.is_empty()) {
         validate_manual_invoice_number_scope(company, as_of, raw)?;
-        Ok(raw.to_string())
+        let (scope, value) = parse_manual_invoice_number(raw)
+            .expect("validate_manual_invoice_number_scope ensures parse");
+        Ok(format_invoice_no(scope, value))
     } else {
         peek_invoice_number(company, as_of)
     }
@@ -82,7 +89,7 @@ pub fn reserve_invoice_number(
     number: &str,
 ) -> Result<(), InvoiceError> {
     let scope = fiscal_scope(company, as_of);
-    let Some((s, value)) = parse_canonical_invoice_no(number) else {
+    let Some((s, value)) = parse_manual_invoice_number(number) else {
         return Ok(());
     };
     if s != scope {
@@ -122,6 +129,55 @@ mod tests {
         assert_eq!(peek_invoice_number(&co, as_of).unwrap(), "2026-0001");
         reserve_invoice_number(&co, as_of, "2026-0001").unwrap();
         assert_eq!(peek_invoice_number(&co, as_of).unwrap(), "2026-0002");
+    }
+
+    #[test]
+    fn manual_canonicalises_to_four_digits() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        assert_eq!(
+            resolve_invoice_number(&co, as_of, Some("2026-1")).unwrap(),
+            "2026-0001"
+        );
+        reserve_invoice_number(&co, as_of, "2026-0001").unwrap();
+        assert_eq!(peek_invoice_number(&co, as_of).unwrap(), "2026-0002");
+    }
+
+    #[test]
+    fn manual_scope_mismatch_is_rejected() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        let err = validate_manual_invoice_number_scope(&co, as_of, "2099-0001").unwrap_err();
+        assert!(matches!(
+            err,
+            InvoiceError::ManualInvoiceScopeMismatch { .. }
+        ));
+    }
+
+    #[test]
+    fn manual_bad_form_is_rejected() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        let err = validate_manual_invoice_number_scope(&co, as_of, "FAKT-42-X").unwrap_err();
+        assert!(matches!(err, InvoiceError::BadInvoiceNumber(_)));
+    }
+
+    #[test]
+    fn manual_ahead_of_sequence_fails() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let as_of = dt("2026-05-20");
+        assert!(matches!(
+            reserve_invoice_number(&co, as_of, "2026-0002"),
+            Err(InvoiceError::SequenceConflict { .. })
+        ));
     }
 
     #[test]

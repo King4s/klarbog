@@ -104,6 +104,9 @@ expect_ok "invoice create" "$(post /ui/invoices --data-urlencode action=create \
   --data-urlencode description=Smoke --data-urlencode amount_minor=50000)"
 INV="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
 [[ -n "$INV" ]] || fail "no invoice_id on invoices page"
+expect_err_contains "manual invoice wrong fiscal scope" "fiscal scope" \
+  "$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV" \
+    --data-urlencode invoice_number=2099-0001)"
 # Private party (ADR-020): 50000 gross = 40000 net + 10000 salgsmoms.
 INVYEAR="$(date -u +%Y)"
 PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV")"

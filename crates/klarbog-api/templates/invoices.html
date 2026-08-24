@@ -35,6 +35,7 @@
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="send" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="invoice_number" placeholder="fakturanr (valgfri)" style="width:8rem" />
             <button class="ghost" type="submit">Bogfør + send (preview)</button>
           </form>
           {% endif %}
