@@ -48,6 +48,7 @@ async fn manifest_lists_files_and_digests() {
         "Vendor".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let company = klarbog_core::open_existing(&co).await.unwrap();
@@ -103,6 +104,7 @@ async fn manifest_includes_invoice_payments_summary_when_present() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();

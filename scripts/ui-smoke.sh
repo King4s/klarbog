@@ -44,13 +44,19 @@ input_value() { # input_value <html> <name> -> unescaped value
     | python3 -c 'import sys,html; print(html.unescape(sys.stdin.read().strip()))'
 }
 
+# First invoice_id on a send-preview form (draft only — ignores email/paid forms).
+draft_invoice_id() { # draft_invoice_id <html>
+  rg -o 'name="action" value="send"' -A12 <<<"$1" \
+    | rg -o 'name="invoice_id" value="[^"]*' | head -1 | cut -d'"' -f4
+}
+
 cargo build -q -p klarbog-api -p klarbog-cli
 
 WORK="$(mktemp -d /tmp/klarbog-ui-smoke.XXXXXX)"
 COMPANY="$WORK/demo"
 ./target/debug/klarbog init --company "$COMPANY" --name "Smoke ApS" --actor ui-dev >/dev/null
 
-KLARBOG_ALLOWLIST_ROOT="$WORK" KLARBOG_BIND="127.0.0.1:${PORT}" \
+KLARBOG_ALLOWLIST_ROOT="$WORK" KLARBOG_BIND="127.0.0.1:${PORT}" KLARBOG_EMAIL_DRY_RUN=1 \
   ./target/debug/klarbog-api >"$WORK/server.log" 2>&1 &
 API_PID=$!
 
@@ -121,6 +127,13 @@ expect_ok "invoice send commit" "$(post /ui/invoices --data-urlencode action=com
 [[ -f "$COMPANY/objects/invoices/issued/$INVYEAR-0001.json" ]] \
   || fail "invoice send: immutable issued snapshot missing"
 echo "ok: issued invoice snapshot ($INVYEAR-0001.json)"
+expect_ok "invoice email dry-run" "$(post /ui/invoices --data-urlencode action=send_email \
+  --data-urlencode "invoice_id=$INV" --data-urlencode email_to=test@example.com)"
+[[ -f "$COMPANY/email_send_log.jsonl" ]] \
+  || fail "invoice email: email_send_log.jsonl missing"
+rg -q 'test@example.com' "$COMPANY/email_send_log.jsonl" \
+  || fail "invoice email: log row missing recipient"
+echo "ok: invoice email dry-run logged (DK-EMAIL-DELIVERY-001)"
 PAGE="$(post /ui/invoices --data-urlencode action=paid_preview --data-urlencode "invoice_id=$INV")"
 expect_ok "invoice paid preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
@@ -131,7 +144,8 @@ expect_ok "invoice payment commit" "$(post /ui/invoices --data-urlencode action=
 expect_ok "bank invoice create" "$(post /ui/invoices --data-urlencode action=create \
   --data-urlencode "party_id=$PARTY_ID" --data-urlencode kind=sale \
   --data-urlencode description=Bankmatch --data-urlencode amount_minor=70000)"
-INV2="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
+INV2="$(draft_invoice_id "$(getp /ui/invoices)")"
+[[ -n "$INV2" ]] || fail "no draft invoice_id for bank send"
 PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV2")"
 expect_ok "bank invoice send preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
@@ -222,7 +236,8 @@ getp /ui/invoices | rg -q '125.00 DKK' || fail "invoices: expected brutto 125.00
 echo "ok: b2b invoice ekskl. moms (brutto 125.00 DKK)"
 
 # --- kreditnota: partial then residual full credit (cumulative loft) ---
-INV3="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
+INV3="$(draft_invoice_id "$(getp /ui/invoices)")"
+[[ -n "$INV3" ]] || fail "no draft invoice_id for b2b send"
 PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV3")"
 expect_ok "b2b send preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"

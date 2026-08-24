@@ -160,7 +160,15 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer ApS".into(), PartyKind::Business, None).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer ApS".into(),
+            PartyKind::Business,
+            None,
+            None,
+        )
+        .unwrap();
         let line = InvoiceLine {
             description: "Consulting".into(),
             amount_minor: 10_000,
@@ -184,8 +192,15 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         fs::create_dir_all(&co).unwrap();
-        let party =
-            upsert_party(&co, None, "Privat Kunde".into(), PartyKind::Private, None).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Privat Kunde".into(),
+            PartyKind::Private,
+            None,
+            None,
+        )
+        .unwrap();
         let line = InvoiceLine {
             description: "Ydelse".into(),
             amount_minor: 12_500,

@@ -187,6 +187,7 @@ mod http_tests {
             "Nordic Supply".into(),
             klarbog_plugin_crm::PartyKind::Private,
             None,
+            None,
         )
         .unwrap();
         create_draft_from_new(

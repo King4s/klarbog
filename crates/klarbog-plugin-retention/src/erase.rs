@@ -74,6 +74,7 @@ pub async fn erase_party(
             ERASED_DISPLAY_NAME.into(),
             kind,
             None,
+            None,
         )?;
     }
 

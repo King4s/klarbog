@@ -11,6 +11,10 @@ klarbog-plugin-crm = { workspace = true }
 klarbog-plugin-rules-dk = { workspace = true }
 klarbog-journal = { workspace = true }
 klarbog-types = { workspace = true }
+klarbog-mail = { workspace = true }
+klarbog-storage = { workspace = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -21,3 +25,4 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { workspace = true }

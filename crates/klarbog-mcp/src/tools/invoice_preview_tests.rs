@@ -23,6 +23,7 @@ async fn mcp_mark_paid_preview() {
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let invoice = create_draft_from_new(
@@ -65,6 +66,7 @@ async fn mcp_mark_paid_preview_issues_confirm_token() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();
@@ -111,6 +113,7 @@ async fn mcp_mark_part_paid_preview() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();
@@ -178,6 +181,7 @@ async fn mcp_mark_part_paid_preview_issues_confirm_token() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();

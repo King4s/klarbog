@@ -1,6 +1,7 @@
 //! Invoices SSR — list, draft create, lifecycle preview actions.
 
 mod credit;
+mod email;
 mod form;
 mod interest;
 mod post;

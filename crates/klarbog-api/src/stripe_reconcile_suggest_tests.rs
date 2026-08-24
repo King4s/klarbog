@@ -37,6 +37,7 @@ async fn company_with_charge() -> (tempfile::TempDir, std::path::PathBuf) {
         "Customer payment".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     create_draft_from_new(

@@ -4,6 +4,7 @@
 mod credit;
 mod draft;
 pub mod due_date;
+pub mod email;
 mod invoice_numbers;
 mod issue;
 mod late_interest;
@@ -24,6 +25,10 @@ pub use draft::{
 pub use due_date::{
     assess_overdue, effective_due_date, format_iso_date, parse_iso_date, InvoiceDueAssessment,
     STATUTORY_PAYMENT_TERM_DAYS,
+};
+pub use email::{
+    deterministic_message_id, send_invoice_email, EmailKind, EmailSendLogRow,
+    SendInvoiceEmailOutcome, EMAIL_SEND_LOG, RULE_ID as EMAIL_DELIVERY_RULE_ID,
 };
 pub use invoice_numbers::{
     invoice_no_from_memo, peek_invoice_number, reserve_invoice_number, resolve_invoice_number,
@@ -362,6 +367,16 @@ pub enum InvoiceError {
     Crm(#[from] klarbog_plugin_crm::CrmError),
     #[error("vat: {0}")]
     Vat(#[from] klarbog_plugin_rules_dk::VatSplitError),
+    #[error("invoice must be sent before email delivery")]
+    NotSentForEmail,
+    #[error("issued invoice document is missing")]
+    MissingIssuedDocument,
+    #[error("no recipient email for invoice {0}")]
+    MissingRecipientEmail(String),
+    #[error("invalid recipient email: {0}")]
+    InvalidRecipientEmail(String),
+    #[error("email send failed: {0}")]
+    EmailSendFailed(String),
 }
 
 pub struct InvoicePlugin;

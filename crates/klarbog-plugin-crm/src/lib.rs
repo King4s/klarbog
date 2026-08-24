@@ -47,6 +47,9 @@ pub struct Party {
     /// `None` = inherit company profile payment terms at invoice issue.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_terms_days: Option<u32>,
+    /// Customer email for invoice delivery (DK-EMAIL-DELIVERY-001).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
 }
 
 pub struct CrmPlugin;
@@ -65,7 +68,7 @@ impl CrmPlugin {
         id: Option<PartyId>,
         kind: PartyKind,
     ) -> Result<Party, CrmError> {
-        upsert_party(company, id, display_name.into(), kind, None)
+        upsert_party(company, id, display_name.into(), kind, None, None)
     }
 
     pub fn get(&self, company: &Path, id: &PartyId) -> Result<Option<Party>, CrmError> {

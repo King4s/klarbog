@@ -17,6 +17,7 @@ async fn ui_interest_register_and_post() {
         "Interest buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(

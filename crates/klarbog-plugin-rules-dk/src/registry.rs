@@ -201,6 +201,25 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             ],
         },
         RegisteredRule {
+            rule_id: "DK-EMAIL-DELIVERY-001",
+            name: "Invoice email delivery must be deterministic, idempotent, and append-only logged",
+            source_id: "DK-BOGFORINGSLOVEN-2022-700",
+            provisions: &["§ 7, stk. 1", "§ 9, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "klarbog-mail SMTP (info+klarbog@pellucidsoftware.com); invoice-plugin send_invoice_email; email_send_log.jsonl; UI send_email on sent invoices",
+            proven_by: &[
+                "klarbog-mail tests",
+                "klarbog-plugin-invoice email::tests",
+            ],
+            gaps: &[
+                "rendered PDF attachment (port attaches issued JSON)",
+                "reminder UI",
+                "MCP invoice_send_email",
+                "SQLite send log",
+                "audit_log row",
+            ],
+        },
+        RegisteredRule {
             rule_id: "DK-INVOICE-ISSUE-001",
             name: "Issued invoices must be stored immutably with sequential invoice numbers",
             source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",

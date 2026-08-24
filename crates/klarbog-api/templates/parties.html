@@ -26,7 +26,7 @@
   {% endif %}
 
   <table class="table">
-    <thead><tr><th>Id</th><th>Navn</th><th>Type</th><th>Frist</th><th>Saldo</th><th>GDPR</th></tr></thead>
+    <thead><tr><th>Id</th><th>Navn</th><th>Type</th><th>Frist</th><th>E-mail</th><th>Saldo</th><th>GDPR</th></tr></thead>
     <tbody>
       {% for p in parties %}
       <tr>
@@ -34,6 +34,7 @@
         <td>{{ p.display_name }}</td>
         <td>{{ p.kind }}</td>
         <td class="money">{{ p.frist }}</td>
+        <td class="money">{{ p.email }}</td>
         <td class="money">{{ p.saldo }}</td>
         <td>
           <form method="post" action="/ui/parties" class="inline">
@@ -45,7 +46,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="muted">Ingen parter</td></tr>
+      <tr><td colspan="7" class="muted">Ingen parter</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -62,6 +63,9 @@
     </label>
     <label>Betalingsfrist (dage, valgfri — tom = arver virksomhedens standard)
       <input name="payment_terms_days" type="number" min="1" max="365" placeholder="fx 14" />
+    </label>
+    <label>E-mail (valgfri — til faktura-udsendelse)
+      <input name="email" type="email" placeholder="kunde@example.com" />
     </label>
     <div class="actions">
       <button class="primary" type="submit">Opret part</button>

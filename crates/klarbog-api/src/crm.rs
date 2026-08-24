@@ -21,6 +21,8 @@ pub struct UpsertBody {
     pub kind: Option<String>,
     /// Optional party-specific payment terms; omit to inherit company default.
     pub payment_terms_days: Option<u32>,
+    /// Optional customer email for invoice delivery.
+    pub email: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -77,6 +79,10 @@ fn map_crm(err: CrmError) -> (StatusCode, Envelope<Value>) {
                 "payment_terms_days must be between 1 and 365, got {days}"
             )]),
         ),
+        CrmError::InvalidEmail(addr) => (
+            StatusCode::BAD_REQUEST,
+            Envelope::err([format!("invalid email address: {addr}")]),
+        ),
         CrmError::Io(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
@@ -113,11 +119,18 @@ pub async fn upsert(
             )
         })?,
     };
-    let party =
-        upsert_party(&path, id, body.display_name, kind, body.payment_terms_days).map_err(|e| {
-            let (s, env) = map_crm(e);
-            (s, Json(env))
-        })?;
+    let party = upsert_party(
+        &path,
+        id,
+        body.display_name,
+        kind,
+        body.payment_terms_days,
+        body.email,
+    )
+    .map_err(|e| {
+        let (s, env) = map_crm(e);
+        (s, Json(env))
+    })?;
     Ok(Json(Envelope::ok(serde_json::to_value(party).unwrap())))
 }
 

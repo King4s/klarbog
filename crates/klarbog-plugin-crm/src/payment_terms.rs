@@ -29,6 +29,7 @@ mod tests {
             display_name: "Kunde".into(),
             kind: PartyKind::Private,
             payment_terms_days: terms,
+            email: None,
         }
     }
 

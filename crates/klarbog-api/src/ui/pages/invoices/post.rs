@@ -172,6 +172,7 @@ pub async fn invoices_post(
         "commit_interest" => {
             super::interest::commit_interest(&state, &company, &path, &actor, form).await
         }
+        "send_email" => super::email::send_email(&state, &company, &path, &form).await,
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
             match mark_paid_preview(&path, &id, &actor, &InvoiceConfig::default()) {

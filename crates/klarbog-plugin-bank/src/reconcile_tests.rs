@@ -26,6 +26,7 @@ fn matches_sale_by_amount_and_party_name() {
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -59,6 +60,7 @@ fn purchase_outgoing_match() {
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -89,6 +91,7 @@ fn amount_only_stays_below_safe_and_sets_unsafe_reason() {
         None,
         "Hidden Vendor".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();
@@ -136,6 +139,7 @@ fn apply_safe_match_returns_payment_suggestion() {
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(
@@ -171,6 +175,7 @@ fn apply_rejects_unsafe_without_force() {
         "Hidden Vendor".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(
@@ -200,6 +205,7 @@ fn apply_force_user_closes_unmatched_exception() {
         None,
         "Hidden Vendor".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();

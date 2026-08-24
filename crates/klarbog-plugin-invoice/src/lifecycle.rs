@@ -237,6 +237,7 @@ mod tests {
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
             None,
+            None,
         )
         .unwrap();
         let inv = create_draft_from_new(
@@ -282,6 +283,7 @@ mod tests {
             None,
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
+            None,
             None,
         )
         .unwrap();
@@ -332,6 +334,7 @@ mod tests {
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
             None,
+            None,
         )
         .unwrap();
         let inv = create_draft_from_new(
@@ -370,6 +373,7 @@ mod tests {
             None,
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
+            None,
             None,
         )
         .unwrap();

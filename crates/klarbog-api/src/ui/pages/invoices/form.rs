@@ -19,6 +19,8 @@ pub(super) struct InvoiceRow {
     /// Overdue collectible — morarente kan registreres/bogføres.
     pub can_interest: bool,
     pub has_unposted_interest: bool,
+    /// Sent issued invoice — eligible for email delivery.
+    pub can_email: bool,
 }
 
 pub(super) struct PartyOption {
@@ -58,6 +60,9 @@ pub struct InvoiceActionForm {
     pub reference_rate_bps: Option<String>,
     #[serde(default)]
     pub interest_note: Option<String>,
+    /// Optional recipient override for invoice email (DK-EMAIL-DELIVERY-001).
+    #[serde(default)]
+    pub email_to: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

@@ -30,6 +30,7 @@ async fn invoice_create_and_list() {
         "Buyer ApS".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let state = AppState {
@@ -125,6 +126,7 @@ async fn invoice_actor_denied() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();

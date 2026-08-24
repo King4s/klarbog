@@ -19,6 +19,8 @@ struct PartyRow {
     kind: &'static str,
     /// Party payment terms: explicit days or inherit company default.
     frist: String,
+    /// Customer email for invoice delivery.
+    email: String,
     /// Debit-positive net over party-tagged legs; "—" when never posted.
     saldo: String,
 }
@@ -83,6 +85,7 @@ async fn load_parties(state: &AppState, company: &str) -> Result<Vec<PartyRow>, 
                     Some(days) => format!("{days} d"),
                     None => "arver".into(),
                 },
+                email: p.email.unwrap_or_else(|| "—".into()),
                 saldo,
             }
         })
@@ -167,6 +170,9 @@ pub struct PartyForm {
     /// Optional party-specific payment terms (days); empty = inherit company default.
     #[serde(default)]
     pub payment_terms_days: String,
+    /// Optional customer email for invoice delivery.
+    #[serde(default)]
+    pub email: String,
 }
 
 fn wants_delete_docs(raw: &str) -> bool {
@@ -226,7 +232,15 @@ pub async fn parties_post(
                 Ok(v) => v,
                 Err(e) => return page_err(&state, company, e).await,
             };
-            match upsert_party(&path, None, name, kind, payment_terms_days) {
+            let email = {
+                let t = form.email.trim();
+                if t.is_empty() {
+                    None
+                } else {
+                    Some(t.to_string())
+                }
+            };
+            match upsert_party(&path, None, name, kind, payment_terms_days, email) {
                 Ok(_) => Redirect::to("/ui/parties").into_response(),
                 Err(e) => page_err(&state, company, e.to_string()).await,
             }

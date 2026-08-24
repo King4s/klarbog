@@ -155,6 +155,10 @@ pub(super) async fn load_page(
                     .interest_claims
                     .iter()
                     .any(|c| c.posted_journal_id.is_none()),
+                can_email: inv.status != InvoiceStatus::Draft
+                    && inv.status != InvoiceStatus::Void
+                    && inv.invoice_no.is_some()
+                    && inv.issued_document_id.is_some(),
             })
         })
         .collect();

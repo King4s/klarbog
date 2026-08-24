@@ -81,6 +81,7 @@ mod tests {
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
             None,
+            None,
         )
         .unwrap();
         let inv = create_draft_from_new(
@@ -122,7 +123,15 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Buyer".into(), PartyKind::Private, Some(14)).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer".into(),
+            PartyKind::Private,
+            Some(14),
+            None,
+        )
+        .unwrap();
         let company_default = 30_u32;
         let terms = resolve_payment_terms_days(&party, company_default);
         assert_eq!(terms, 14);

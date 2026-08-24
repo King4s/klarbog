@@ -157,6 +157,7 @@ mod tests {
             "Vendor".into(),
             klarbog_plugin_crm::PartyKind::Private,
             None,
+            None,
         )
         .unwrap();
         attach_document(

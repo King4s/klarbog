@@ -112,6 +112,13 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         InvoiceError::InvalidTransition { .. } | InvoiceError::CreditWithPayments => {
             (StatusCode::CONFLICT, Envelope::err([err.to_string()]))
         }
+        InvoiceError::NotSentForEmail
+        | InvoiceError::MissingIssuedDocument
+        | InvoiceError::MissingRecipientEmail(_)
+        | InvoiceError::InvalidRecipientEmail(_)
+        | InvoiceError::EmailSendFailed(_) => {
+            (StatusCode::BAD_REQUEST, Envelope::err([err.to_string()]))
+        }
         InvoiceError::Crm(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),

@@ -20,6 +20,7 @@ async fn mcp_invoice_create_list_patch_status() {
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
 
@@ -98,6 +99,7 @@ async fn mcp_invoice_create_rejects_non_positive_amount() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
         None,
     )
     .unwrap();

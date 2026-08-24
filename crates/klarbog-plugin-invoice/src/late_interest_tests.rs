@@ -15,6 +15,7 @@ fn issued_invoice(co: &Path, gross_minor: i64, issue: &str, due: &str) -> crate:
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
         None,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(
