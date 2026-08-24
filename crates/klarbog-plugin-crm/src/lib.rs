@@ -1,7 +1,9 @@
 //! CRM plugin — parties in `parties.json`. No journal-write capability (ADR-004).
 
+mod payment_terms;
 mod store;
 
+pub use payment_terms::{payment_terms_deviation_note, resolve_payment_terms_days};
 pub use store::{get_party, list_parties, upsert_party, CrmError, PARTIES_FILENAME};
 
 use klarbog_plugin::{Capability, Plugin};
@@ -42,6 +44,9 @@ pub struct Party {
     /// Legacy parties.json without the field deserializes as `private`.
     #[serde(default)]
     pub kind: PartyKind,
+    /// `None` = inherit company profile payment terms at invoice issue.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_terms_days: Option<u32>,
 }
 
 pub struct CrmPlugin;
@@ -60,7 +65,7 @@ impl CrmPlugin {
         id: Option<PartyId>,
         kind: PartyKind,
     ) -> Result<Party, CrmError> {
-        upsert_party(company, id, display_name.into(), kind)
+        upsert_party(company, id, display_name.into(), kind, None)
     }
 
     pub fn get(&self, company: &Path, id: &PartyId) -> Result<Option<Party>, CrmError> {

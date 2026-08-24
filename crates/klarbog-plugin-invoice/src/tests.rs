@@ -21,6 +21,7 @@ fn draft_roundtrip_with_journal_suggestion() {
         None,
         "Nordic Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     assert!(co.join(PARTIES_FILENAME).exists());
@@ -61,6 +62,7 @@ fn lifecycle_patch_and_mark_paid() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let plugin = InvoicePlugin;
@@ -98,6 +100,7 @@ fn lifecycle_mark_part_paid() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let plugin = InvoicePlugin;

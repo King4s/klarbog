@@ -19,6 +19,7 @@ async fn mcp_invoice_create_list_patch_status() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
 
@@ -97,6 +98,7 @@ async fn mcp_invoice_create_rejects_non_positive_amount() {
         None,
         "Buyer".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let env = invoice_create_draft(

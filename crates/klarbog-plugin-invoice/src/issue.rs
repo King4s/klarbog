@@ -80,6 +80,7 @@ mod tests {
             None,
             "Buyer".into(),
             klarbog_plugin_crm::PartyKind::Private,
+            None,
         )
         .unwrap();
         let inv = create_draft_from_new(
@@ -112,5 +113,40 @@ mod tests {
             .unwrap();
         assert!(assessment.is_overdue);
         assert_eq!(assessment.overdue_days, 5);
+    }
+
+    #[test]
+    fn record_issue_uses_party_payment_terms() {
+        use klarbog_plugin_crm::{resolve_payment_terms_days, PartyKind};
+
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(&co, None, "Buyer".into(), PartyKind::Private, Some(14)).unwrap();
+        let company_default = 30_u32;
+        let terms = resolve_payment_terms_days(&party, company_default);
+        assert_eq!(terms, 14);
+        let inv = create_draft_from_new(
+            &co,
+            party.id,
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Work".into(),
+                amount_minor: 10_000,
+                currency: "DKK".into(),
+            }],
+        )
+        .unwrap();
+        let issued = record_issue(
+            &co,
+            &inv.id,
+            "2026-05-16".into(),
+            terms,
+            Some("2026-0002".into()),
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(issued.due_date.as_deref(), Some("2026-05-30"));
     }
 }

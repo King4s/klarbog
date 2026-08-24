@@ -143,6 +143,7 @@ async fn validates_party_and_invoice() {
         None,
         "Vendor".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(

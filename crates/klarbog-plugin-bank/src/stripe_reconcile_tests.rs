@@ -33,6 +33,7 @@ fn dry_run_pipeline_matches_open_sale() {
         None,
         "Customer payment".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -98,6 +99,7 @@ fn unique_safe_applies_journal_suggestion() {
         None,
         "Customer payment".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -133,6 +135,7 @@ fn no_safe_match_skips_apply() {
         None,
         "Other Party".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -171,6 +174,7 @@ fn unique_safe_apply_closes_prior_unmatched_exception() {
         None,
         "Customer payment".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     create_draft_from_new(

@@ -19,6 +19,7 @@ async fn dry_run_does_not_mutate() {
         None,
         "Person A".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     attach_document(
@@ -60,6 +61,7 @@ async fn confirm_anonymizes_and_strips_docs_keeps_journal() {
         None,
         "Person B".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     attach_document(
@@ -133,6 +135,7 @@ async fn confirm_delete_documents_uses_object_delete() {
         None,
         "Person C".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     attach_document(
@@ -180,6 +183,7 @@ async fn confirm_appends_erase_audit_jsonl_no_secrets() {
         None,
         "Secret Name".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     attach_document(
@@ -232,6 +236,7 @@ async fn dry_run_also_records_audit_mode() {
         None,
         "Preview".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     erase_party(&co, &party.id, ErasePartyOptions::default())

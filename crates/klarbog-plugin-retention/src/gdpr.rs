@@ -193,6 +193,7 @@ mod tests {
             None,
             "Test Person".into(),
             klarbog_plugin_crm::PartyKind::Private,
+            None,
         )
         .unwrap();
         let inv = create_draft(

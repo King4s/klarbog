@@ -31,6 +31,7 @@ async fn gdpr_erase_party_dry_run_then_confirm() {
         None,
         "Erase Me".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     attach_document(

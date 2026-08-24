@@ -29,6 +29,7 @@ async fn seed_invoice(company_path: &std::path::Path) -> (Actor, String) {
         None,
         "Buyer ApS".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let invoice = create_draft_from_new(

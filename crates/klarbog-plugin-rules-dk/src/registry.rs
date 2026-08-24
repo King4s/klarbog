@@ -142,11 +142,10 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             proven_by: &[
                 "klarbog-plugin-invoice due_date::tests",
                 "klarbog-plugin-invoice issue::tests::record_issue_sets_dates_and_number",
+                "klarbog-plugin-invoice issue::tests::record_issue_uses_party_payment_terms",
+                "klarbog-plugin-crm payment_terms::tests",
             ],
-            gaps: &[
-                "rykkergebyr/compensation i claim_open_balance",
-                "kundespecifik payment_terms_days på CRM-part",
-            ],
+            gaps: &["rykkergebyr/compensation i claim_open_balance"],
         },
         RegisteredRule {
             rule_id: "DK-INVOICE-LATE-INTEREST-001",

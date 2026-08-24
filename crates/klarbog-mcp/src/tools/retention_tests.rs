@@ -58,6 +58,7 @@ async fn gdpr_export_writes_metadata_file() {
         None,
         "Export Me".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let args = json!({
@@ -103,6 +104,7 @@ async fn gdpr_erase_party_dry_run_then_confirm() {
         None,
         "Erase Me".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let dry_args = json!({
@@ -161,6 +163,7 @@ async fn gdpr_erase_party_authz_denied() {
         None,
         "X".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let args = json!({
@@ -185,6 +188,7 @@ async fn gdpr_erase_party_outside_allowlist() {
         None,
         "Y".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let args = json!({

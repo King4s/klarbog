@@ -122,7 +122,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
-        let party = upsert_party(&co, None, "Kunde".into(), PartyKind::Private).unwrap();
+        let party = upsert_party(&co, None, "Kunde".into(), PartyKind::Private, None).unwrap();
         let inv = create_draft_from_new(
             &co,
             party.id.clone(),

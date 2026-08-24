@@ -17,6 +17,8 @@ struct PartyRow {
     display_name: String,
     /// Billing convention (ADR-020): Privat = inkl. moms, Erhverv = ekskl.
     kind: &'static str,
+    /// Party payment terms: explicit days or inherit company default.
+    frist: String,
     /// Debit-positive net over party-tagged legs; "—" when never posted.
     saldo: String,
 }
@@ -76,6 +78,10 @@ async fn load_parties(state: &AppState, company: &str) -> Result<Vec<PartyRow>, 
                 kind: match p.kind {
                     PartyKind::Private => "Privat",
                     PartyKind::Business => "Erhverv",
+                },
+                frist: match p.payment_terms_days {
+                    Some(days) => format!("{days} d"),
+                    None => "arver".into(),
                 },
                 saldo,
             }
@@ -158,10 +164,27 @@ pub struct PartyForm {
     /// `private` (default) or `business` (ADR-020).
     #[serde(default)]
     pub kind: String,
+    /// Optional party-specific payment terms (days); empty = inherit company default.
+    #[serde(default)]
+    pub payment_terms_days: String,
 }
 
 fn wants_delete_docs(raw: &str) -> bool {
     matches!(raw.trim(), "on" | "1" | "true")
+}
+
+fn parse_payment_terms_days(raw: &str) -> Result<Option<u32>, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let days: u32 = trimmed
+        .parse()
+        .map_err(|_| format!("Ugyldig betalingsfrist: {trimmed:?}"))?;
+    if !(1..=365).contains(&days) {
+        return Err(format!("Betalingsfrist skal være 1–365 dage, fik {days}"));
+    }
+    Ok(Some(days))
 }
 
 async fn page_err(state: &AppState, company: String, e: String) -> Response {
@@ -199,7 +222,11 @@ pub async fn parties_post(
                     }
                 },
             };
-            match upsert_party(&path, None, name, kind) {
+            let payment_terms_days = match parse_payment_terms_days(&form.payment_terms_days) {
+                Ok(v) => v,
+                Err(e) => return page_err(&state, company, e).await,
+            };
+            match upsert_party(&path, None, name, kind, payment_terms_days) {
                 Ok(_) => Redirect::to("/ui/parties").into_response(),
                 Err(e) => page_err(&state, company, e.to_string()).await,
             }

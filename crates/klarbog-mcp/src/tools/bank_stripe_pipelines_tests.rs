@@ -26,6 +26,7 @@ async fn company_with_charge(match_amount: bool) -> (tempfile::TempDir, std::pat
         None,
         "Customer payment".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let amount = if match_amount { 24_275 } else { 99_999 };

@@ -19,6 +19,8 @@ pub struct UpsertBody {
     pub party_id: Option<String>,
     /// `private` (default) or `business` — billing convention (ADR-020).
     pub kind: Option<String>,
+    /// Optional party-specific payment terms; omit to inherit company default.
+    pub payment_terms_days: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -69,6 +71,12 @@ fn map_crm(err: CrmError) -> (StatusCode, Envelope<Value>) {
             StatusCode::BAD_REQUEST,
             Envelope::err(["display name must not be empty"]),
         ),
+        CrmError::InvalidPaymentTerms(days) => (
+            StatusCode::BAD_REQUEST,
+            Envelope::err([format!(
+                "payment_terms_days must be between 1 and 365, got {days}"
+            )]),
+        ),
         CrmError::Io(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
@@ -105,10 +113,11 @@ pub async fn upsert(
             )
         })?,
     };
-    let party = upsert_party(&path, id, body.display_name, kind).map_err(|e| {
-        let (s, env) = map_crm(e);
-        (s, Json(env))
-    })?;
+    let party =
+        upsert_party(&path, id, body.display_name, kind, body.payment_terms_days).map_err(|e| {
+            let (s, env) = map_crm(e);
+            (s, Json(env))
+        })?;
     Ok(Json(Envelope::ok(serde_json::to_value(party).unwrap())))
 }
 

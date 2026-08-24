@@ -39,11 +39,19 @@ pub async fn crm_upsert_party(args: &Value, allowlist_root: &Path) -> Envelope<V
             }
         },
     };
+    let payment_terms_days = match args.get("payment_terms_days") {
+        None => None,
+        Some(v) if v.is_null() => None,
+        Some(v) => match v.as_u64() {
+            Some(n) if n <= u32::MAX as u64 => Some(n as u32),
+            _ => return Envelope::err(["payment_terms_days must be a positive integer"]),
+        },
+    };
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    match upsert_party(&path, party_id, display_name, kind) {
+    match upsert_party(&path, party_id, display_name, kind, payment_terms_days) {
         Ok(party) => Envelope::ok(serde_json::to_value(party).unwrap()),
         Err(e) => map_crm(e),
     }

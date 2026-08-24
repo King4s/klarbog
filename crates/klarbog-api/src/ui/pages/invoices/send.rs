@@ -8,6 +8,7 @@ use axum::response::Response;
 use chrono::Utc;
 use klarbog_core::{journal_commit, load_company_policy};
 use klarbog_journal::JournalEntry;
+use klarbog_plugin_crm::{get_party, payment_terms_deviation_note, resolve_payment_terms_days};
 use klarbog_plugin_documents::attach_issued_invoice;
 use klarbog_plugin_invoice::{
     get_invoice, invoice_no_from_memo, issue_journal_suggestion, record_issue,
@@ -122,9 +123,19 @@ pub(super) async fn commit_send(
     .await
     {
         Ok(r) => {
-            let payment_terms = load_company_policy(path)
+            let company_default = load_company_policy(path)
                 .map(|p| p.payment_terms_days())
                 .unwrap_or(30);
+            let (payment_terms, deviation_note) = match get_invoice(path, &id).ok().flatten() {
+                Some(ref inv) => match get_party(path, &inv.party_id) {
+                    Ok(Some(party)) => (
+                        resolve_payment_terms_days(&party, company_default),
+                        payment_terms_deviation_note(&party, company_default),
+                    ),
+                    _ => (company_default, None),
+                },
+                None => (company_default, None),
+            };
             let doc = match attach_issued_invoice(
                 path,
                 &id,
@@ -160,18 +171,17 @@ pub(super) async fn commit_send(
                 Some(doc.id.to_string()),
                 doc.sha256.clone(),
             ) {
-                Ok(_) => html_ok(
-                    load_page(
-                        state,
-                        company,
-                        format!(
-                            "Faktura {inv_no} bogført · posted {} · {id} sat til sent",
-                            r.posted.id
-                        ),
-                        String::new(),
-                    )
-                    .await,
-                ),
+                Ok(_) => {
+                    let mut flash_ok = format!(
+                        "Faktura {inv_no} bogført · posted {} · {id} sat til sent",
+                        r.posted.id
+                    );
+                    if let Some(note) = deviation_note {
+                        flash_ok.push_str(" · ");
+                        flash_ok.push_str(&note);
+                    }
+                    html_ok(load_page(state, company, flash_ok, String::new()).await)
+                }
                 Err(e) => html_ok(
                     load_page(
                         state,

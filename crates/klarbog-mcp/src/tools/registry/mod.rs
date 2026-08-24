@@ -34,13 +34,15 @@ fn core_tools() -> Vec<Value> {
         }),
         json!({
             "name": "crm_upsert_party",
-            "description": "Upsert CRM party (display_name; optional party_id). No journal write (ADR-004).",
+            "description": "Upsert CRM party (display_name; optional party_id, kind, payment_terms_days). No journal write (ADR-004).",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "company": {"type": "string"},
                     "display_name": {"type": "string"},
                     "party_id": {"type": "string"},
+                    "kind": {"type": "string", "enum": ["private", "business"]},
+                    "payment_terms_days": {"type": "integer", "minimum": 1, "maximum": 365},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}
                 },

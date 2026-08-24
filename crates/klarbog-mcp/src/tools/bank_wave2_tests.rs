@@ -80,6 +80,7 @@ async fn mcp_reconcile_suggest_with_parsed_rows() {
         None,
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     create_draft_from_new(
@@ -142,6 +143,7 @@ async fn mcp_reconcile_apply_returns_entry() {
         None,
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(
@@ -188,6 +190,7 @@ async fn mcp_reconcile_apply_preview_issues_confirm_token() {
         None,
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(

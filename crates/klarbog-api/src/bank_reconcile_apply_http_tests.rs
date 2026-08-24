@@ -37,6 +37,7 @@ async fn seeded_apply_app() -> (
         None,
         "Nordic Supply".into(),
         klarbog_plugin_crm::PartyKind::Private,
+        None,
     )
     .unwrap();
     let inv = create_draft_from_new(
