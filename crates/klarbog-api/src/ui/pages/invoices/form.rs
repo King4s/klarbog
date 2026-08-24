@@ -74,6 +74,12 @@ pub struct InvoiceActionForm {
     /// Optional recipient override for invoice email (DK-EMAIL-DELIVERY-001).
     #[serde(default)]
     pub email_to: Option<String>,
+    /// `invoice` (default) or `reminder` for send_email (DK-EMAIL-DELIVERY-001).
+    #[serde(default)]
+    pub email_kind: Option<String>,
+    /// When set, compound send_reminder skips fee booking (fee still registered).
+    #[serde(default)]
+    pub reminder_skip_book: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

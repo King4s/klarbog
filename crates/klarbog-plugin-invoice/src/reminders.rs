@@ -128,6 +128,30 @@ pub fn register_invoice_reminder(
     Ok((updated, result))
 }
 
+/// Remove an unposted reminder row (rollback when compound send fails after register).
+pub fn rollback_unposted_reminder(
+    company: &Path,
+    id: &InvoiceId,
+    reminder_date: &str,
+) -> Result<(), InvoiceError> {
+    let mut file = crate::store::load(company)?;
+    let invoice = file
+        .invoices
+        .iter_mut()
+        .find(|inv| inv.id == *id)
+        .ok_or_else(|| InvoiceError::NotFound(id.to_string()))?;
+    let Some(pos) = invoice
+        .reminders
+        .iter()
+        .position(|r| r.reminder_date == reminder_date && r.posted_journal_id.is_none())
+    else {
+        return Ok(());
+    };
+    invoice.reminders.remove(pos);
+    crate::store::save(company, &file)?;
+    Ok(())
+}
+
 pub fn oldest_unposted_reminder(invoice: &Invoice) -> Option<(usize, &InvoiceReminder)> {
     invoice
         .reminders

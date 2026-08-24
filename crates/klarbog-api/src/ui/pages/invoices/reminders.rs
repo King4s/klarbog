@@ -18,7 +18,7 @@ use super::post::preview_with_pending;
 use super::view::load_page;
 use crate::AppState;
 
-fn remindable(path: &Path, id: &InvoiceId) -> Result<Invoice, String> {
+pub(super) fn remindable(path: &Path, id: &InvoiceId) -> Result<Invoice, String> {
     let invoice = match get_invoice(path, id) {
         Ok(Some(inv)) => inv,
         Ok(None) => return Err(format!("Ukendt: {id}")),
@@ -33,7 +33,7 @@ fn remindable(path: &Path, id: &InvoiceId) -> Result<Invoice, String> {
     Ok(invoice)
 }
 
-fn parse_reminder_date(raw: &Option<String>) -> Result<chrono::NaiveDate, String> {
+pub(super) fn parse_reminder_date(raw: &Option<String>) -> Result<chrono::NaiveDate, String> {
     let s = raw
         .as_ref()
         .map(|s| s.trim())
@@ -43,7 +43,7 @@ fn parse_reminder_date(raw: &Option<String>) -> Result<chrono::NaiveDate, String
     parse_iso_date(&s).map_err(|e| e.to_string())
 }
 
-fn parse_fee_minor(raw: &Option<String>) -> Result<Option<i64>, String> {
+pub(super) fn parse_fee_minor(raw: &Option<String>) -> Result<Option<i64>, String> {
     let Some(s) = raw.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) else {
         return Ok(None);
     };

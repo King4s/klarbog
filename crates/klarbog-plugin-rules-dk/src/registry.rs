@@ -241,14 +241,14 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 7, stk. 1", "§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "klarbog-mail SMTP (info+klarbog@pellucidsoftware.com); invoice-plugin send_invoice_email; email_send_log.jsonl; UI send_email on sent invoices",
+            enforced_by: "klarbog-mail SMTP (info+klarbog@pellucidsoftware.com); invoice-plugin send_invoice_email; email_send_log.jsonl; UI send_email + send_reminder on sent/overdue invoices",
             proven_by: &[
                 "klarbog-mail tests",
                 "klarbog-plugin-invoice email::tests",
+                "klarbog-api ui::tests::invoice_flow::ui_send_reminder_compound",
             ],
             gaps: &[
                 "rendered PDF attachment (port attaches issued JSON)",
-                "reminder UI",
                 "MCP invoice_send_email",
                 "SQLite send log",
                 "audit_log row",

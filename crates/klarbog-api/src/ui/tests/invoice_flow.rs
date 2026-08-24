@@ -182,3 +182,81 @@ async fn ui_reminder_register_and_post() {
     assert_eq!(posted.reminders.len(), 1);
     assert!(posted.reminders[0].posted_journal_id.is_some());
 }
+
+#[tokio::test]
+async fn ui_send_reminder_compound() {
+    use klarbog_plugin_invoice::read_send_log;
+    use std::fs;
+
+    let (app, dir, cookie) = test_app().await;
+    let co = dir.path().join("co");
+    let party = upsert_party(
+        &co,
+        None,
+        "Reminder email buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+        None,
+        Some("buyer@example.com".into()),
+    )
+    .unwrap();
+    let inv = create_draft_from_new(
+        &co,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Overdue work".into(),
+            amount_minor: 125_000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    let invoice_no = "2026-0101";
+    let object_dir = co.join("objects/invoices/issued");
+    fs::create_dir_all(&object_dir).unwrap();
+    fs::write(
+        object_dir.join(format!("{invoice_no}.json")),
+        br#"{"type":"issued_invoice","invoiceNumber":"2026-0101"}"#,
+    )
+    .unwrap();
+    record_issue(
+        &co,
+        &inv.id,
+        "2026-05-16".into(),
+        STATUTORY_PAYMENT_TERM_DAYS as u32,
+        Some(invoice_no.into()),
+        Some("doc_reminder_send".into()),
+        None,
+    )
+    .unwrap();
+
+    let html = post_html(
+        &app,
+        &cookie,
+        "/ui/invoices",
+        &format!(
+            "action=send_reminder&invoice_id={}&reminder_date=2026-06-26&email_to=buyer%40example.com",
+            inv.id
+        ),
+    )
+    .await;
+    assert!(
+        html.contains("Rykker sendt"),
+        "compound send failed: {}",
+        flashes(&html)
+    );
+    assert!(
+        html.contains("gebyr bogført"),
+        "expected inline fee booking: {}",
+        flashes(&html)
+    );
+
+    let posted = get_invoice(&co, &inv.id).unwrap().unwrap();
+    assert_eq!(posted.reminders.len(), 1);
+    assert_eq!(posted.reminders[0].reminder_date, "2026-06-26");
+    assert!(posted.reminders[0].posted_journal_id.is_some());
+
+    let log = read_send_log(&co).unwrap();
+    assert_eq!(log.len(), 1);
+    assert_eq!(log[0].kind, klarbog_plugin_invoice::EmailKind::Reminder);
+    assert_eq!(log[0].recipient, "buyer@example.com");
+}

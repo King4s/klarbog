@@ -9,6 +9,13 @@ use super::form::InvoiceActionForm;
 use super::view::load_page;
 use crate::AppState;
 
+fn parse_email_kind(raw: &Option<String>) -> EmailKind {
+    match raw.as_deref().map(str::trim) {
+        Some("reminder") => EmailKind::Reminder,
+        _ => EmailKind::Invoice,
+    }
+}
+
 pub async fn send_email(
     state: &AppState,
     company: &str,
@@ -16,6 +23,7 @@ pub async fn send_email(
     form: &InvoiceActionForm,
 ) -> Response {
     let id = InvoiceId::new(form.invoice_id.clone().unwrap_or_default());
+    let kind = parse_email_kind(&form.email_kind);
     let to_override = form.email_to.as_ref().and_then(|s| {
         let t = s.trim();
         if t.is_empty() {
@@ -26,21 +34,25 @@ pub async fn send_email(
     });
     let smtp = SmtpConfig::from_env();
     let dry_run = klarbog_mail::email_dry_run_from_env() || !smtp.is_configured();
-    match send_invoice_email(path, &id, EmailKind::Invoice, to_override, &smtp, dry_run).await {
+    match send_invoice_email(path, &id, kind, to_override, &smtp, dry_run).await {
         Ok(outcome) => {
+            let kind_label = match kind {
+                EmailKind::Reminder => "Rykkermail",
+                EmailKind::Invoice => "E-mail",
+            };
             let msg = if outcome.duplicate {
                 format!(
-                    "E-mail allerede sendt (idempotent) · message-id {}",
+                    "{kind_label} allerede sendt (idempotent) · message-id {}",
                     outcome.message_id
                 )
             } else if dry_run {
                 format!(
-                    "E-mail dry-run til {} · message-id {}",
+                    "{kind_label} dry-run til {} · message-id {}",
                     outcome.recipient, outcome.message_id
                 )
             } else {
                 format!(
-                    "E-mail sendt til {} · message-id {}",
+                    "{kind_label} sendt til {} · message-id {}",
                     outcome.recipient, outcome.message_id
                 )
             };

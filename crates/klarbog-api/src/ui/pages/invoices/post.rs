@@ -181,6 +181,9 @@ pub async fn invoices_post(
         "commit_reminder" => {
             super::reminders::commit_reminder(&state, &company, &path, &actor, form).await
         }
+        "send_reminder" => {
+            super::reminder_send::send_reminder(&state, &company, &path, &actor, &form).await
+        }
         "send_email" => super::email::send_email(&state, &company, &path, &form).await,
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());

@@ -85,6 +85,14 @@
             <input name="reminder_date" placeholder="YYYY-MM-DD" style="width:7rem" />
             <button class="ghost" type="submit">Registrer rykker</button>
           </form>
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="send_reminder" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="email_to" placeholder="e-mail (valgfri)" style="width:11rem" />
+            <input name="reminder_date" placeholder="YYYY-MM-DD" style="width:7rem" />
+            <label class="muted" style="font-size:.85rem"><input type="checkbox" name="reminder_skip_book" value="1" /> uden gebyr-bogføring</label>
+            <button class="ghost" type="submit">Send rykker</button>
+          </form>
           {% endif %}
           {% if inv.has_unposted_reminder %}
           <form method="post" action="/ui/invoices" style="display:inline">
@@ -100,6 +108,15 @@
             <input name="email_to" placeholder="e-mail (valgfri)" style="width:11rem" />
             <button class="ghost" type="submit">Send e-mail</button>
           </form>
+          {% if inv.can_reminder %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="send_email" />
+            <input type="hidden" name="email_kind" value="reminder" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="email_to" placeholder="e-mail (valgfri)" style="width:11rem" />
+            <button class="ghost" type="submit">Send rykkermail</button>
+          </form>
+          {% endif %}
           {% endif %}
         </td>
       </tr>

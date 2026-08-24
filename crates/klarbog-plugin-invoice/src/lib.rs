@@ -31,8 +31,8 @@ pub use due_date::{
     STATUTORY_PAYMENT_TERM_DAYS,
 };
 pub use email::{
-    deterministic_message_id, send_invoice_email, EmailKind, EmailSendLogRow,
-    SendInvoiceEmailOutcome, EMAIL_SEND_LOG, RULE_ID as EMAIL_DELIVERY_RULE_ID,
+    deterministic_message_id, looks_like_email, read_send_log, send_invoice_email, EmailKind,
+    EmailSendLogRow, SendInvoiceEmailOutcome, EMAIL_SEND_LOG, RULE_ID as EMAIL_DELIVERY_RULE_ID,
 };
 pub use invoice_numbers::{
     invoice_no_from_memo, peek_invoice_number, reserve_invoice_number, resolve_invoice_number,
@@ -52,10 +52,10 @@ pub use lifecycle::{
 };
 pub use reminders::{
     mark_reminder_posted, oldest_unposted_reminder, register_invoice_reminder,
-    reminder_post_journal_suggestion, total_reminder_fees_minor, InvoiceReminder,
-    RegisterInvoiceReminderResult, BOOKKEEPING_RULE_ID as REMINDER_BOOKKEEPING_RULE_ID,
-    MAX_REMINDERS_PER_CLAIM, MAX_REMINDER_FEE_MINOR, MIN_DAYS_BETWEEN_REMINDERS,
-    RULE_ID as REMINDER_FEE_RULE_ID,
+    reminder_post_journal_suggestion, rollback_unposted_reminder, total_reminder_fees_minor,
+    InvoiceReminder, RegisterInvoiceReminderResult,
+    BOOKKEEPING_RULE_ID as REMINDER_BOOKKEEPING_RULE_ID, MAX_REMINDERS_PER_CLAIM,
+    MAX_REMINDER_FEE_MINOR, MIN_DAYS_BETWEEN_REMINDERS, RULE_ID as REMINDER_FEE_RULE_ID,
 };
 pub use sequences::{
     credit_note_no_from_memo, credit_reason_from_memo, peek_credit_note_number,
