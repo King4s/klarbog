@@ -5,6 +5,7 @@ mod email;
 mod form;
 mod interest;
 mod post;
+mod reminders;
 mod send;
 mod view;
 

@@ -88,6 +88,7 @@ pub fn create_draft(
         issued_document_id: None,
         issued_sha256: None,
         interest_claims: Vec::new(),
+        reminders: Vec::new(),
     };
     invoice.validate_lines()?;
     invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);

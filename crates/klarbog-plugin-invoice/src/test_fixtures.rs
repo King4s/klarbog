@@ -24,6 +24,7 @@ pub(crate) fn sample_invoice(kind: InvoiceKind) -> Invoice {
         issued_document_id: None,
         issued_sha256: None,
         interest_claims: Vec::new(),
+        reminders: Vec::new(),
     }
 }
 

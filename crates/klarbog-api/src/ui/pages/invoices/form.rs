@@ -19,6 +19,9 @@ pub(super) struct InvoiceRow {
     /// Overdue collectible — morarente kan registreres/bogføres.
     pub can_interest: bool,
     pub has_unposted_interest: bool,
+    /// Overdue collectible — rykkergebyr kan registreres/bogføres.
+    pub can_reminder: bool,
+    pub has_unposted_reminder: bool,
     /// Sent issued invoice — eligible for email delivery.
     pub can_email: bool,
 }
@@ -60,6 +63,14 @@ pub struct InvoiceActionForm {
     pub reference_rate_bps: Option<String>,
     #[serde(default)]
     pub interest_note: Option<String>,
+    /// Rykker: dato (YYYY-MM-DD), default i dag.
+    #[serde(default)]
+    pub reminder_date: Option<String>,
+    /// Rykkergebyr i øre; tom = lovligt maks (10000 = 100 DKK).
+    #[serde(default)]
+    pub reminder_fee_minor: Option<String>,
+    #[serde(default)]
+    pub reminder_note: Option<String>,
     /// Optional recipient override for invoice email (DK-EMAIL-DELIVERY-001).
     #[serde(default)]
     pub email_to: Option<String>,

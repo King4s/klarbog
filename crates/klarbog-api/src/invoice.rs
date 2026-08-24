@@ -90,6 +90,14 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::DuplicateInterestClaim { .. }
         | InvoiceError::InterestClaimNotFound(_)
         | InvoiceError::InterestClaimAlreadyPosted
+        | InvoiceError::NonDkkInvoice(_)
+        | InvoiceError::InvalidReminderFee
+        | InvoiceError::ReminderFeeExceedsStatutoryMax { .. }
+        | InvoiceError::NotOverdueForReminder
+        | InvoiceError::MaxRemindersReached { .. }
+        | InvoiceError::ReminderTooSoon { .. }
+        | InvoiceError::ReminderNotFound(_)
+        | InvoiceError::ReminderAlreadyPosted
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

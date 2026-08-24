@@ -172,6 +172,15 @@ pub async fn invoices_post(
         "commit_interest" => {
             super::interest::commit_interest(&state, &company, &path, &actor, form).await
         }
+        "reminder_register" => {
+            super::reminders::reminder_register(&state, &company, &path, &form).await
+        }
+        "reminder_post_preview" => {
+            super::reminders::reminder_post_preview(&state, &company, &path, &actor, &form).await
+        }
+        "commit_reminder" => {
+            super::reminders::commit_reminder(&state, &company, &path, &actor, form).await
+        }
         "send_email" => super::email::send_email(&state, &company, &path, &form).await,
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());

@@ -94,3 +94,91 @@ async fn ui_interest_register_and_post() {
     assert_eq!(posted.interest_claims.len(), 1);
     assert!(posted.interest_claims[0].posted_journal_id.is_some());
 }
+
+#[tokio::test]
+async fn ui_reminder_register_and_post() {
+    let (app, dir, cookie) = test_app().await;
+    let co = dir.path().join("co");
+    let party = upsert_party(
+        &co,
+        None,
+        "Reminder buyer".into(),
+        klarbog_plugin_crm::PartyKind::Private,
+        None,
+        None,
+    )
+    .unwrap();
+    let inv = create_draft_from_new(
+        &co,
+        party.id,
+        InvoiceKind::Sale,
+        vec![NewLine {
+            description: "Overdue work".into(),
+            amount_minor: 125_000,
+            currency: "DKK".into(),
+        }],
+    )
+    .unwrap();
+    record_issue(
+        &co,
+        &inv.id,
+        "2026-05-16".into(),
+        STATUTORY_PAYMENT_TERM_DAYS as u32,
+        Some("2026-0100".into()),
+        None,
+        None,
+    )
+    .unwrap();
+    let stored = get_invoice(&co, &inv.id).unwrap().unwrap();
+    assert_eq!(stored.status, InvoiceStatus::Sent);
+
+    let html = post_html(
+        &app,
+        &cookie,
+        "/ui/invoices",
+        &format!(
+            "action=reminder_register&invoice_id={}&reminder_date=2026-06-26",
+            inv.id
+        ),
+    )
+    .await;
+    assert!(
+        html.contains("Rykker registreret"),
+        "register flash missing: {}",
+        flashes(&html)
+    );
+
+    let html = post_html(
+        &app,
+        &cookie,
+        "/ui/invoices",
+        &format!("action=reminder_post_preview&invoice_id={}", inv.id),
+    )
+    .await;
+    let token = extract_input_value(&html, "confirm_token")
+        .filter(|t| !t.is_empty())
+        .unwrap_or_else(|| panic!("reminder preview token; {}", flashes(&html)));
+    let entry_json = extract_input_value(&html, "entry_json").expect("reminder entry_json");
+    assert!(
+        entry_json.contains(":reminder:2026-06-26"),
+        "reminder memo should carry reminder date"
+    );
+    assert!(entry_json.contains("1010"), "reminder income leg 1010");
+
+    let body = format!(
+        "action=commit_reminder&invoice_id={}&confirm_token={}&entry_json={}",
+        inv.id,
+        urlencoding_encode(&token),
+        urlencoding_encode(&entry_json)
+    );
+    let html = post_html(&app, &cookie, "/ui/invoices", &body).await;
+    assert!(
+        html.contains("Rykkergebyr bogført"),
+        "reminder commit failed: {}",
+        flashes(&html)
+    );
+
+    let posted = get_invoice(&co, &inv.id).unwrap().unwrap();
+    assert_eq!(posted.reminders.len(), 1);
+    assert!(posted.reminders[0].posted_journal_id.is_some());
+}

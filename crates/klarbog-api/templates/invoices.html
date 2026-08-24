@@ -78,6 +78,21 @@
             <button class="ghost" type="submit">Bogfør morarente (preview)</button>
           </form>
           {% endif %}
+          {% if inv.can_reminder %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="reminder_register" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="reminder_date" placeholder="YYYY-MM-DD" style="width:7rem" />
+            <button class="ghost" type="submit">Registrer rykker</button>
+          </form>
+          {% endif %}
+          {% if inv.has_unposted_reminder %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="reminder_post_preview" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <button class="ghost" type="submit">Bogfør rykkergebyr (preview)</button>
+          </form>
+          {% endif %}
           {% if inv.can_email %}
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="send_email" />

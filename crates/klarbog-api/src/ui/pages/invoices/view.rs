@@ -155,6 +155,13 @@ pub(super) async fn load_page(
                     .interest_claims
                     .iter()
                     .any(|c| c.posted_journal_id.is_none()),
+                can_reminder: inv.status.allows_reminder()
+                    && inv.collectible_open_minor().unwrap_or(0) > 0
+                    && inv
+                        .due_assessment(Utc::now().date_naive())
+                        .map(|a| a.is_overdue)
+                        .unwrap_or(false),
+                has_unposted_reminder: inv.reminders.iter().any(|r| r.posted_journal_id.is_none()),
                 can_email: inv.status != InvoiceStatus::Draft
                     && inv.status != InvoiceStatus::Void
                     && inv.invoice_no.is_some()

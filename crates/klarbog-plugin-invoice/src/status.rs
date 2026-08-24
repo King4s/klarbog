@@ -36,6 +36,11 @@ impl InvoiceStatus {
     pub fn allows_late_interest(self) -> bool {
         matches!(self, InvoiceStatus::Sent | InvoiceStatus::PartPaid)
     }
+
+    /// Rykkergebyr — same gate as morarente (sent/part_paid, not draft/paid/void).
+    pub fn allows_reminder(self) -> bool {
+        self.allows_late_interest()
+    }
 }
 
 #[cfg(test)]

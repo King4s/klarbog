@@ -5,12 +5,16 @@ mod credit;
 mod draft;
 pub mod due_date;
 pub mod email;
+mod error;
 mod invoice_numbers;
 mod issue;
 mod late_interest;
 #[cfg(test)]
 mod late_interest_tests;
 mod lifecycle;
+mod reminders;
+#[cfg(test)]
+mod reminders_tests;
 mod sequences;
 mod status;
 mod store;
@@ -39,11 +43,19 @@ pub use late_interest::{
     calculate_late_interest, claim_open_balance_minor, cumulative_interest_minor,
     interest_post_journal_suggestion, lookup_statutory_reference_rate, mark_interest_claim_posted,
     oldest_unposted_interest_claim, register_late_interest, total_interest_claims_minor,
-    InvoiceInterestClaim, LateInterestCalculation, ReferenceRateSource, BOOKKEEPING_RULE_ID,
-    REGISTER_RULE_ID, RULE_ID as LATE_INTEREST_RULE_ID, STATUTORY_SURCHARGE_BPS,
+    InvoiceInterestClaim, LateInterestCalculation, ReferenceRateSource,
+    BOOKKEEPING_RULE_ID as LATE_INTEREST_BOOKKEEPING_RULE_ID, REGISTER_RULE_ID,
+    RULE_ID as LATE_INTEREST_RULE_ID, STATUTORY_SURCHARGE_BPS,
 };
 pub use lifecycle::{
     mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
+};
+pub use reminders::{
+    mark_reminder_posted, oldest_unposted_reminder, register_invoice_reminder,
+    reminder_post_journal_suggestion, total_reminder_fees_minor, InvoiceReminder,
+    RegisterInvoiceReminderResult, BOOKKEEPING_RULE_ID as REMINDER_BOOKKEEPING_RULE_ID,
+    MAX_REMINDERS_PER_CLAIM, MAX_REMINDER_FEE_MINOR, MIN_DAYS_BETWEEN_REMINDERS,
+    RULE_ID as REMINDER_FEE_RULE_ID,
 };
 pub use sequences::{
     credit_note_no_from_memo, credit_reason_from_memo, peek_credit_note_number,
@@ -57,10 +69,11 @@ pub use store::{
 };
 
 use klarbog_plugin::{Capability, Plugin};
-use klarbog_types::{Currency, MoneyError, PartyId};
+use klarbog_types::{Currency, PartyId};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use thiserror::Error;
+
+pub use error::InvoiceError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -169,6 +182,9 @@ pub struct Invoice {
     /// Registrerede morarentekrav (DK-INVOICE-LATE-INTEREST-REGISTER-001).
     #[serde(default)]
     pub interest_claims: Vec<InvoiceInterestClaim>,
+    /// Registrerede rykkergebyrer (DK-INVOICE-REMINDER-FEE-001).
+    #[serde(default)]
+    pub reminders: Vec<InvoiceReminder>,
 }
 
 impl Invoice {
@@ -275,108 +291,6 @@ impl Invoice {
         let credited = self.credited_gross_minor()?;
         gross.checked_sub(credited).ok_or(InvoiceError::Overflow)
     }
-}
-
-#[derive(Debug, Error)]
-pub enum InvoiceError {
-    #[error("io: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("json: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("party not found: {0}")]
-    PartyNotFound(String),
-    #[error("invoice not found: {0}")]
-    NotFound(String),
-    #[error("invoice has no lines")]
-    NoLines,
-    #[error("line description must not be empty")]
-    EmptyDescription,
-    #[error("line amount must be positive")]
-    NonPositiveAmount,
-    #[error("partial amount {amount_minor} must be > 0 and < remaining {remaining_minor}")]
-    InvalidPartialAmount {
-        amount_minor: i64,
-        remaining_minor: i64,
-    },
-    #[error("payment {amount_minor} exceeds remaining {remaining_minor}")]
-    Overpay {
-        amount_minor: i64,
-        remaining_minor: i64,
-    },
-    #[error("cannot mark paid: remaining balance is 0")]
-    NothingRemaining,
-    #[error("cannot credit: invoice has recorded payments")]
-    CreditWithPayments,
-    #[error("credit note reason is required")]
-    MissingCreditReason,
-    #[error("nothing left to credit")]
-    NothingCreditable,
-    #[error("credit amount {amount_minor} must be positive")]
-    CreditAmountInvalid { amount_minor: i64 },
-    #[error("credit amount {amount_minor} exceeds remaining creditable {remaining_minor}")]
-    CreditExceedsRemaining {
-        amount_minor: i64,
-        remaining_minor: i64,
-    },
-    #[error("sequence conflict: requested {requested} but next is {expected}")]
-    SequenceConflict { requested: u32, expected: u32 },
-    #[error("invalid credit note number: {0}")]
-    BadCreditNoteNumber(String),
-    #[error("invalid invoice number: {0}")]
-    BadInvoiceNumber(String),
-    #[error("manual invoice number {number} does not match current fiscal scope {scope}")]
-    ManualInvoiceScopeMismatch { number: String, scope: String },
-    #[error("manual credit note number {number} does not match current fiscal scope {scope}")]
-    ManualCreditNoteScopeMismatch { number: String, scope: String },
-    #[error("due date {due_date} cannot be earlier than issue date {issue_date}")]
-    DueBeforeIssue {
-        due_date: String,
-        issue_date: String,
-    },
-    #[error("due date must be YYYY-MM-DD: {0}")]
-    InvalidDueDate(String),
-    #[error("no statutory reference rate tabled for {0}")]
-    NoStatutoryReferenceRate(String),
-    #[error("reference rate must not be negative")]
-    InvalidReferenceRate,
-    #[error("late interest must be positive before it can be registered")]
-    NoInterestToRegister,
-    #[error("late interest already registered for {claim_date} at reference rate {reference_rate_bps} bps")]
-    DuplicateInterestClaim {
-        claim_date: String,
-        reference_rate_bps: i64,
-    },
-    #[error("interest claim not found for date {0}")]
-    InterestClaimNotFound(String),
-    #[error("interest claim is already posted")]
-    InterestClaimAlreadyPosted,
-    #[error("mixed currencies in one invoice")]
-    MixedCurrency,
-    #[error("overflow")]
-    Overflow,
-    #[error("invalid status transition: {from:?} -> {to:?}")]
-    InvalidTransition {
-        from: InvoiceStatus,
-        to: InvoiceStatus,
-    },
-    #[error(transparent)]
-    Money(#[from] MoneyError),
-    #[error(transparent)]
-    Journal(#[from] klarbog_journal::JournalError),
-    #[error(transparent)]
-    Crm(#[from] klarbog_plugin_crm::CrmError),
-    #[error("vat: {0}")]
-    Vat(#[from] klarbog_plugin_rules_dk::VatSplitError),
-    #[error("invoice must be sent before email delivery")]
-    NotSentForEmail,
-    #[error("issued invoice document is missing")]
-    MissingIssuedDocument,
-    #[error("no recipient email for invoice {0}")]
-    MissingRecipientEmail(String),
-    #[error("invalid recipient email: {0}")]
-    InvalidRecipientEmail(String),
-    #[error("email send failed: {0}")]
-    EmailSendFailed(String),
 }
 
 pub struct InvoicePlugin;
