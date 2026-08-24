@@ -3,6 +3,8 @@
 
 mod credit;
 mod draft;
+mod due_date;
+mod issue;
 mod lifecycle;
 mod sequences;
 mod status;
@@ -15,6 +17,11 @@ pub use draft::{
     journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
     InvoiceConfig,
 };
+pub use due_date::{
+    assess_overdue, effective_due_date, format_iso_date, parse_iso_date, InvoiceDueAssessment,
+    STATUTORY_PAYMENT_TERM_DAYS,
+};
+pub use issue::record_issue;
 pub use lifecycle::{
     mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
 };
@@ -25,7 +32,8 @@ pub use sequences::{
 };
 pub use status::InvoiceStatus;
 pub use store::{
-    create_draft, create_draft_from_new, get_invoice, list_invoices, NewLine, INVOICES_FILENAME,
+    create_draft, create_draft_from_new, create_draft_from_new_with_due, get_invoice,
+    list_invoices, NewLine, INVOICES_FILENAME,
 };
 
 use klarbog_plugin::{Capability, Plugin};
@@ -125,6 +133,12 @@ pub struct Invoice {
     /// Seneste kreditnota-nummer — historik ligger i `credits`.
     #[serde(default)]
     pub credit_note_no: Option<String>,
+    /// Udstedelsesdato (YYYY-MM-DD) — sat ved bogføring/send.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issue_date: Option<String>,
+    /// Eksplicit forfaldsdato (YYYY-MM-DD); ellers +30 dage fra issue_date.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
 }
 
 impl Invoice {
@@ -179,6 +193,29 @@ impl Invoice {
         let gross = self.gross_minor()?;
         let paid = self.paid_minor()?;
         gross.checked_sub(paid).ok_or(InvoiceError::Overflow)
+    }
+
+    /// Inddriveligt hovedstol: brutto − krediteret − betalt (DK-INVOICE-DUE-DATE-001).
+    pub fn collectible_open_minor(&self) -> Result<i64, InvoiceError> {
+        let gross = self.gross_minor()?;
+        let paid = self.paid_minor()?;
+        let credited = self.credited_gross_minor()?;
+        gross
+            .checked_sub(credited)
+            .and_then(|v| v.checked_sub(paid))
+            .ok_or(InvoiceError::Overflow)
+    }
+
+    pub fn due_assessment(
+        &self,
+        as_of: chrono::NaiveDate,
+    ) -> Result<InvoiceDueAssessment, InvoiceError> {
+        assess_overdue(
+            self.issue_date.as_deref(),
+            self.due_date.as_deref(),
+            self.collectible_open_minor()?,
+            as_of,
+        )
     }
 
     pub fn credited_gross_minor(&self) -> Result<i64, InvoiceError> {
@@ -257,6 +294,13 @@ pub enum InvoiceError {
     BadCreditNoteNumber(String),
     #[error("manual credit note number {number} does not match current fiscal scope {scope}")]
     ManualCreditNoteScopeMismatch { number: String, scope: String },
+    #[error("due date {due_date} cannot be earlier than issue date {issue_date}")]
+    DueBeforeIssue {
+        due_date: String,
+        issue_date: String,
+    },
+    #[error("due date must be YYYY-MM-DD: {0}")]
+    InvalidDueDate(String),
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

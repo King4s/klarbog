@@ -80,6 +80,8 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::SequenceConflict { .. }
         | InvoiceError::BadCreditNoteNumber(_)
         | InvoiceError::ManualCreditNoteScopeMismatch { .. }
+        | InvoiceError::DueBeforeIssue { .. }
+        | InvoiceError::InvalidDueDate(_)
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

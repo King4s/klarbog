@@ -50,10 +50,16 @@ pub struct CompanyPolicy {
     pub fiscal_year_start_month: u32,
     #[serde(rename = "fiscalYearLabelStrategy", default)]
     pub fiscal_year_label_strategy: FiscalYearLabelStrategy,
+    #[serde(rename = "paymentTermsDays", default = "default_payment_terms_days")]
+    pub payment_terms_days: u32,
 }
 
 fn default_fiscal_month() -> u32 {
     1
+}
+
+fn default_payment_terms_days() -> u32 {
+    30
 }
 
 impl CompanyPolicy {
@@ -62,6 +68,10 @@ impl CompanyPolicy {
             start_month: klarbog_types::normalize_start_month(self.fiscal_year_start_month),
             label_strategy: self.fiscal_year_label_strategy,
         }
+    }
+
+    pub fn payment_terms_days(&self) -> u32 {
+        self.payment_terms_days
     }
 }
 
@@ -104,6 +114,7 @@ pub async fn init_company(path: &Path, name: &str, owner: &Actor) -> Result<Comp
         actors: vec![owner.as_tag()],
         fiscal_year_start_month: 1,
         fiscal_year_label_strategy: FiscalYearLabelStrategy::EndYear,
+        payment_terms_days: 30,
     };
     let policy_path = path.join("policy.json");
     std::fs::write(

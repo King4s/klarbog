@@ -4,10 +4,10 @@
 use std::path::Path;
 
 use axum::response::Response;
-use klarbog_core::journal_commit;
+use klarbog_core::{journal_commit, load_company_policy};
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    get_invoice, journal_suggestion, patch_status, InvoiceConfig, InvoiceId, InvoiceStatus,
+    get_invoice, journal_suggestion, record_issue, InvoiceConfig, InvoiceId, InvoiceStatus,
 };
 use klarbog_types::Actor;
 
@@ -79,6 +79,7 @@ pub(super) async fn commit_send(
             );
         }
     };
+    let issue_date = entry.as_of.format("%Y-%m-%d").to_string();
     match journal_commit(
         &state.allowlist_root,
         Path::new(company),
@@ -90,29 +91,34 @@ pub(super) async fn commit_send(
     )
     .await
     {
-        Ok(r) => match patch_status(path, &id, InvoiceStatus::Sent) {
-            Ok(_) => html_ok(
-                load_page(
-                    state,
-                    company,
-                    format!(
-                        "Faktura bogført · posted {} · {id} sat til sent",
-                        r.posted.id
-                    ),
-                    String::new(),
-                )
-                .await,
-            ),
-            Err(e) => html_ok(
-                load_page(
-                    state,
-                    company,
-                    String::new(),
-                    format!("Bogført ({}) men statusskift fejlede: {e}", r.posted.id),
-                )
-                .await,
-            ),
-        },
+        Ok(r) => {
+            let payment_terms = load_company_policy(path)
+                .map(|p| p.payment_terms_days())
+                .unwrap_or(30);
+            match record_issue(path, &id, issue_date, payment_terms) {
+                Ok(_) => html_ok(
+                    load_page(
+                        state,
+                        company,
+                        format!(
+                            "Faktura bogført · posted {} · {id} sat til sent",
+                            r.posted.id
+                        ),
+                        String::new(),
+                    )
+                    .await,
+                ),
+                Err(e) => html_ok(
+                    load_page(
+                        state,
+                        company,
+                        String::new(),
+                        format!("Bogført ({}) men statusskift fejlede: {e}", r.posted.id),
+                    )
+                    .await,
+                ),
+            }
+        }
         Err(e) => html_ok(load_page(state, company, String::new(), e.to_string()).await),
     }
 }

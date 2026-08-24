@@ -4,6 +4,7 @@ use askama::Template;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::response::Response;
+use chrono::Utc;
 use klarbog_plugin_crm::list_parties;
 use klarbog_plugin_invoice::{list_invoices, InvoiceStatus};
 
@@ -109,8 +110,24 @@ pub(super) async fn load_page(
         .filter_map(|inv| {
             let total = inv.total_minor().ok()?;
             let gross = inv.gross_minor().ok()?;
+            let due = if inv.status == InvoiceStatus::Draft {
+                inv.due_date.clone().unwrap_or_else(|| "—".into())
+            } else {
+                match inv.due_assessment(Utc::now().date_naive()) {
+                    Ok(a) => {
+                        let eff = a.effective_due_date.unwrap_or_else(|| "—".into());
+                        if a.is_overdue {
+                            format!("{eff} · forfalden ({} d)", a.overdue_days)
+                        } else {
+                            eff
+                        }
+                    }
+                    Err(_) => "—".into(),
+                }
+            };
             Some(InvoiceRow {
                 id: inv.id.to_string(),
+                due,
                 status: match &inv.credit_note_no {
                     Some(cn) => format!("{} ({cn})", status_label(inv.status)),
                     None => status_label(inv.status).into(),

@@ -19,12 +19,13 @@
   </div>
   {% endif %}
   <table class="table">
-    <thead><tr><th>Id</th><th>Status</th><th>Beløb</th><th>Moms</th><th>Brutto</th><th>Part</th><th>Handling</th></tr></thead>
+    <thead><tr><th>Id</th><th>Status</th><th>Forfald</th><th>Beløb</th><th>Moms</th><th>Brutto</th><th>Part</th><th>Handling</th></tr></thead>
     <tbody>
       {% for inv in invoices %}
       <tr>
         <td class="money">{{ inv.id }}</td>
         <td>{{ inv.status }}</td>
+        <td class="muted">{{ inv.due }}</td>
         <td class="money">{{ inv.total }}</td>
         <td class="money">{{ inv.moms }}</td>
         <td class="money">{{ inv.brutto }}</td>
@@ -63,7 +64,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="muted">Ingen fakturaer</td></tr>
+      <tr><td colspan="8" class="muted">Ingen fakturaer</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -93,6 +94,9 @@
       </label>
       <label>Beløb (øre)
         <input name="amount_minor" required inputmode="numeric" pattern="[0-9]+" placeholder="12500" />
+      </label>
+      <label>Forfaldsdato (valgfri, YYYY-MM-DD)
+        <input name="due_date" placeholder="2026-06-15" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" />
       </label>
       <div class="actions">
         <button class="primary" type="submit">Opret kladde</button>

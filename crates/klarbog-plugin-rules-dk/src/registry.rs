@@ -132,6 +132,22 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             ],
             gaps: &[],
         },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-DUE-DATE-001",
+            name: "Customer invoices must expose a deterministic due date and overdue classification",
+            source_id: "DK-RENTELOVEN-2014-459",
+            provisions: &["§ 3, stk. 1", "§ 3, stk. 2"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: issue_date + due_date på send; effective_due (eksplicit eller +30 d); overdue_days kun ved positivt inddriveligt hovedstol; UI-kolonne Forfald",
+            proven_by: &[
+                "klarbog-plugin-invoice due_date::tests",
+                "klarbog-plugin-invoice issue::tests::record_issue_sets_dates",
+            ],
+            gaps: &[
+                "rykkergebyr/rentekrav/compensation i claim_open_balance",
+                "kundespecifik payment_terms_days på CRM-part",
+            ],
+        },
     ]
 }
 

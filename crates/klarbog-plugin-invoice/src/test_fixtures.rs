@@ -18,6 +18,8 @@ pub(crate) fn sample_invoice(kind: InvoiceKind) -> Invoice {
         credits: Vec::new(),
         vat: None,
         credit_note_no: None,
+        issue_date: None,
+        due_date: None,
     }
 }
 

@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub(super) struct InvoiceRow {
     pub id: String,
     pub status: String,
+    pub due: String,
     pub total: String,
     /// "—" for legacy invoices without frozen VAT (ADR-020).
     pub moms: String,
@@ -40,6 +41,9 @@ pub struct InvoiceActionForm {
     /// Optional manual CN number (originalens creditNoteNumber).
     #[serde(default)]
     pub credit_note_number: Option<String>,
+    /// Valgfri forfaldsdato på kladde (YYYY-MM-DD).
+    #[serde(default)]
+    pub due_date: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

@@ -6,8 +6,8 @@ use axum::response::Response;
 use klarbog_core::{journal_commit, journal_preview};
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    create_draft_from_new, mark_paid_preview, mark_part_paid_preview, InvoiceConfig, InvoiceId,
-    InvoiceKind, NewLine,
+    create_draft_from_new_with_due, mark_paid_preview, mark_part_paid_preview, parse_iso_date,
+    InvoiceConfig, InvoiceId, InvoiceKind, NewLine,
 };
 use klarbog_types::{Actor, PartyId};
 
@@ -114,7 +114,22 @@ pub async fn invoices_post(
                 Some("purchase") => InvoiceKind::Purchase,
                 _ => InvoiceKind::Sale,
             };
-            match create_draft_from_new(
+            let due_date = form.due_date.as_ref().and_then(|s| {
+                let t = s.trim();
+                if t.is_empty() {
+                    None
+                } else {
+                    Some(t.to_string())
+                }
+            });
+            if let Some(ref d) = due_date {
+                if let Err(e) = parse_iso_date(d) {
+                    return html_ok(
+                        load_page(&state, &company, String::new(), e.to_string()).await,
+                    );
+                }
+            }
+            match create_draft_from_new_with_due(
                 &path,
                 PartyId::new(party_raw),
                 kind,
@@ -123,6 +138,7 @@ pub async fn invoices_post(
                     amount_minor: amount,
                     currency: "DKK".into(),
                 }],
+                due_date,
             ) {
                 Ok(inv) => html_ok(
                     load_page(

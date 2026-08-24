@@ -203,6 +203,7 @@ mod tests {
                 amount_minor: 2500,
                 currency: Currency::new("DKK").unwrap(),
             }],
+            None,
         )
         .unwrap();
         attach_document(

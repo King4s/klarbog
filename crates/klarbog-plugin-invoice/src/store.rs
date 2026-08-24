@@ -65,6 +65,7 @@ pub fn create_draft(
     party_id: PartyId,
     kind: InvoiceKind,
     lines: Vec<InvoiceLine>,
+    due_date: Option<String>,
 ) -> Result<Invoice, InvoiceError> {
     if lines.is_empty() {
         return Err(InvoiceError::NoLines);
@@ -81,9 +82,18 @@ pub fn create_draft(
         credits: Vec::new(),
         vat: None,
         credit_note_no: None,
+        issue_date: None,
+        due_date: None,
     };
     invoice.validate_lines()?;
     invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);
+    if let Some(ref raw) = due_date {
+        let trimmed = raw.trim();
+        if !trimmed.is_empty() {
+            crate::due_date::parse_iso_date(trimmed)?;
+            invoice.due_date = Some(trimmed.to_string());
+        }
+    }
     let mut file = load(company)?;
     file.invoices.push(invoice.clone());
     save(company, &file)?;
@@ -120,8 +130,18 @@ pub fn create_draft_from_new(
     kind: InvoiceKind,
     raw_lines: Vec<NewLine>,
 ) -> Result<Invoice, InvoiceError> {
+    create_draft_from_new_with_due(company, party_id, kind, raw_lines, None)
+}
+
+pub fn create_draft_from_new_with_due(
+    company: &Path,
+    party_id: PartyId,
+    kind: InvoiceKind,
+    raw_lines: Vec<NewLine>,
+    due_date: Option<String>,
+) -> Result<Invoice, InvoiceError> {
     let lines: Result<Vec<_>, _> = raw_lines.into_iter().map(NewLine::into_line).collect();
-    create_draft(company, party_id, kind, lines?)
+    create_draft(company, party_id, kind, lines?, due_date)
 }
 
 #[cfg(test)]
@@ -142,7 +162,7 @@ mod tests {
             amount_minor: 10_000,
             currency: Currency::new("DKK").unwrap(),
         };
-        let inv = create_draft(&co, party.id.clone(), InvoiceKind::Sale, vec![line]).unwrap();
+        let inv = create_draft(&co, party.id.clone(), InvoiceKind::Sale, vec![line], None).unwrap();
         assert!(co.join(INVOICES_FILENAME).exists());
         assert_eq!(inv.status, InvoiceStatus::Draft);
         // Business → excl. VAT: net 10000, vat 2500, gross 12500.
@@ -166,7 +186,7 @@ mod tests {
             amount_minor: 12_500,
             currency: Currency::new("DKK").unwrap(),
         };
-        let inv = create_draft(&co, party.id, InvoiceKind::Sale, vec![line]).unwrap();
+        let inv = create_draft(&co, party.id, InvoiceKind::Sale, vec![line], None).unwrap();
         // Private → incl. VAT: gross 12500 splits to net 10000 + vat 2500.
         let vat = inv.vat.unwrap();
         assert_eq!(
@@ -191,6 +211,7 @@ mod tests {
             PartyId::new("party_missing"),
             InvoiceKind::Sale,
             vec![line],
+            None,
         )
         .unwrap_err();
         assert!(matches!(err, InvoiceError::PartyNotFound(_)));
