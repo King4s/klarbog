@@ -41,6 +41,9 @@ pub struct InvoiceActionForm {
     /// Optional manual CN number (originalens creditNoteNumber).
     #[serde(default)]
     pub credit_note_number: Option<String>,
+    /// Valgfrit manuelt fakturanummer ved send (originalens invoiceNumber).
+    #[serde(default)]
+    pub invoice_number: Option<String>,
     /// Valgfri forfaldsdato på kladde (YYYY-MM-DD).
     #[serde(default)]
     pub due_date: Option<String>,

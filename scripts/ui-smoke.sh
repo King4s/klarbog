@@ -105,14 +105,19 @@ expect_ok "invoice create" "$(post /ui/invoices --data-urlencode action=create \
 INV="$(getp /ui/invoices | rg -o 'name="invoice_id" value="[^"]*' | cut -d'"' -f4 | head -1)"
 [[ -n "$INV" ]] || fail "no invoice_id on invoices page"
 # Private party (ADR-020): 50000 gross = 40000 net + 10000 salgsmoms.
+INVYEAR="$(date -u +%Y)"
 PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INV")"
 expect_ok "invoice send preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
 [[ -n "$TOKEN" && -n "$EJSON" ]] || fail "invoice send: missing token/entry_json"
 rg -q '1200' <<<"$EJSON" || fail "invoice send: no Salgsmoms 1200 leg in entry_json"
+rg -q ":issued:$INVYEAR-" <<<"$EJSON" || fail "invoice send: no issued invoice number in entry_json"
 expect_ok "invoice send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
   --data-urlencode "invoice_id=$INV" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+[[ -f "$COMPANY/objects/invoices/issued/$INVYEAR-0001.json" ]] \
+  || fail "invoice send: immutable issued snapshot missing"
+echo "ok: issued invoice snapshot ($INVYEAR-0001.json)"
 PAGE="$(post /ui/invoices --data-urlencode action=paid_preview --data-urlencode "invoice_id=$INV")"
 expect_ok "invoice paid preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
@@ -260,8 +265,8 @@ PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
   --data-urlencode "invoice_id=$INV3" \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 expect_ok "residual credit commit" "$PAGE"
-rg -q "fuldt krediteret\|void" <<<"$PAGE" \
-  || getp /ui/invoices | rg -q "void \(CN-$CNYEAR-0002\)" \
+rg -q 'fuldt krediteret|void' <<<"$PAGE" \
+  || getp /ui/invoices | rg -q 'void \(' \
   || fail "residual credit: invoice not voided"
 echo "ok: partial+residual credit notes (CN-$CNYEAR-0001/0002, cumulative loft)"
 

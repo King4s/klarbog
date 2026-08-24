@@ -105,6 +105,10 @@ pub(crate) fn map_doc(err: DocumentError) -> (StatusCode, Envelope<Value>) {
             StatusCode::CONFLICT,
             Envelope::err([format!("credit note already exists: {no}")]),
         ),
+        DocumentError::IssuedInvoiceExists(no) => (
+            StatusCode::CONFLICT,
+            Envelope::err([format!("issued invoice already exists: {no}")]),
+        ),
         DocumentError::Io(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),

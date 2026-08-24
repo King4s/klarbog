@@ -141,11 +141,28 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             enforced_by: "invoice-plugin: issue_date + due_date på send; effective_due (eksplicit eller +30 d); overdue_days kun ved positivt inddriveligt hovedstol; UI-kolonne Forfald",
             proven_by: &[
                 "klarbog-plugin-invoice due_date::tests",
-                "klarbog-plugin-invoice issue::tests::record_issue_sets_dates",
+                "klarbog-plugin-invoice issue::tests::record_issue_sets_dates_and_number",
             ],
             gaps: &[
                 "rykkergebyr/rentekrav/compensation i claim_open_balance",
                 "kundespecifik payment_terms_days på CRM-part",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-ISSUE-001",
+            name: "Issued invoices must be stored immutably with sequential invoice numbers",
+            source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",
+            provisions: &["§ 58, stk. 1, nr. 2"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: fortløbende {scope}-{NNNN} via preview/commit; immutable JSON under invoices/issued/; sha256 + retain_until i documents.json",
+            proven_by: &[
+                "klarbog-plugin-invoice invoice_numbers::tests",
+                "klarbog-plugin-documents issued_invoice::tests::attach_writes_immutable_json",
+            ],
+            gaps: &[
+                "manuelt valgt fakturanummer (validateManualInvoiceNumberScope)",
+                "PDF-snapshot ved udstedelse",
+                "valuta/FX i issued snapshot",
             ],
         },
     ]

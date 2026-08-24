@@ -49,11 +49,25 @@ pub fn journal_suggestion(
     actor: &Actor,
     cfg: &InvoiceConfig,
 ) -> Result<JournalEntry, InvoiceError> {
+    issue_journal_suggestion(invoice, None, actor, cfg)
+}
+
+/// Send-preview: digest-bundet memo med fortløbende fakturanummer når angivet.
+pub fn issue_journal_suggestion(
+    invoice: &Invoice,
+    invoice_no: Option<&str>,
+    actor: &Actor,
+    cfg: &InvoiceConfig,
+) -> Result<JournalEntry, InvoiceError> {
     invoice.validate_lines()?;
     let (net, vat, gross) = booking_amounts(invoice)?;
     let currency = invoice.lines[0].currency.clone();
     let party = Some(invoice.party_id.clone());
-    let memo = format!("invoice:{}:{}", invoice.id, invoice.lines[0].description);
+    let desc = invoice.lines[0].description.trim();
+    let memo = match invoice_no.filter(|s| !s.is_empty()) {
+        Some(no) => format!("invoice:{id}:issued:{no} · {desc}", id = invoice.id),
+        None => format!("invoice:{id}:{desc}", id = invoice.id),
+    };
     let mut legs = match invoice.kind {
         // AR carries gross (what the customer owes); revenue is net.
         InvoiceKind::Sale => vec![

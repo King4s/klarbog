@@ -20,6 +20,9 @@ pub(crate) fn sample_invoice(kind: InvoiceKind) -> Invoice {
         credit_note_no: None,
         issue_date: None,
         due_date: None,
+        invoice_no: None,
+        issued_document_id: None,
+        issued_sha256: None,
     }
 }
 

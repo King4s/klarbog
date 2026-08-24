@@ -128,9 +128,10 @@ pub(super) async fn load_page(
             Some(InvoiceRow {
                 id: inv.id.to_string(),
                 due,
-                status: match &inv.credit_note_no {
-                    Some(cn) => format!("{} ({cn})", status_label(inv.status)),
-                    None => status_label(inv.status).into(),
+                status: match (&inv.invoice_no, &inv.credit_note_no) {
+                    (Some(no), _) => format!("{} ({no})", status_label(inv.status)),
+                    (None, Some(cn)) => format!("{} ({cn})", status_label(inv.status)),
+                    _ => status_label(inv.status).into(),
                 },
                 total: format_dkk(total),
                 moms: inv

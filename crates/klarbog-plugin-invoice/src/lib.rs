@@ -3,7 +3,8 @@
 
 mod credit;
 mod draft;
-mod due_date;
+pub mod due_date;
+mod invoice_numbers;
 mod issue;
 mod lifecycle;
 mod sequences;
@@ -14,12 +15,16 @@ mod test_fixtures;
 
 pub use credit::{credit_amounts_from_entry, credit_journal_suggestion};
 pub use draft::{
-    journal_suggestion, payment_journal_suggestion, payment_journal_suggestion_amount,
-    InvoiceConfig,
+    issue_journal_suggestion, journal_suggestion, payment_journal_suggestion,
+    payment_journal_suggestion_amount, InvoiceConfig,
 };
 pub use due_date::{
     assess_overdue, effective_due_date, format_iso_date, parse_iso_date, InvoiceDueAssessment,
     STATUTORY_PAYMENT_TERM_DAYS,
+};
+pub use invoice_numbers::{
+    invoice_no_from_memo, peek_invoice_number, reserve_invoice_number, resolve_invoice_number,
+    validate_manual_invoice_number_scope,
 };
 pub use issue::record_issue;
 pub use lifecycle::{
@@ -139,6 +144,13 @@ pub struct Invoice {
     /// Eksplicit forfaldsdato (YYYY-MM-DD); ellers +30 dage fra issue_date.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
+    /// Fortløbende fakturanummer ved udstedelse (DK-INVOICE-ISSUE-001).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invoice_no: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issued_document_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issued_sha256: Option<String>,
 }
 
 impl Invoice {
@@ -292,6 +304,10 @@ pub enum InvoiceError {
     SequenceConflict { requested: u32, expected: u32 },
     #[error("invalid credit note number: {0}")]
     BadCreditNoteNumber(String),
+    #[error("invalid invoice number: {0}")]
+    BadInvoiceNumber(String),
+    #[error("manual invoice number {number} does not match current fiscal scope {scope}")]
+    ManualInvoiceScopeMismatch { number: String, scope: String },
     #[error("manual credit note number {number} does not match current fiscal scope {scope}")]
     ManualCreditNoteScopeMismatch { number: String, scope: String },
     #[error("due date {due_date} cannot be earlier than issue date {issue_date}")]

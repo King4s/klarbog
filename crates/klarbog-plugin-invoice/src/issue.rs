@@ -1,16 +1,20 @@
-//! Issued-invoice metadata (DK-INVOICE-DUE-DATE-001).
+//! Issued-invoice metadata (DK-INVOICE-DUE-DATE-001 + DK-INVOICE-ISSUE-001).
 
 use crate::due_date::{add_days, format_iso_date, parse_iso_date};
 use crate::status::InvoiceStatus;
 use crate::{Invoice, InvoiceError, InvoiceId};
 use std::path::Path;
 
-/// Bogfør/send: sæt udstedelsesdato, udfyld forfald hvis mangler, flip til sent.
+/// Bogfør/send: sæt udstedelsesdato, forfald, fakturanummer, flip til sent.
+#[allow(clippy::too_many_arguments)]
 pub fn record_issue(
     company: &Path,
     id: &InvoiceId,
     issue_date: String,
     payment_terms_days: u32,
+    invoice_no: Option<String>,
+    issued_document_id: Option<String>,
+    issued_sha256: Option<String>,
 ) -> Result<Invoice, InvoiceError> {
     parse_iso_date(&issue_date)?;
     let mut file = crate::store::load(company)?;
@@ -47,6 +51,11 @@ pub fn record_issue(
             });
         }
     }
+    if let Some(no) = invoice_no {
+        invoice.invoice_no = Some(no);
+    }
+    invoice.issued_document_id = issued_document_id;
+    invoice.issued_sha256 = issued_sha256;
     invoice.status = InvoiceStatus::Sent;
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
@@ -62,7 +71,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn record_issue_sets_dates() {
+    fn record_issue_sets_dates_and_number() {
         let dir = tempdir().unwrap();
         let co = dir.path().join("co");
         std::fs::create_dir_all(&co).unwrap();
@@ -84,8 +93,18 @@ mod tests {
             }],
         )
         .unwrap();
-        let issued = record_issue(&co, &inv.id, "2026-05-16".into(), 30).unwrap();
+        let issued = record_issue(
+            &co,
+            &inv.id,
+            "2026-05-16".into(),
+            30,
+            Some("2026-0001".into()),
+            Some("doc_x".into()),
+            Some("abc".into()),
+        )
+        .unwrap();
         assert_eq!(issued.status, InvoiceStatus::Sent);
+        assert_eq!(issued.invoice_no.as_deref(), Some("2026-0001"));
         assert_eq!(issued.issue_date.as_deref(), Some("2026-05-16"));
         assert_eq!(issued.due_date.as_deref(), Some("2026-06-15"));
         let assessment = issued

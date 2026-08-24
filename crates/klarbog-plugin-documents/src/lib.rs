@@ -2,9 +2,11 @@
 //! No journal-write capability (ADR-004). Optional binary upload via ObjectStore (ADR-007).
 
 mod credit_note;
+mod issued_invoice;
 mod store;
 
 pub use credit_note::attach_credit_note;
+pub use issued_invoice::attach_issued_invoice;
 pub use store::{
     attach_document, document_ids_for_party, find_orphan_documents, get_document, get_exception,
     list_documents, list_exceptions, purge_closed_exceptions, raise_exception, remove_document,
@@ -24,6 +26,7 @@ pub enum DocumentKind {
     Receipt,
     InvoiceScan,
     CreditNote,
+    IssuedInvoice,
     Other,
 }
 
@@ -134,6 +137,8 @@ pub enum DocumentError {
     InvalidIssueDate(String),
     #[error("credit note already exists: {0}")]
     CreditNoteExists(String),
+    #[error("issued invoice already exists: {0}")]
+    IssuedInvoiceExists(String),
     #[error(transparent)]
     Storage(#[from] klarbog_storage::StorageError),
     #[error(transparent)]

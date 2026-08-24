@@ -19,12 +19,12 @@ use std::path::Path;
 pub const SEQUENCES_FILENAME: &str = "sequences.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct SequencesFile {
+pub(crate) struct SequencesFile {
     /// `kind:scope` → senest udstedte værdi.
     values: BTreeMap<String, u32>,
 }
 
-fn load(company: &Path) -> Result<SequencesFile, InvoiceError> {
+pub(crate) fn load(company: &Path) -> Result<SequencesFile, InvoiceError> {
     let path = company.join(SEQUENCES_FILENAME);
     if !path.exists() {
         return Ok(SequencesFile::default());
@@ -32,7 +32,7 @@ fn load(company: &Path) -> Result<SequencesFile, InvoiceError> {
     Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
 }
 
-fn save(company: &Path, file: &SequencesFile) -> Result<(), InvoiceError> {
+pub(crate) fn save(company: &Path, file: &SequencesFile) -> Result<(), InvoiceError> {
     let json = serde_json::to_string_pretty(file)?;
     fs::write(company.join(SEQUENCES_FILENAME), json)?;
     Ok(())
@@ -43,7 +43,12 @@ fn key(kind: &str, scope: &str) -> String {
 }
 
 /// Næste værdi uden at skrive (max af gemt værdi og floor, plus 1).
-fn peek_value(company: &Path, kind: &str, scope: &str, floor: u32) -> Result<u32, InvoiceError> {
+pub(crate) fn peek_value(
+    company: &Path,
+    kind: &str,
+    scope: &str,
+    floor: u32,
+) -> Result<u32, InvoiceError> {
     let file = load(company)?;
     let current = file.values.get(&key(kind, scope)).copied().unwrap_or(0);
     Ok(current.max(floor) + 1)
@@ -51,7 +56,7 @@ fn peek_value(company: &Path, kind: &str, scope: &str, floor: u32) -> Result<u32
 
 /// Reservér præcis `requested` — fail-closed hvis det ikke længere er næste
 /// fortløbende værdi (originalens reserveSequenceValue-semantik).
-fn reserve_value(
+pub(crate) fn reserve_value(
     company: &Path,
     kind: &str,
     scope: &str,
