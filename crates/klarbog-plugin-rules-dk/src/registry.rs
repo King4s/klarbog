@@ -144,8 +144,61 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-plugin-invoice issue::tests::record_issue_sets_dates_and_number",
             ],
             gaps: &[
-                "rykkergebyr/rentekrav/compensation i claim_open_balance",
+                "rykkergebyr/compensation i claim_open_balance",
                 "kundespecifik payment_terms_days på CRM-part",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-INTEREST-001",
+            name: "Overdue customer invoices must support deterministic statutory late-interest calculation",
+            source_id: "DK-RENTELOVEN-2014-459",
+            provisions: &["§ 5, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin late_interest: morarente = referencesats + 8 pct; halvårlig tabel; datobevidst hovedstol; inkrementelt krav siden sidste claim",
+            proven_by: &[
+                "klarbog-plugin-invoice late_interest_tests::calculates_overdue_partial_payment",
+                "klarbog-plugin-invoice late_interest_tests::cumulative_interest_matches_reference_case",
+                "klarbog-plugin-invoice late_interest_tests::staged_claims_bill_incrementally",
+                "klarbog-plugin-invoice late_interest_tests::defaults_to_statutory_table",
+            ],
+            gaps: &[
+                "proposeInterestCorrection / postInterestCorrection (over-claimed morarente)",
+                "invoice_interest_corrections og evidence-plan tabeller",
+                "referencesats før 2023-01-01 (kræver eksplicit rate)",
+                "payment_date på betalinger (port bruger unix_ms→UTC-dato)",
+                "rente-af-rente / compound interest",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-INTEREST-REGISTER-001",
+            name: "A late-interest claim may only be registered from a deterministic calculation and must remain traceable in the claim balance",
+            source_id: "DK-RENTELOVEN-2014-459",
+            provisions: &["§ 5, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: register_late_interest persisterer immutable claim i invoices.json; duplikat (dato+rate) afvist; claim_open_balance_minor",
+            proven_by: &[
+                "klarbog-plugin-invoice late_interest_tests::register_rejects_duplicate_and_zero_increment",
+                "klarbog-plugin-invoice late_interest_tests::staged_claims_bill_incrementally",
+            ],
+            gaps: &[
+                "SQLite invoice_interest_claims + audit_log rækker",
+                "BEGIN IMMEDIATE concurrency på tværs af processer",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-INTEREST-BOOKKEEPING-001",
+            name: "Registered late-interest claims must be bookable once to receivables and non-VAT claim income",
+            source_id: "DK-BOGFORINGSLOVEN-2022-700",
+            provisions: &["§ 9, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: interest_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI interest_post_preview/commit; posted_journal_id fail-closed",
+            proven_by: &[
+                "klarbog-api ui::tests::invoice_flow::ui_interest_register_and_post",
+            ],
+            gaps: &[
+                "invoice_interest_postings append-only link-tabel",
+                "accountRoleCompatibility / resolveClaimIncomeAccount",
+                "bogføring af specifikt claim_id når flere unposted",
             ],
         },
         RegisteredRule {

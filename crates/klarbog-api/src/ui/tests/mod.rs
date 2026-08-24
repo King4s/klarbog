@@ -2,6 +2,7 @@
 //! Flow tests live in `journal_flow` (preview→commit→reversal) and `moms`
 //! (3-leg split + settlement).
 
+mod invoice_flow;
 mod journal_flow;
 mod moms;
 

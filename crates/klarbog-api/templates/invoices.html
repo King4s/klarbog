@@ -61,6 +61,22 @@
             <button class="primary" type="submit">Betalt preview</button>
           </form>
           {% endif %}
+          {% if inv.can_interest %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="interest_register" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="as_of_date" placeholder="YYYY-MM-DD" style="width:7rem" />
+            <input name="reference_rate_bps" placeholder="ref bps" style="width:5rem" />
+            <button class="ghost" type="submit">Registrer morarente</button>
+          </form>
+          {% endif %}
+          {% if inv.has_unposted_interest %}
+          <form method="post" action="/ui/invoices" style="display:inline">
+            <input type="hidden" name="action" value="interest_post_preview" />
+            <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <button class="ghost" type="submit">Bogfør morarente (preview)</button>
+          </form>
+          {% endif %}
         </td>
       </tr>
       {% else %}

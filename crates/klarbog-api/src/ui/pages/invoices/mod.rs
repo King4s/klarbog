@@ -2,6 +2,7 @@
 
 mod credit;
 mod form;
+mod interest;
 mod post;
 mod send;
 mod view;

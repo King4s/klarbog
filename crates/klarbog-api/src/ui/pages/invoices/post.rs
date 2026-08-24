@@ -163,6 +163,15 @@ pub async fn invoices_post(
         "commit_credit" => {
             super::credit::commit_credit(&state, &company, &path, &actor, form).await
         }
+        "interest_register" => {
+            super::interest::interest_register(&state, &company, &path, &form).await
+        }
+        "interest_post_preview" => {
+            super::interest::interest_post_preview(&state, &company, &path, &actor, &form).await
+        }
+        "commit_interest" => {
+            super::interest::commit_interest(&state, &company, &path, &actor, form).await
+        }
         "paid_preview" => {
             let id = InvoiceId::new(form.invoice_id.unwrap_or_default());
             match mark_paid_preview(&path, &id, &actor, &InvoiceConfig::default()) {

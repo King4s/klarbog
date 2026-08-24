@@ -31,6 +31,11 @@ impl InvoiceStatus {
     pub fn allows_credit(self) -> bool {
         matches!(self, InvoiceStatus::Sent)
     }
+
+    /// Morarente only on sent/part_paid sale invoices with collectible balance.
+    pub fn allows_late_interest(self) -> bool {
+        matches!(self, InvoiceStatus::Sent | InvoiceStatus::PartPaid)
+    }
 }
 
 #[cfg(test)]

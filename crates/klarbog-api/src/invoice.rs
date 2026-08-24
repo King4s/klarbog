@@ -84,6 +84,12 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::ManualInvoiceScopeMismatch { .. }
         | InvoiceError::DueBeforeIssue { .. }
         | InvoiceError::InvalidDueDate(_)
+        | InvoiceError::NoStatutoryReferenceRate(_)
+        | InvoiceError::InvalidReferenceRate
+        | InvoiceError::NoInterestToRegister
+        | InvoiceError::DuplicateInterestClaim { .. }
+        | InvoiceError::InterestClaimNotFound(_)
+        | InvoiceError::InterestClaimAlreadyPosted
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

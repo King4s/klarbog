@@ -6,6 +6,9 @@ mod draft;
 pub mod due_date;
 mod invoice_numbers;
 mod issue;
+mod late_interest;
+#[cfg(test)]
+mod late_interest_tests;
 mod lifecycle;
 mod sequences;
 mod status;
@@ -27,6 +30,13 @@ pub use invoice_numbers::{
     validate_manual_invoice_number_scope,
 };
 pub use issue::record_issue;
+pub use late_interest::{
+    calculate_late_interest, claim_open_balance_minor, cumulative_interest_minor,
+    interest_post_journal_suggestion, lookup_statutory_reference_rate, mark_interest_claim_posted,
+    oldest_unposted_interest_claim, register_late_interest, total_interest_claims_minor,
+    InvoiceInterestClaim, LateInterestCalculation, ReferenceRateSource, BOOKKEEPING_RULE_ID,
+    REGISTER_RULE_ID, RULE_ID as LATE_INTEREST_RULE_ID, STATUTORY_SURCHARGE_BPS,
+};
 pub use lifecycle::{
     mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
 };
@@ -151,6 +161,9 @@ pub struct Invoice {
     pub issued_document_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub issued_sha256: Option<String>,
+    /// Registrerede morarentekrav (DK-INVOICE-LATE-INTEREST-REGISTER-001).
+    #[serde(default)]
+    pub interest_claims: Vec<InvoiceInterestClaim>,
 }
 
 impl Invoice {
@@ -317,6 +330,21 @@ pub enum InvoiceError {
     },
     #[error("due date must be YYYY-MM-DD: {0}")]
     InvalidDueDate(String),
+    #[error("no statutory reference rate tabled for {0}")]
+    NoStatutoryReferenceRate(String),
+    #[error("reference rate must not be negative")]
+    InvalidReferenceRate,
+    #[error("late interest must be positive before it can be registered")]
+    NoInterestToRegister,
+    #[error("late interest already registered for {claim_date} at reference rate {reference_rate_bps} bps")]
+    DuplicateInterestClaim {
+        claim_date: String,
+        reference_rate_bps: i64,
+    },
+    #[error("interest claim not found for date {0}")]
+    InterestClaimNotFound(String),
+    #[error("interest claim is already posted")]
+    InterestClaimAlreadyPosted,
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

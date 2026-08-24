@@ -16,6 +16,8 @@ pub struct InvoiceConfig {
     pub salgsmoms_account: String,
     /// Købsmoms (indgående moms) — debited on purchase invoices (ADR-020).
     pub koebsmoms_account: String,
+    /// Morarenteindtægt (DK-INVOICE-LATE-INTEREST-BOOKKEEPING-001).
+    pub interest_income_account: String,
 }
 
 impl Default for InvoiceConfig {
@@ -28,6 +30,8 @@ impl Default for InvoiceConfig {
             bank_account: "2000".into(),
             salgsmoms_account: "1200".into(),
             koebsmoms_account: "4000".into(),
+            // Morarenteindtægt (non-VAT claim income, originalens 1010).
+            interest_income_account: "1010".into(),
         }
     }
 }
@@ -195,7 +199,7 @@ pub fn payment_journal_suggestion_amount(
     Ok(entry)
 }
 
-fn leg(
+pub(crate) fn leg(
     account: &str,
     direction: Direction,
     amount: MinorAmount,

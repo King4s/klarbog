@@ -16,6 +16,9 @@ pub(super) struct InvoiceRow {
     pub can_collect: bool,
     /// Sent and unpaid — eligible for a full credit note (ADR-020).
     pub can_credit: bool,
+    /// Overdue collectible — morarente kan registreres/bogføres.
+    pub can_interest: bool,
+    pub has_unposted_interest: bool,
 }
 
 pub(super) struct PartyOption {
@@ -47,6 +50,14 @@ pub struct InvoiceActionForm {
     /// Valgfri forfaldsdato på kladde (YYYY-MM-DD).
     #[serde(default)]
     pub due_date: Option<String>,
+    /// Morarente: pr. dato (YYYY-MM-DD), default i dag.
+    #[serde(default)]
+    pub as_of_date: Option<String>,
+    /// Referencesats i bps (220 = 2,2 %); tom = lovlig tabel.
+    #[serde(default)]
+    pub reference_rate_bps: Option<String>,
+    #[serde(default)]
+    pub interest_note: Option<String>,
 }
 
 pub(super) fn status_label(s: InvoiceStatus) -> &'static str {

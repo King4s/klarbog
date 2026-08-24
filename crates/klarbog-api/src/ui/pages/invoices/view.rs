@@ -145,6 +145,16 @@ pub(super) async fn load_page(
                 can_credit: inv.status.allows_credit()
                     && inv.payments.is_empty()
                     && inv.creditable_remaining_minor().unwrap_or(0) > 0,
+                can_interest: inv.status.allows_late_interest()
+                    && inv.collectible_open_minor().unwrap_or(0) > 0
+                    && inv
+                        .due_assessment(Utc::now().date_naive())
+                        .map(|a| a.is_overdue)
+                        .unwrap_or(false),
+                has_unposted_interest: inv
+                    .interest_claims
+                    .iter()
+                    .any(|c| c.posted_journal_id.is_none()),
             })
         })
         .collect();
