@@ -22,9 +22,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+tokio = { workspace = true }
 
 # INTENTIONAL: no JournalWrite capability (ADR-004); posting via klarbog-core only
 
 [dev-dependencies]
 tempfile = "3"
-tokio = { workspace = true }

@@ -111,12 +111,13 @@ pub fn register_invoice_reminder(
     }
 
     let prior_total = total_reminder_fees_minor(invoice)?;
-    invoice.reminders.push(InvoiceReminder {
+    let reminder = InvoiceReminder {
         reminder_date: reminder_s.clone(),
         fee_amount_minor: fee,
         note,
         posted_journal_id: None,
-    });
+    };
+    invoice.reminders.push(reminder.clone());
     let result = RegisterInvoiceReminderResult {
         reminder_sequence: invoice.reminders.len(),
         reminder_date: reminder_s,
@@ -125,6 +126,7 @@ pub fn register_invoice_reminder(
     };
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
+    crate::claim_ledger::dual_write_reminder(company, id, &reminder)?;
     Ok((updated, result))
 }
 

@@ -135,14 +135,16 @@ pub fn register_invoice_compensation(
         return Err(InvoiceError::CompensationNotEligible(calc.reason));
     }
 
-    invoice.compensation_claims.push(InvoiceCompensationClaim {
+    let claim = InvoiceCompensationClaim {
         claim_date: calc.as_of_date.clone(),
         amount_minor: calc.compensation_amount_minor,
         note,
         posted_journal_id: None,
-    });
+    };
+    invoice.compensation_claims.push(claim.clone());
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
+    crate::claim_ledger::dual_write_compensation(company, id, &claim)?;
     Ok((updated, calc))
 }
 

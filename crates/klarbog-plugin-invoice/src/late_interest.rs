@@ -311,7 +311,7 @@ pub fn register_late_interest(
         return Err(InvoiceError::NoInterestToRegister);
     }
 
-    invoice.interest_claims.push(InvoiceInterestClaim {
+    let claim = InvoiceInterestClaim {
         claim_date: calc.as_of_date.clone(),
         reference_rate_bps: calc.reference_rate_bps,
         annual_interest_rate_bps: calc.annual_interest_rate_bps,
@@ -321,9 +321,11 @@ pub fn register_late_interest(
         amount_minor: calc.accrued_interest_minor,
         note,
         posted_journal_id: None,
-    });
+    };
+    invoice.interest_claims.push(claim.clone());
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
+    crate::claim_ledger::dual_write_interest(company, id, &claim)?;
     Ok((updated, calc))
 }
 

@@ -1,6 +1,9 @@
 //! Invoice plugin — drafts in `invoices.json` + journal suggestions with party_id.
 //! No journal-write capability (ADR-004).
 
+mod claim_ledger;
+#[cfg(test)]
+mod claim_ledger_tests;
 mod credit;
 mod draft;
 pub mod due_date;
