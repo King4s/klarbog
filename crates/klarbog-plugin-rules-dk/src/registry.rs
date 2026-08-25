@@ -174,15 +174,16 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: reminder_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI reminder_post_preview/commit; posted_journal_id fail-closed",
+            enforced_by: "invoice-plugin: reminder_post_journal_suggestion (AR debet / 1010 kredit); resolve_unposted_reminder(date|sequence|oldest); to-faset UI reminder_post_preview/commit; posted_journal_id fail-closed",
             proven_by: &[
                 "klarbog-plugin-invoice reminders_tests::posts_reminder_once_and_rejects_double_post",
+                "klarbog-plugin-invoice reminders_tests::posts_specific_newer_reminder_leaving_older_unposted",
+                "klarbog-plugin-invoice reminders_tests::resolve_reminder_by_sequence",
                 "klarbog-api ui::tests::invoice_flow::ui_reminder_register_and_post",
             ],
             gaps: &[
                 "invoice_reminder_postings append-only link-tabel",
                 "accountRoleCompatibility / resolveClaimIncomeAccount",
-                "bogføring af specifikt reminder_id når flere unposted",
             ],
         },
         RegisteredRule {
@@ -232,15 +233,16 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: interest_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI interest_post_preview/commit; posted_journal_id fail-closed",
+            enforced_by: "invoice-plugin: interest_post_journal_suggestion (AR debet / 1010 kredit); resolve_unposted_interest_claim(claim_date[+rate]|oldest); to-faset UI interest_post_preview/commit; memo date@rate; posted_journal_id fail-closed",
             proven_by: &[
+                "klarbog-plugin-invoice late_interest_tests::posts_specific_newer_interest_claim_leaving_older_unposted",
                 "klarbog-api ui::tests::invoice_flow::ui_interest_register_and_post",
                 "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_interest_preview",
+                "klarbog-mcp invoice_settlement::specific_claim_tests::mcp_post_specific_interest_claim_preview",
             ],
             gaps: &[
                 "invoice_interest_postings append-only link-tabel",
                 "accountRoleCompatibility / resolveClaimIncomeAccount",
-                "bogføring af specifikt claim_id når flere unposted",
             ],
         },
         RegisteredRule {

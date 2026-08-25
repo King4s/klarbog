@@ -162,6 +162,54 @@ pub fn oldest_unposted_reminder(invoice: &Invoice) -> Option<(usize, &InvoiceRem
         .find(|(_, r)| r.posted_journal_id.is_none())
 }
 
+/// Resolve which unposted reminder to book.
+///
+/// - `reminder_date` omitted → oldest unposted (backward compatible).
+/// - `reminder_date` set → that reminder; fail-closed if missing or already posted.
+/// - `reminder_sequence` (1-based) may be used instead of / with date; both must agree.
+pub fn resolve_unposted_reminder<'a>(
+    invoice: &'a Invoice,
+    reminder_date: Option<&str>,
+    reminder_sequence: Option<usize>,
+) -> Result<(usize, &'a InvoiceReminder), InvoiceError> {
+    if reminder_date.is_none() && reminder_sequence.is_none() {
+        return oldest_unposted_reminder(invoice)
+            .ok_or_else(|| InvoiceError::ReminderNotFound("unposted".into()));
+    }
+    let by_seq = reminder_sequence
+        .map(|seq| {
+            if seq == 0 || seq > invoice.reminders.len() {
+                return Err(InvoiceError::ReminderNotFound(format!("sequence {seq}")));
+            }
+            Ok(seq - 1)
+        })
+        .transpose()?;
+    let by_date = reminder_date
+        .map(|date| {
+            invoice
+                .reminders
+                .iter()
+                .position(|r| r.reminder_date == date)
+                .ok_or_else(|| InvoiceError::ReminderNotFound(date.into()))
+        })
+        .transpose()?;
+    let idx = match (by_date, by_seq) {
+        (Some(d), Some(s)) if d != s => {
+            return Err(InvoiceError::ReminderNotFound(
+                "date/sequence mismatch".to_string(),
+            ));
+        }
+        (Some(d), _) => d,
+        (None, Some(s)) => s,
+        (None, None) => unreachable!(),
+    };
+    let reminder = &invoice.reminders[idx];
+    if reminder.posted_journal_id.is_some() {
+        return Err(InvoiceError::ReminderAlreadyPosted);
+    }
+    Ok((idx, reminder))
+}
+
 pub fn reminder_post_journal_suggestion(
     invoice: &Invoice,
     reminder: &InvoiceReminder,

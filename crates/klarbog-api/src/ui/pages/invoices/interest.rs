@@ -7,9 +7,8 @@ use chrono::Utc;
 use klarbog_core::journal_commit;
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    get_invoice, interest_post_journal_suggestion, mark_interest_claim_posted,
-    oldest_unposted_interest_claim, parse_iso_date, register_late_interest, Invoice, InvoiceConfig,
-    InvoiceId,
+    get_invoice, interest_post_journal_suggestion, mark_interest_claim_posted, parse_iso_date,
+    register_late_interest, resolve_unposted_interest_claim, Invoice, InvoiceConfig, InvoiceId,
 };
 use klarbog_types::Actor;
 
@@ -108,16 +107,20 @@ pub(super) async fn interest_post_preview(
         Ok(inv) => inv,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
-    let Some((_idx, claim)) = oldest_unposted_interest_claim(&invoice) else {
-        return html_ok(
-            load_page(
-                state,
-                company,
-                String::new(),
-                format!("{id} har ingen ubogført morarente — registrer først"),
-            )
-            .await,
-        );
+    let claim_date_key = form
+        .as_of_date
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty());
+    let rate_key = match parse_reference_bps(&form.reference_rate_bps) {
+        Ok(r) => r,
+        Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
+    };
+    let claim = match resolve_unposted_interest_claim(&invoice, claim_date_key, rate_key) {
+        Ok((_idx, c)) => c,
+        Err(e) => {
+            return html_ok(load_page(state, company, String::new(), format!("{id}: {e}")).await);
+        }
     };
     let cfg = InvoiceConfig::default();
     match interest_post_journal_suggestion(&invoice, claim, actor, &cfg) {
@@ -161,8 +164,8 @@ pub(super) async fn commit_interest(
             );
         }
     };
-    let claim_date = match extract_interest_claim_date(&entry.memo) {
-        Some(d) => d,
+    let (claim_date, claim_rate) = match extract_interest_claim_key(&entry.memo) {
+        Some(k) => k,
         None => {
             return html_ok(
                 load_page(
@@ -186,8 +189,13 @@ pub(super) async fn commit_interest(
     )
     .await
     {
-        Ok(r) => match mark_interest_claim_posted(path, &id, &claim_date, &r.posted.id.to_string())
-        {
+        Ok(r) => match mark_interest_claim_posted(
+            path,
+            &id,
+            &claim_date,
+            claim_rate,
+            &r.posted.id.to_string(),
+        ) {
             Ok(_) => html_ok(
                 load_page(
                     state,
@@ -217,11 +225,16 @@ pub(super) async fn commit_interest(
     }
 }
 
-fn extract_interest_claim_date(memo: &str) -> Option<String> {
+/// Memo key: `…:interest:YYYY-MM-DD@rate · …` (rate optional for older memos).
+fn extract_interest_claim_key(memo: &str) -> Option<(String, Option<i64>)> {
     let tail = memo.split(":interest:").nth(1)?;
-    let date = tail.split('·').next()?.trim();
+    let key = tail.split('·').next()?.trim();
+    let (date, rate) = match key.split_once('@') {
+        Some((d, r)) => (d.trim(), r.trim().parse::<i64>().ok()),
+        None => (key, None),
+    };
     if parse_iso_date(date).is_ok() {
-        Some(date.to_string())
+        Some((date.to_string(), rate))
     } else {
         None
     }

@@ -58,18 +58,18 @@ pub use late_compensation::{
 pub use late_interest::{
     calculate_late_interest, claim_open_balance_minor, cumulative_interest_minor,
     interest_post_journal_suggestion, lookup_statutory_reference_rate, mark_interest_claim_posted,
-    oldest_unposted_interest_claim, register_late_interest, total_interest_claims_minor,
-    InvoiceInterestClaim, LateInterestCalculation, ReferenceRateSource,
-    BOOKKEEPING_RULE_ID as LATE_INTEREST_BOOKKEEPING_RULE_ID, REGISTER_RULE_ID,
-    RULE_ID as LATE_INTEREST_RULE_ID, STATUTORY_SURCHARGE_BPS,
+    oldest_unposted_interest_claim, register_late_interest, resolve_unposted_interest_claim,
+    total_interest_claims_minor, InvoiceInterestClaim, LateInterestCalculation,
+    ReferenceRateSource, BOOKKEEPING_RULE_ID as LATE_INTEREST_BOOKKEEPING_RULE_ID,
+    REGISTER_RULE_ID, RULE_ID as LATE_INTEREST_RULE_ID, STATUTORY_SURCHARGE_BPS,
 };
 pub use lifecycle::{
     mark_paid_preview, mark_part_paid_preview, patch_status, record_credit_note, record_payment,
 };
 pub use reminders::{
     mark_reminder_posted, oldest_unposted_reminder, register_invoice_reminder,
-    reminder_post_journal_suggestion, rollback_unposted_reminder, total_reminder_fees_minor,
-    InvoiceReminder, RegisterInvoiceReminderResult,
+    reminder_post_journal_suggestion, resolve_unposted_reminder, rollback_unposted_reminder,
+    total_reminder_fees_minor, InvoiceReminder, RegisterInvoiceReminderResult,
     BOOKKEEPING_RULE_ID as REMINDER_BOOKKEEPING_RULE_ID, MAX_REMINDERS_PER_CLAIM,
     MAX_REMINDER_FEE_MINOR, MIN_DAYS_BETWEEN_REMINDERS, RULE_ID as REMINDER_FEE_RULE_ID,
 };

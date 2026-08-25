@@ -145,6 +145,54 @@ fn staged_claims_bill_incrementally() {
 }
 
 #[test]
+fn posts_specific_newer_interest_claim_leaving_older_unposted() {
+    use crate::due_date::parse_iso_date;
+    use crate::InvoiceConfig;
+    use klarbog_types::Actor;
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued_invoice(&co, 125_000, "2026-05-16", "2026-06-15");
+    register_late_interest(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-20").unwrap(),
+        Some(220),
+        None,
+    )
+    .unwrap();
+    register_late_interest(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-07-01").unwrap(),
+        Some(220),
+        None,
+    )
+    .unwrap();
+    let stored = crate::store::load(&co).unwrap().invoices[0].clone();
+    let (idx, claim) =
+        resolve_unposted_interest_claim(&stored, Some("2026-07-01"), Some(220)).unwrap();
+    assert_eq!(idx, 1);
+    assert_eq!(claim.claim_date, "2026-07-01");
+    let actor = Actor::user("t");
+    let cfg = InvoiceConfig::default();
+    let entry = interest_post_journal_suggestion(&stored, claim, &actor, &cfg).unwrap();
+    assert!(entry.memo.contains(":interest:2026-07-01@220"));
+    mark_interest_claim_posted(&co, &inv.id, "2026-07-01", Some(220), "je_newer").unwrap();
+    let after = crate::store::load(&co).unwrap().invoices[0].clone();
+    assert!(after.interest_claims[0].posted_journal_id.is_none());
+    assert_eq!(
+        after.interest_claims[1].posted_journal_id.as_deref(),
+        Some("je_newer")
+    );
+    let (oldest_idx, oldest) = resolve_unposted_interest_claim(&after, None, None).unwrap();
+    assert_eq!(oldest_idx, 0);
+    assert_eq!(oldest.claim_date, "2026-06-20");
+    let err = resolve_unposted_interest_claim(&after, Some("2026-07-01"), None).unwrap_err();
+    assert!(matches!(err, InvoiceError::InterestClaimAlreadyPosted));
+}
+
+#[test]
 fn defaults_to_statutory_table() {
     use crate::due_date::parse_iso_date;
     let dir = tempdir().unwrap();

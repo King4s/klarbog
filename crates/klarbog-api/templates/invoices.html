@@ -75,6 +75,7 @@
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="interest_post_preview" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="as_of_date" placeholder="claim dato" title="valgfri: specifik claim_date" style="width:7rem" />
             <button class="ghost" type="submit">Bogfør morarente (preview)</button>
           </form>
           {% endif %}
@@ -113,6 +114,7 @@
           <form method="post" action="/ui/invoices" style="display:inline">
             <input type="hidden" name="action" value="reminder_post_preview" />
             <input type="hidden" name="invoice_id" value="{{ inv.id }}" />
+            <input name="reminder_date" placeholder="rykker dato" title="valgfri: specifik reminder_date" style="width:7rem" />
             <button class="ghost" type="submit">Bogfør rykkergebyr (preview)</button>
           </form>
           {% endif %}

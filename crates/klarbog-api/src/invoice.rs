@@ -89,6 +89,7 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::NoInterestToRegister
         | InvoiceError::DuplicateInterestClaim { .. }
         | InvoiceError::InterestClaimNotFound(_)
+        | InvoiceError::AmbiguousInterestClaim { .. }
         | InvoiceError::InterestClaimAlreadyPosted
         | InvoiceError::NonDkkInvoice(_)
         | InvoiceError::InvalidReminderFee

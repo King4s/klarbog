@@ -6,8 +6,9 @@ use klarbog_plugin::Registry;
 use klarbog_plugin_invoice::{
     calculate_late_compensation, calculate_late_interest, compensation_post_journal_suggestion,
     get_invoice, interest_post_journal_suggestion, list_invoices,
-    oldest_unposted_compensation_claim, oldest_unposted_interest_claim, parse_iso_date,
-    register_invoice_compensation, register_late_interest, InvoiceConfig, InvoiceError, InvoiceId,
+    oldest_unposted_compensation_claim, parse_iso_date, register_invoice_compensation,
+    register_late_interest, resolve_unposted_interest_claim, InvoiceConfig, InvoiceError,
+    InvoiceId,
 };
 use klarbog_types::Envelope;
 use serde_json::{json, Value};
@@ -313,7 +314,8 @@ pub async fn invoice_claim_interest(args: &Value, allowlist_root: &Path) -> Enve
     }
 }
 
-/// Journal suggestion for oldest unposted interest claim; optional ConfirmStore (`preview`).
+/// Journal suggestion for an unposted interest claim; optional ConfirmStore (`preview`).
+/// Optional `claim_date` / `reference_rate_bps` select a specific claim; omit → oldest unposted.
 pub async fn invoice_post_interest_preview(
     args: &Value,
     allowlist_root: &Path,
@@ -332,10 +334,15 @@ pub async fn invoice_post_interest_preview(
         Ok(inv) => inv,
         Err(e) => return e,
     };
-    let Some((_idx, claim)) = oldest_unposted_interest_claim(&invoice) else {
-        return Envelope::err([format!(
-            "{invoice_id} has no unposted interest claim — call invoice_claim_interest first"
-        )]);
+    let claim_date = args
+        .get("claim_date")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let reference_rate_bps = args.get("reference_rate_bps").and_then(|v| v.as_i64());
+    let claim = match resolve_unposted_interest_claim(&invoice, claim_date, reference_rate_bps) {
+        Ok((_idx, c)) => c,
+        Err(e) => return map_invoice(e),
     };
     let entry = match interest_post_journal_suggestion(
         &invoice,
@@ -352,3 +359,7 @@ pub async fn invoice_post_interest_preview(
 #[cfg(test)]
 #[path = "invoice_settlement_mcp_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "invoice_settlement_specific_mcp_tests.rs"]
+mod specific_claim_tests;

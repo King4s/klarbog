@@ -75,6 +75,8 @@ pub enum InvoiceError {
     },
     #[error("interest claim not found for date {0}")]
     InterestClaimNotFound(String),
+    #[error("ambiguous interest claim for date {claim_date}; pass reference_rate_bps")]
+    AmbiguousInterestClaim { claim_date: String },
     #[error("interest claim is already posted")]
     InterestClaimAlreadyPosted,
     #[error("only DKK issued invoices are supported in the current reminder flow")]

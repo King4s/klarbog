@@ -256,13 +256,15 @@ pub fn tools() -> Vec<Value> {
         }),
         json!({
             "name": "invoice_post_interest_preview",
-            "description": "Return journal suggestion for oldest unposted interest claim (no post). Optional preview:true issues ConfirmStore token for journal_post_commit.",
+            "description": "Return journal suggestion for an unposted interest claim (no post). Omit claim_date → oldest unposted. Optional preview:true issues ConfirmStore token for journal_post_commit.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "company": {"type": "string"},
                     "invoice_id": {"type": "string"},
                     "invoice_number": {"type": "string"},
+                    "claim_date": {"type": "string", "description": "Optional YYYY-MM-DD of specific unposted claim"},
+                    "reference_rate_bps": {"type": "integer", "description": "Optional; disambiguates claims sharing claim_date"},
                     "preview": {"type": "boolean"},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}

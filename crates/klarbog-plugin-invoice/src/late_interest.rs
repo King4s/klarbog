@@ -3,14 +3,20 @@
 
 #[path = "late_interest_accrual.rs"]
 mod late_interest_accrual;
+#[path = "late_interest_post.rs"]
+mod late_interest_post;
 
-use crate::draft::{self, InvoiceConfig};
 use crate::due_date::{assess_overdue, diff_days, format_iso_date, parse_iso_date};
 use crate::{Invoice, InvoiceError, InvoiceId};
 use chrono::NaiveDate;
 use late_interest_accrual::{accrue_windows, claim_rate_windows, principal_open_minor, RateWindow};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+
+pub use late_interest_post::{
+    interest_post_journal_suggestion, mark_interest_claim_posted, oldest_unposted_interest_claim,
+    resolve_unposted_interest_claim,
+};
 
 pub const RULE_ID: &str = "DK-INVOICE-LATE-INTEREST-001";
 pub const REGISTER_RULE_ID: &str = "DK-INVOICE-LATE-INTEREST-REGISTER-001";
@@ -327,88 +333,6 @@ pub fn register_late_interest(
     crate::store::save(company, &file)?;
     crate::claim_ledger::dual_write_interest(company, id, &claim)?;
     Ok((updated, calc))
-}
-
-pub fn oldest_unposted_interest_claim(invoice: &Invoice) -> Option<(usize, &InvoiceInterestClaim)> {
-    invoice
-        .interest_claims
-        .iter()
-        .enumerate()
-        .find(|(_, c)| c.posted_journal_id.is_none())
-}
-
-pub fn interest_post_journal_suggestion(
-    invoice: &Invoice,
-    claim: &InvoiceInterestClaim,
-    actor: &klarbog_types::Actor,
-    cfg: &InvoiceConfig,
-) -> Result<klarbog_journal::JournalEntry, InvoiceError> {
-    if claim.posted_journal_id.is_some() {
-        return Err(InvoiceError::InterestClaimAlreadyPosted);
-    }
-    if claim.amount_minor <= 0 {
-        return Err(InvoiceError::NoInterestToRegister);
-    }
-    invoice.validate_lines()?;
-    let currency = invoice.lines[0].currency.clone();
-    let party = Some(invoice.party_id.clone());
-    let invoice_no = invoice.invoice_no.as_deref().unwrap_or("?");
-    let memo = format!(
-        "invoice:{}:interest:{} · {}",
-        invoice.id, claim.claim_date, invoice_no
-    );
-    let amount = klarbog_types::MinorAmount::from_minor(claim.amount_minor);
-    let legs = vec![
-        draft::leg(
-            &cfg.ar_account,
-            klarbog_journal::Direction::Debit,
-            amount,
-            &currency,
-            party.clone(),
-        ),
-        draft::leg(
-            &cfg.interest_income_account,
-            klarbog_journal::Direction::Credit,
-            amount,
-            &currency,
-            party,
-        ),
-    ];
-    let as_of = parse_iso_date(&claim.claim_date)?;
-    let entry = klarbog_journal::JournalEntry {
-        memo,
-        legs,
-        as_of: as_of.and_hms_opt(12, 0, 0).unwrap().and_utc(),
-        actor: actor.clone(),
-    };
-    entry.validate().map_err(InvoiceError::Journal)?;
-    Ok(entry)
-}
-
-pub fn mark_interest_claim_posted(
-    company: &Path,
-    id: &InvoiceId,
-    claim_date: &str,
-    journal_entry_id: &str,
-) -> Result<Invoice, InvoiceError> {
-    let mut file = crate::store::load(company)?;
-    let invoice = file
-        .invoices
-        .iter_mut()
-        .find(|inv| inv.id == *id)
-        .ok_or_else(|| InvoiceError::NotFound(id.to_string()))?;
-    let claim = invoice
-        .interest_claims
-        .iter_mut()
-        .find(|c| c.claim_date == claim_date)
-        .ok_or_else(|| InvoiceError::InterestClaimNotFound(claim_date.to_string()))?;
-    if claim.posted_journal_id.is_some() {
-        return Err(InvoiceError::InterestClaimAlreadyPosted);
-    }
-    claim.posted_journal_id = Some(journal_entry_id.to_string());
-    let updated = invoice.clone();
-    crate::store::save(company, &file)?;
-    Ok(updated)
 }
 
 pub fn total_interest_claims_minor(invoice: &Invoice) -> Result<i64, InvoiceError> {

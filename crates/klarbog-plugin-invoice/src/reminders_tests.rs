@@ -165,4 +165,77 @@ fn blocks_reminder_sent_too_soon() {
     assert!(matches!(err, InvoiceError::ReminderTooSoon { .. }));
 }
 
+#[test]
+fn posts_specific_newer_reminder_leaving_older_unposted() {
+    use crate::due_date::parse_iso_date;
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued_invoice(&co, 125_000, "2026-05-16", "2026-06-01");
+    register_invoice_reminder(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-11").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    register_invoice_reminder(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-22").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let stored = crate::store::load(&co).unwrap().invoices[0].clone();
+    let (idx, rem) = resolve_unposted_reminder(&stored, Some("2026-06-22"), None).unwrap();
+    assert_eq!(idx, 1);
+    assert_eq!(rem.reminder_date, "2026-06-22");
+    let actor = Actor::user("t");
+    let cfg = InvoiceConfig::default();
+    let entry = reminder_post_journal_suggestion(&stored, rem, &actor, &cfg).unwrap();
+    assert!(entry.memo.contains(":reminder:2026-06-22"));
+    mark_reminder_posted(&co, &inv.id, "2026-06-22", "je_newer").unwrap();
+    let after = crate::store::load(&co).unwrap().invoices[0].clone();
+    assert!(after.reminders[0].posted_journal_id.is_none());
+    assert_eq!(
+        after.reminders[1].posted_journal_id.as_deref(),
+        Some("je_newer")
+    );
+    let (oldest_idx, oldest) = resolve_unposted_reminder(&after, None, None).unwrap();
+    assert_eq!(oldest_idx, 0);
+    assert_eq!(oldest.reminder_date, "2026-06-11");
+    let err = resolve_unposted_reminder(&after, Some("2026-06-22"), None).unwrap_err();
+    assert!(matches!(err, InvoiceError::ReminderAlreadyPosted));
+}
+
+#[test]
+fn resolve_reminder_by_sequence() {
+    use crate::due_date::parse_iso_date;
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued_invoice(&co, 125_000, "2026-05-16", "2026-06-01");
+    register_invoice_reminder(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-11").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    register_invoice_reminder(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-22").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let stored = crate::store::load(&co).unwrap().invoices[0].clone();
+    let (_, rem) = resolve_unposted_reminder(&stored, None, Some(2)).unwrap();
+    assert_eq!(rem.reminder_date, "2026-06-22");
+}
+
 use crate::late_interest::claim_open_balance_minor;

@@ -7,8 +7,8 @@ use chrono::Utc;
 use klarbog_core::journal_commit;
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    get_invoice, mark_reminder_posted, oldest_unposted_reminder, parse_iso_date,
-    register_invoice_reminder, reminder_post_journal_suggestion, Invoice, InvoiceConfig, InvoiceId,
+    get_invoice, mark_reminder_posted, parse_iso_date, register_invoice_reminder,
+    reminder_post_journal_suggestion, resolve_unposted_reminder, Invoice, InvoiceConfig, InvoiceId,
 };
 use klarbog_types::Actor;
 
@@ -115,16 +115,16 @@ pub(super) async fn reminder_post_preview(
         Ok(inv) => inv,
         Err(e) => return html_ok(load_page(state, company, String::new(), e).await),
     };
-    let Some((_idx, reminder)) = oldest_unposted_reminder(&invoice) else {
-        return html_ok(
-            load_page(
-                state,
-                company,
-                String::new(),
-                format!("{id} har ingen ubogført rykkergebyr — registrer først"),
-            )
-            .await,
-        );
+    let reminder_date_key = form
+        .reminder_date
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty());
+    let reminder = match resolve_unposted_reminder(&invoice, reminder_date_key, None) {
+        Ok((_idx, r)) => r,
+        Err(e) => {
+            return html_ok(load_page(state, company, String::new(), format!("{id}: {e}")).await);
+        }
     };
     let cfg = InvoiceConfig::default();
     match reminder_post_journal_suggestion(&invoice, reminder, actor, &cfg) {
