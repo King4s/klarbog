@@ -173,7 +173,7 @@ mod tests {
     async fn insert_then_duplicate_message_id_is_idempotent() {
         let dir = tempdir().unwrap();
         let store = open_company(dir.path()).await.unwrap();
-        assert_eq!(store.schema_version().await.unwrap(), 4);
+        assert_eq!(store.schema_version().await.unwrap(), 5);
         let rec = sample("<msg-1@klarbog.local>");
         assert!(store.record_email_send(&rec, "system").await.unwrap());
         assert!(!store.record_email_send(&rec, "system").await.unwrap());

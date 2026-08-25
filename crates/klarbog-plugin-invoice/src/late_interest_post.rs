@@ -138,8 +138,16 @@ pub fn mark_interest_claim_posted(
     if claim.posted_journal_id.is_some() {
         return Err(InvoiceError::InterestClaimAlreadyPosted);
     }
+    let rate_bps = claim.reference_rate_bps;
     claim.posted_journal_id = Some(journal_entry_id.to_string());
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
+    crate::claim_ledger::dual_write_interest_posting(
+        company,
+        id,
+        claim_date,
+        rate_bps,
+        journal_entry_id,
+    )?;
     Ok(updated)
 }

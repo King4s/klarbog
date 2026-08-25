@@ -13,6 +13,8 @@ pub enum StoreError {
     Migrate(#[from] sqlx::migrate::MigrateError),
     #[error(transparent)]
     Journal(#[from] JournalError),
+    #[error("claim posting link already exists (append-only, one journal per claim)")]
+    DuplicateClaimPosting,
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -85,7 +87,7 @@ mod tests {
     async fn wal_fk_and_balanced_append() {
         let dir = tempdir().unwrap();
         let store = open_company(dir.path()).await.unwrap();
-        assert_eq!(store.schema_version().await.unwrap(), 4);
+        assert_eq!(store.schema_version().await.unwrap(), 5);
         let (mode, fk, busy) = store.pragmas().await.unwrap();
         assert_eq!(mode.to_lowercase(), "wal");
         assert_eq!(fk, 1);

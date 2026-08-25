@@ -281,6 +281,7 @@ pub fn mark_reminder_posted(
     reminder.posted_journal_id = Some(journal_entry_id.to_string());
     let updated = invoice.clone();
     crate::store::save(company, &file)?;
+    crate::claim_ledger::dual_write_reminder_posting(company, id, reminder_date, journal_entry_id)?;
     Ok(updated)
 }
 

@@ -1,14 +1,17 @@
 //! Dual-write claim register → SQLite + audit_log (linegate split).
 
 use crate::due_date::{parse_iso_date, STATUTORY_PAYMENT_TERM_DAYS};
-use crate::late_compensation::{register_invoice_compensation, STATUTORY_COMPENSATION_MINOR};
-use crate::late_interest::register_late_interest;
-use crate::reminders::{register_invoice_reminder, MAX_REMINDER_FEE_MINOR};
+use crate::late_compensation::{
+    mark_compensation_posted, register_invoice_compensation, STATUTORY_COMPENSATION_MINOR,
+};
+use crate::late_interest::{mark_interest_claim_posted, register_late_interest};
+use crate::reminders::{mark_reminder_posted, register_invoice_reminder, MAX_REMINDER_FEE_MINOR};
 use crate::store::{create_draft_from_new, NewLine};
 use crate::{InvoiceError, InvoiceKind, InvoiceStatus};
 use klarbog_plugin_crm::{upsert_party, PartyKind};
 use klarbog_store_sqlite::{
-    open_company, COMPENSATION_REGISTER_AUDIT, INTEREST_REGISTER_AUDIT, REMINDER_REGISTER_AUDIT,
+    open_company, COMPENSATION_POST_AUDIT, COMPENSATION_REGISTER_AUDIT, INTEREST_POST_AUDIT,
+    INTEREST_REGISTER_AUDIT, REMINDER_POST_AUDIT, REMINDER_REGISTER_AUDIT,
 };
 use std::path::Path;
 use tempfile::tempdir;
@@ -192,5 +195,120 @@ fn compensation_register_writes_sqlite_and_rejects_dup_without_double() {
         assert!(audits[0]
             .message
             .contains(&STATUTORY_COMPENSATION_MINOR.to_string()));
+    });
+}
+
+#[test]
+fn reminder_post_writes_sqlite_link_and_rejects_double() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued(&co, PartyKind::Private, 125_000, "2026-05-16", "2026-06-15");
+    register_invoice_reminder(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-26").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    mark_reminder_posted(&co, &inv.id, "2026-06-26", "je_r1").unwrap();
+    let err = mark_reminder_posted(&co, &inv.id, "2026-06-26", "je_r2").unwrap_err();
+    assert!(matches!(err, InvoiceError::ReminderAlreadyPosted));
+
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(async {
+        let store = open_company(&co).await.unwrap();
+        assert_eq!(store.count_reminder_postings().await.unwrap(), 1);
+        assert_eq!(
+            store
+                .list_audit_by_event(REMINDER_POST_AUDIT)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+    });
+}
+
+#[test]
+fn interest_post_writes_sqlite_link_and_rejects_double() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued(&co, PartyKind::Private, 125_000, "2026-05-16", "2026-06-15");
+    register_late_interest(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-20").unwrap(),
+        Some(220),
+        None,
+    )
+    .unwrap();
+    mark_interest_claim_posted(&co, &inv.id, "2026-06-20", Some(220), "je_i1").unwrap();
+    let err =
+        mark_interest_claim_posted(&co, &inv.id, "2026-06-20", Some(220), "je_i2").unwrap_err();
+    assert!(matches!(err, InvoiceError::InterestClaimAlreadyPosted));
+
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(async {
+        let store = open_company(&co).await.unwrap();
+        assert_eq!(store.count_interest_postings().await.unwrap(), 1);
+        assert_eq!(
+            store
+                .list_audit_by_event(INTEREST_POST_AUDIT)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+    });
+}
+
+#[test]
+fn compensation_post_writes_sqlite_link_and_rejects_double() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let inv = issued(
+        &co,
+        PartyKind::Business,
+        125_000,
+        "2026-05-16",
+        "2026-06-15",
+    );
+    register_invoice_compensation(
+        &co,
+        &inv.id,
+        parse_iso_date("2026-06-20").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    mark_compensation_posted(&co, &inv.id, "2026-06-20", "je_c1").unwrap();
+    let err = mark_compensation_posted(&co, &inv.id, "2026-06-20", "je_c2").unwrap_err();
+    assert!(matches!(err, InvoiceError::CompensationClaimAlreadyPosted));
+
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(async {
+        let store = open_company(&co).await.unwrap();
+        assert_eq!(store.count_compensation_postings().await.unwrap(), 1);
+        assert_eq!(
+            store
+                .list_audit_by_event(COMPENSATION_POST_AUDIT)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
     });
 }

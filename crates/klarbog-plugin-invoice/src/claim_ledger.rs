@@ -1,12 +1,13 @@
-//! Dual-write claim registration to company ledger SQLite + audit_log.
-//! invoices.json remains UI source of truth; SQLite mirrors register events.
+//! Dual-write claim registration + posting links to company ledger SQLite.
+//! invoices.json remains UI source of truth; SQLite mirrors register/post events.
 
 use crate::late_compensation::InvoiceCompensationClaim;
 use crate::late_interest::{InvoiceInterestClaim, ReferenceRateSource};
 use crate::reminders::InvoiceReminder;
 use crate::{InvoiceError, InvoiceId};
 use klarbog_store_sqlite::{
-    open_company, CompensationClaimRecord, InterestClaimRecord, ReminderClaimRecord,
+    open_company, CompensationClaimRecord, CompensationPostingRecord, InterestClaimRecord,
+    InterestPostingRecord, ReminderClaimRecord, ReminderPostingRecord,
 };
 use std::future::Future;
 use std::path::Path;
@@ -18,7 +19,7 @@ where
     F: Future<Output = Result<T, klarbog_store_sqlite::StoreError>> + Send,
     T: Send,
 {
-    // Claim register is sync (invoices.json), but sqlx is async. Never
+    // Claim register/post is sync (invoices.json), but sqlx is async. Never
     // `block_in_place` / nest `block_on` on the caller's runtime — UI tests
     // use current-thread tokio. Always dual-write on a dedicated thread.
     std::thread::scope(|s| {
@@ -99,5 +100,61 @@ pub fn dual_write_compensation(
     block_on_store(async move {
         let store = open_company(&company).await?;
         store.record_compensation_claim(&record, ACTOR).await
+    })
+}
+
+pub fn dual_write_reminder_posting(
+    company: &Path,
+    invoice_id: &InvoiceId,
+    reminder_date: &str,
+    journal_entry_id: &str,
+) -> Result<(), InvoiceError> {
+    let record = ReminderPostingRecord {
+        invoice_id: invoice_id.to_string(),
+        reminder_date: reminder_date.to_string(),
+        journal_entry_id: journal_entry_id.to_string(),
+    };
+    let company = company.to_path_buf();
+    block_on_store(async move {
+        let store = open_company(&company).await?;
+        store.record_reminder_posting(&record, ACTOR).await
+    })
+}
+
+pub fn dual_write_interest_posting(
+    company: &Path,
+    invoice_id: &InvoiceId,
+    claim_date: &str,
+    reference_rate_bps: i64,
+    journal_entry_id: &str,
+) -> Result<(), InvoiceError> {
+    let record = InterestPostingRecord {
+        invoice_id: invoice_id.to_string(),
+        claim_date: claim_date.to_string(),
+        reference_rate_bps,
+        journal_entry_id: journal_entry_id.to_string(),
+    };
+    let company = company.to_path_buf();
+    block_on_store(async move {
+        let store = open_company(&company).await?;
+        store.record_interest_posting(&record, ACTOR).await
+    })
+}
+
+pub fn dual_write_compensation_posting(
+    company: &Path,
+    invoice_id: &InvoiceId,
+    claim_date: &str,
+    journal_entry_id: &str,
+) -> Result<(), InvoiceError> {
+    let record = CompensationPostingRecord {
+        invoice_id: invoice_id.to_string(),
+        claim_date: claim_date.to_string(),
+        journal_entry_id: journal_entry_id.to_string(),
+    };
+    let company = company.to_path_buf();
+    block_on_store(async move {
+        let store = open_company(&company).await?;
+        store.record_compensation_posting(&record, ACTOR).await
     })
 }

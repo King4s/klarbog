@@ -228,7 +228,7 @@ mod tests {
     async fn reminder_insert_then_duplicate_is_idempotent() {
         let dir = tempdir().unwrap();
         let store = open_company(dir.path()).await.unwrap();
-        assert_eq!(store.schema_version().await.unwrap(), 4);
+        assert_eq!(store.schema_version().await.unwrap(), 5);
         let rec = ReminderClaimRecord {
             invoice_id: "inv_1".into(),
             reminder_date: "2026-06-26".into(),
