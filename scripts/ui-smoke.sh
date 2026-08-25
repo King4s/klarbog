@@ -273,7 +273,9 @@ PAGE="$(post /ui/invoices --data-urlencode action=commit_credit \
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 expect_ok "partial credit commit" "$PAGE"
 rg -q "delkredit" <<<"$PAGE" || fail "partial credit: expected delkredit status"
-getp /ui/invoices | rg -q 'sent' || fail "partial credit: invoice should stay sent"
+# Avoid `getp | rg -q` under pipefail: rg exits early → curl SIGPIPE → false fail.
+INVHTML="$(getp /ui/invoices)"
+rg -q 'sent' <<<"$INVHTML" || fail "partial credit: invoice should stay sent"
 [[ -f "$COMPANY/objects/invoices/issued/CN-$CNYEAR-0001.json" ]] \
   || fail "partial credit: immutable CN document missing on disk"
 # Residual full credit voids.
