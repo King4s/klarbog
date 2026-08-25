@@ -26,6 +26,7 @@ pub(crate) fn sample_invoice(kind: InvoiceKind) -> Invoice {
         interest_claims: Vec::new(),
         reminders: Vec::new(),
         compensation_claims: Vec::new(),
+        fx_rate_to_dkk_micro: None,
     }
 }
 

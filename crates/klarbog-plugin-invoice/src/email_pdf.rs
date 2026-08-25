@@ -34,6 +34,7 @@ fn pdf_from_invoice(invoice: &Invoice, invoice_no: &str, buyer_name: Option<&str
         .iter()
         .map(|l| (l.description.clone(), l.amount_minor))
         .collect();
+    let fx = crate::fx::fx_totals_for_invoice(invoice).ok().flatten();
     let payload = payload_from_fields(
         invoice_no,
         invoice.issue_date.as_deref(),
@@ -46,6 +47,8 @@ fn pdf_from_invoice(invoice: &Invoice, invoice_no: &str, buyer_name: Option<&str
         vat,
         gross,
         rate,
+        fx.as_ref().map(|f| f.fx_rate_to_dkk_micro),
+        fx.as_ref().map(|f| f.gross_amount_dkk_minor),
     );
     build_issued_invoice_pdf(&payload)
 }

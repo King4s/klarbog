@@ -4,6 +4,7 @@
 mod claim_ledger;
 #[cfg(test)]
 mod claim_ledger_tests;
+mod claim_posting_accounts;
 mod credit;
 mod draft;
 pub mod due_date;
@@ -11,6 +12,7 @@ pub mod email;
 mod email_ledger;
 mod email_pdf;
 mod error;
+mod fx;
 mod invoice_numbers;
 mod issue;
 mod late_compensation;
@@ -42,6 +44,7 @@ pub use email::{
     deterministic_message_id, looks_like_email, read_send_log, send_invoice_email, EmailKind,
     EmailSendLogRow, SendInvoiceEmailOutcome, EMAIL_SEND_LOG, RULE_ID as EMAIL_DELIVERY_RULE_ID,
 };
+pub use fx::{convert_minor_at_rate, fx_totals_for_invoice, InvoiceFxTotals, FX_RATE_MICRO};
 pub use invoice_numbers::{
     invoice_no_from_memo, peek_invoice_number, reserve_invoice_number, resolve_invoice_number,
     validate_manual_invoice_number_scope,
@@ -204,6 +207,9 @@ pub struct Invoice {
     /// Registreret fast kompensation (DK-INVOICE-LATE-COMPENSATION-REGISTER-001).
     #[serde(default)]
     pub compensation_claims: Vec<InvoiceCompensationClaim>,
+    /// FX rate to DKK × 1_000_000 (required when line currency ≠ DKK).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fx_rate_to_dkk_micro: Option<i64>,
 }
 
 impl Invoice {

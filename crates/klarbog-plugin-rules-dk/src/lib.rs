@@ -1,10 +1,15 @@
 //! Danish bookkeeping rules (DEV). Full SKAT/Moms later.
 
+mod account_roles;
 mod chart;
 mod moms_post_suggestion;
 mod registry;
 mod vat_split;
 
+pub use account_roles::{
+    account_role_compatibility, resolve_claim_income_account, resolve_debtors_account, AccountRole,
+    AccountRoleError,
+};
 pub use chart::{
     chart_accounts, find_account, is_expense_account_code, is_known_dk_account,
     is_receipt_gated_expense_code, AccountType, ChartAccount, DK_CHART, DK_CHART_DEPRECIATION,

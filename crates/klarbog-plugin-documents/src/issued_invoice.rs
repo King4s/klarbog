@@ -8,7 +8,7 @@ use klarbog_invoice_pdf::{
 use klarbog_plugin_crm::get_party;
 use klarbog_plugin_invoice::{
     due_date::{add_days, format_iso_date, parse_iso_date},
-    get_invoice, Invoice, InvoiceId,
+    fx_totals_for_invoice, get_invoice, Invoice, InvoiceId,
 };
 use klarbog_storage::klarbog_storage;
 use klarbog_types::{load_fiscal_settings, retain_until_iso};
@@ -30,9 +30,9 @@ struct IssuedTotals {
     net_amount: String,
     vat_amount: String,
     gross_amount: String,
-    /// Present only when FX conversion was recorded on the invoice (not yet).
+    /// Present only when FX conversion was recorded on the invoice.
     #[serde(skip_serializing_if = "Option::is_none")]
-    fx_rate_to_dkk_bps: Option<i64>,
+    fx_rate_to_dkk_micro: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     net_amount_dkk_minor: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,6 +90,7 @@ fn payload_from_invoice(
         .first()
         .map(|l| l.currency.as_str().to_string())
         .unwrap_or_else(|| "DKK".to_string());
+    let fx = fx_totals_for_invoice(invoice).map_err(DocumentError::Invoice)?;
     Ok(IssuedInvoicePayload {
         kind: "issued_invoice",
         invoice_number: invoice_no.to_string(),
@@ -112,11 +113,10 @@ fn payload_from_invoice(
             net_amount: format_dkk_minor(net),
             vat_amount: format_dkk_minor(vat),
             gross_amount: format_dkk_minor(gross),
-            // FX conversion is not in the Rust product yet — omit rather than fake.
-            fx_rate_to_dkk_bps: None,
-            net_amount_dkk_minor: None,
-            vat_amount_dkk_minor: None,
-            gross_amount_dkk_minor: None,
+            fx_rate_to_dkk_micro: fx.as_ref().map(|f| f.fx_rate_to_dkk_micro),
+            net_amount_dkk_minor: fx.as_ref().map(|f| f.net_amount_dkk_minor),
+            vat_amount_dkk_minor: fx.as_ref().map(|f| f.vat_amount_dkk_minor),
+            gross_amount_dkk_minor: fx.as_ref().map(|f| f.gross_amount_dkk_minor),
         },
         issued_at: issued_at.to_string(),
     })
@@ -141,6 +141,7 @@ fn pdf_bytes_for_issued(
         .first()
         .map(|l| l.currency.as_str())
         .unwrap_or("DKK");
+    let fx = fx_totals_for_invoice(invoice).map_err(DocumentError::Invoice)?;
     let lines: Vec<(String, i64)> = invoice
         .lines
         .iter()
@@ -158,6 +159,8 @@ fn pdf_bytes_for_issued(
         vat,
         gross,
         rate,
+        fx.as_ref().map(|f| f.fx_rate_to_dkk_micro),
+        fx.as_ref().map(|f| f.gross_amount_dkk_minor),
     );
     Ok(build_issued_invoice_pdf(&payload))
 }
@@ -274,7 +277,59 @@ mod tests {
         let json = std::fs::read_to_string(co.join("objects").join(&doc.path_hint)).unwrap();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(v["currency"], "DKK");
-        assert!(v["totals"].get("fxRateToDkkBps").is_none());
+        assert!(v["totals"].get("fxRateToDkkMicro").is_none());
+    }
+
+    #[tokio::test]
+    async fn attach_writes_eur_snapshot_with_dkk_totals() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "Buyer GmbH".into(),
+            PartyKind::Private,
+            None,
+            None,
+        )
+        .unwrap();
+        let inv = create_draft_from_new(
+            &co,
+            party.id,
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Consulting".into(),
+                amount_minor: 12_500,
+                currency: "EUR".into(),
+            }],
+        )
+        .unwrap();
+        let inv_path = co.join("invoices.json");
+        let mut file: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&inv_path).unwrap()).unwrap();
+        file["invoices"][0]["vat"] = serde_json::json!({
+            "net_minor": 10_000,
+            "vat_minor": 2_500,
+            "gross_minor": 12_500,
+            "rate_bps": 2_500
+        });
+        file["invoices"][0]["fx_rate_to_dkk_micro"] = serde_json::json!(7_460_000);
+        std::fs::write(
+            &inv_path,
+            serde_json::to_string_pretty(&file).expect("write invoices.json"),
+        )
+        .unwrap();
+        let issued_at = chrono::Utc.with_ymd_and_hms(2026, 5, 16, 12, 0, 0).unwrap();
+        attach_issued_invoice(&co, &inv.id, "2026-0001", "2026-05-16", 30, issued_at)
+            .await
+            .unwrap();
+        let json =
+            std::fs::read_to_string(co.join("objects/invoices/issued/2026-0001.json")).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["currency"], "EUR");
+        assert_eq!(v["totals"]["fxRateToDkkMicro"].as_i64(), Some(7_460_000));
+        assert_eq!(v["totals"]["grossAmountDkkMinor"].as_i64(), Some(93_250));
     }
 
     #[tokio::test]

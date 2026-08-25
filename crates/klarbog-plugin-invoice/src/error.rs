@@ -137,6 +137,12 @@ pub enum InvoiceError {
     InvalidRecipientEmail(String),
     #[error("email send failed: {0}")]
     EmailSendFailed(String),
+    #[error("non-DKK invoice {0} requires fx_rate_to_dkk_micro")]
+    MissingFxRate(String),
+    #[error("fx_rate_to_dkk_micro must be positive")]
+    InvalidFxRate,
+    #[error("invalid claim posting account: {0}")]
+    InvalidClaimAccount(String),
     #[error(transparent)]
     Store(#[from] klarbog_store_sqlite::StoreError),
 }

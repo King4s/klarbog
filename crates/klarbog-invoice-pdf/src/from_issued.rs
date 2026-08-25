@@ -41,6 +41,16 @@ struct IssuedTotals {
     vat_amount: Option<String>,
     #[serde(default)]
     gross_amount: Option<String>,
+    #[serde(default)]
+    fx_rate_to_dkk_micro: Option<i64>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    net_amount_dkk_minor: Option<i64>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    vat_amount_dkk_minor: Option<i64>,
+    #[serde(default)]
+    gross_amount_dkk_minor: Option<i64>,
 }
 
 /// Map issued-invoice JSON bytes to a PDF payload. Unknown shapes → `None`.
@@ -68,6 +78,8 @@ pub fn payload_from_issued_json(bytes: &[u8]) -> Option<IssuedInvoicePdfPayload>
             .gross_amount
             .as_deref()
             .and_then(parse_amount_str_to_minor),
+        fx_rate_to_dkk_micro: t.fx_rate_to_dkk_micro,
+        gross_amount_dkk_minor: t.gross_amount_dkk_minor,
         ..Default::default()
     });
     Some(IssuedInvoicePdfPayload {
@@ -85,7 +97,6 @@ pub fn payload_from_issued_json(bytes: &[u8]) -> Option<IssuedInvoicePdfPayload>
     })
 }
 
-/// Build payload from common invoice fields when issued JSON is thin.
 #[allow(clippy::too_many_arguments)]
 pub fn payload_from_fields(
     invoice_number: &str,
@@ -99,6 +110,8 @@ pub fn payload_from_fields(
     vat_minor: i64,
     gross_minor: i64,
     vat_rate_bps: Option<i64>,
+    fx_rate_to_dkk_micro: Option<i64>,
+    gross_amount_dkk_minor: Option<i64>,
 ) -> IssuedInvoicePdfPayload {
     IssuedInvoicePdfPayload {
         invoice_number: Some(invoice_number.to_string()),
@@ -127,7 +140,8 @@ pub fn payload_from_fields(
             vat_minor: Some(vat_minor),
             gross_minor: Some(gross_minor),
             vat_rate_bps,
-            ..Default::default()
+            fx_rate_to_dkk_micro,
+            gross_amount_dkk_minor,
         }),
         ..Default::default()
     }

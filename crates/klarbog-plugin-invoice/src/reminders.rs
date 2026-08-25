@@ -223,6 +223,7 @@ pub fn reminder_post_journal_suggestion(
         return Err(InvoiceError::InvalidReminderFee);
     }
     ensure_dkk(invoice)?;
+    let accounts = crate::claim_posting_accounts::resolve_claim_posting_accounts(cfg)?;
     let currency = invoice.lines[0].currency.clone();
     let party = Some(invoice.party_id.clone());
     let invoice_no = invoice.invoice_no.as_deref().unwrap_or("?");
@@ -233,14 +234,14 @@ pub fn reminder_post_journal_suggestion(
     let amount = klarbog_types::MinorAmount::from_minor(reminder.fee_amount_minor);
     let legs = vec![
         draft::leg(
-            &cfg.ar_account,
+            &accounts.receivable_account,
             klarbog_journal::Direction::Debit,
             amount,
             &currency,
             party.clone(),
         ),
         draft::leg(
-            &cfg.interest_income_account,
+            &accounts.income_account,
             klarbog_journal::Direction::Credit,
             amount,
             &currency,

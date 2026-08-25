@@ -105,6 +105,9 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::CompensationAlreadyRegistered
         | InvoiceError::CompensationClaimNotFound(_)
         | InvoiceError::CompensationClaimAlreadyPosted
+        | InvoiceError::MissingFxRate(_)
+        | InvoiceError::InvalidFxRate
+        | InvoiceError::InvalidClaimAccount(_)
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

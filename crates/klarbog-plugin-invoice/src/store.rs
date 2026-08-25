@@ -90,6 +90,7 @@ pub fn create_draft(
         interest_claims: Vec::new(),
         reminders: Vec::new(),
         compensation_claims: Vec::new(),
+        fx_rate_to_dkk_micro: None,
     };
     invoice.validate_lines()?;
     invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);

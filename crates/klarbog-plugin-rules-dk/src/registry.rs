@@ -174,18 +174,18 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: reminder_post_journal_suggestion (AR debet / 1010 kredit); resolve_unposted_reminder(date|sequence|oldest); to-faset UI reminder_post_preview/commit; posted_journal_id fail-closed; dual-write SQLite invoice_reminder_postings + audit_log invoice_reminder_post",
+            enforced_by: "invoice-plugin: reminder_post_journal_suggestion with rules-dk account_role_compatibility(debtors) + resolve_claim_income_account; resolve_unposted_reminder(date|sequence|oldest); to-faset UI reminder_post_preview/commit; posted_journal_id fail-closed; dual-write SQLite invoice_reminder_postings + audit_log invoice_reminder_post",
             proven_by: &[
                 "klarbog-plugin-invoice reminders_tests::posts_reminder_once_and_rejects_double_post",
                 "klarbog-plugin-invoice reminders_tests::posts_specific_newer_reminder_leaving_older_unposted",
                 "klarbog-plugin-invoice reminders_tests::resolve_reminder_by_sequence",
                 "klarbog-plugin-invoice claim_ledger_tests::reminder_post_writes_sqlite_link_and_rejects_double",
+                "klarbog-plugin-invoice claim_posting_accounts::tests::default_config_resolves_native_accounts",
+                "klarbog-plugin-invoice claim_posting_accounts::tests::incompatible_receivable_is_rejected",
                 "klarbog-store-sqlite claim_postings::tests::reminder_posting_once_then_duplicate_rejected",
                 "klarbog-api ui::tests::invoice_flow::ui_reminder_register_and_post",
             ],
-            gaps: &[
-                "accountRoleCompatibility / resolveClaimIncomeAccount",
-            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-INVOICE-LATE-INTEREST-001",
@@ -234,18 +234,18 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: interest_post_journal_suggestion (AR debet / 1010 kredit); resolve_unposted_interest_claim(claim_date[+rate]|oldest); to-faset UI interest_post_preview/commit; memo date@rate; posted_journal_id fail-closed; dual-write SQLite invoice_interest_postings + audit_log invoice_interest_post",
+            enforced_by: "invoice-plugin: interest_post_journal_suggestion with rules-dk account_role_compatibility(debtors) + resolve_claim_income_account; resolve_unposted_interest_claim(claim_date[+rate]|oldest); to-faset UI interest_post_preview/commit; memo date@rate; posted_journal_id fail-closed; dual-write SQLite invoice_interest_postings + audit_log invoice_interest_post",
             proven_by: &[
                 "klarbog-plugin-invoice late_interest_tests::posts_specific_newer_interest_claim_leaving_older_unposted",
                 "klarbog-plugin-invoice claim_ledger_tests::interest_post_writes_sqlite_link_and_rejects_double",
+                "klarbog-plugin-invoice claim_posting_accounts::tests::default_config_resolves_native_accounts",
+                "klarbog-plugin-invoice claim_posting_accounts::tests::incompatible_income_is_rejected",
                 "klarbog-store-sqlite claim_postings::tests::interest_and_compensation_posting_reject_duplicates",
                 "klarbog-api ui::tests::invoice_flow::ui_interest_register_and_post",
                 "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_interest_preview",
                 "klarbog-mcp invoice_settlement::specific_claim_tests::mcp_post_specific_interest_claim_preview",
             ],
-            gaps: &[
-                "accountRoleCompatibility / resolveClaimIncomeAccount",
-            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-INVOICE-LATE-COMPENSATION-001",
@@ -289,17 +289,16 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: compensation_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI compensation_post_preview/commit; posted_journal_id fail-closed; dual-write SQLite invoice_compensation_postings + audit_log invoice_compensation_post",
+            enforced_by: "invoice-plugin: compensation_post_journal_suggestion with rules-dk account_role_compatibility(debtors) + resolve_claim_income_account; to-faset UI compensation_post_preview/commit; posted_journal_id fail-closed; dual-write SQLite invoice_compensation_postings + audit_log invoice_compensation_post",
             proven_by: &[
                 "klarbog-plugin-invoice late_compensation_tests::posts_compensation_once_and_rejects_double_post",
                 "klarbog-plugin-invoice claim_ledger_tests::compensation_post_writes_sqlite_link_and_rejects_double",
+                "klarbog-plugin-invoice claim_posting_accounts::tests::default_config_resolves_native_accounts",
                 "klarbog-store-sqlite claim_postings::tests::interest_and_compensation_posting_reject_duplicates",
                 "klarbog-api ui::tests::invoice_flow::ui_compensation_register_and_post",
                 "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_compensation_preview",
             ],
-            gaps: &[
-                "accountRoleCompatibility / resolveClaimIncomeAccount",
-            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-EMAIL-DELIVERY-001",
@@ -325,16 +324,16 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",
             provisions: &["§ 58, stk. 1, nr. 2"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: fortløbende {scope}-{NNNN}; immutable JSON+PDF under invoices/issued/ with top-level currency; sha256 + pdf_sha256 in documents.json notes; retain_until",
+            enforced_by: "invoice-plugin: fortløbende {scope}-{NNNN}; immutable JSON+PDF under invoices/issued/ with top-level currency; fx_rate_to_dkk_micro + DKK totals on non-DKK invoices; sha256 + pdf_sha256 in documents.json notes; retain_until",
             proven_by: &[
                 "klarbog-plugin-invoice invoice_numbers::tests",
+                "klarbog-plugin-invoice fx::tests::converts_eur_totals_at_rate",
                 "klarbog-plugin-documents issued_invoice::tests::attach_writes_immutable_json",
                 "klarbog-plugin-documents issued_invoice::tests::attach_writes_pdf_alongside_json",
+                "klarbog-plugin-documents issued_invoice::tests::attach_writes_eur_snapshot_with_dkk_totals",
                 "klarbog-invoice-pdf tests::deterministic_same_payload_same_hash",
             ],
-            gaps: &[
-                "FX conversion (fxRateToDkk / DKK totals) not in Rust product yet",
-            ],
+            gaps: &[],
         },
     ]
 }
