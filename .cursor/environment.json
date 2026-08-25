@@ -1,0 +1,20 @@
+{
+  "name": "Rentemester",
+  "install": "bash .cursor/install.sh",
+  "ports": [
+    { "name": "cockpit-api", "port": 4319 },
+    { "name": "cockpit-ui", "port": 5319 }
+  ],
+  "terminals": [
+    {
+      "name": "cockpit-api",
+      "description": "Rentemester cockpit backend API (bun run src/cli.ts serve) on http://127.0.0.1:4319, serving the $HOME/rentemester-workspace workspace with auth off for local dev.",
+      "command": "export PATH=\"$HOME/.bun/bin:$PATH\"; export RENTEMESTER_WORKSPACE=\"$HOME/rentemester-workspace\"; export RENTEMESTER_APP_AUTH=off; mkdir -p \"$RENTEMESTER_WORKSPACE\"; exec bun run src/cli.ts serve --workspace \"$RENTEMESTER_WORKSPACE\" --host 127.0.0.1 --port 4319"
+    },
+    {
+      "name": "cockpit-ui",
+      "description": "Cockpit SPA Vite dev server on http://127.0.0.1:5319, proxying /api to the backend on port 4319.",
+      "command": "export PATH=\"$HOME/.bun/bin:$PATH\"; cd app && exec bun run dev --host 127.0.0.1 --port 5319"
+    }
+  ]
+}
