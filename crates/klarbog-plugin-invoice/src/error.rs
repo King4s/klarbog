@@ -135,4 +135,6 @@ pub enum InvoiceError {
     InvalidRecipientEmail(String),
     #[error("email send failed: {0}")]
     EmailSendFailed(String),
+    #[error(transparent)]
+    Store(#[from] klarbog_store_sqlite::StoreError),
 }

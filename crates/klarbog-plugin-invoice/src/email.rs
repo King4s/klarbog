@@ -222,6 +222,15 @@ pub async fn send_invoice_email(
             duplicate: true,
         });
     }
+    if let Some(existing) = crate::email_ledger::find_sqlite_duplicate(company, &message_id).await?
+    {
+        return Ok(SendInvoiceEmailOutcome {
+            message_id: existing.message_id,
+            recipient: existing.recipient,
+            subject: existing.subject,
+            duplicate: true,
+        });
+    }
 
     let filename = format!("{invoice_no}.pdf");
     let effective_dry_run = dry_run || email_dry_run_from_env() || !smtp.is_configured();
@@ -253,6 +262,7 @@ pub async fn send_invoice_email(
         unix_ms: chrono::Utc::now().timestamp_millis(),
     };
     append_send_log(company, &row)?;
+    crate::email_ledger::dual_write_send_log(company, &row).await?;
 
     Ok(SendInvoiceEmailOutcome {
         message_id,

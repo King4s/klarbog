@@ -1248,6 +1248,7 @@ dependencies = [
  "klarbog-plugin-crm",
  "klarbog-plugin-rules-dk",
  "klarbog-storage",
+ "klarbog-store-sqlite",
  "klarbog-types",
  "serde",
  "serde_json",

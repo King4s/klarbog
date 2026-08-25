@@ -137,6 +137,10 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
             StatusCode::INTERNAL_SERVER_ERROR,
             Envelope::err([e.to_string()]),
         ),
+        InvoiceError::Store(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Envelope::err([e.to_string()]),
+        ),
     }
 }
 
