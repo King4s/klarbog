@@ -165,6 +165,24 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "invoice_send_email",
+            "description": "Send issued invoice or payment reminder by email (SMTP via SMTP_SYSTEM_* / KLARBOG_SMTP_FROM; dry-run when unconfigured or KLARBOG_EMAIL_DRY_RUN=1). Append-only email_send_log.jsonl; idempotent. Requires confirm:true.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "kind": {"type": "string", "enum": ["invoice", "reminder"]},
+                    "to": {"type": "string"},
+                    "confirm": {"type": "boolean"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "confirm", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
             "name": "journal_post_preview",
             "description": "Phase-1: validate entry and return confirmation token (no write)",
             "inputSchema": {

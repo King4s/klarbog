@@ -1144,6 +1144,7 @@ dependencies = [
  "chrono",
  "klarbog-core",
  "klarbog-journal",
+ "klarbog-mail",
  "klarbog-plugin",
  "klarbog-plugin-bank",
  "klarbog-plugin-crm",

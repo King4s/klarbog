@@ -19,6 +19,7 @@ klarbog-plugin-invoice = { workspace = true }
 klarbog-plugin-rules-dk = { workspace = true }
 klarbog-plugin-crm = { workspace = true }
 klarbog-plugin-documents = { workspace = true }
+klarbog-mail = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

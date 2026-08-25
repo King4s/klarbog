@@ -11,6 +11,7 @@ mod bank_stripe_pipelines;
 mod bank_wave2;
 mod crm;
 mod documents;
+mod email;
 mod helpers;
 mod invoice;
 mod journal;
@@ -100,6 +101,7 @@ pub fn handle_tool_call(
             store,
             registry,
         )),
+        "invoice_send_email" => rt.block_on(email::invoice_send_email(args, allowlist_root)),
         "journal_post_preview" => rt.block_on(journal::journal_post_preview(
             args,
             allowlist_root,

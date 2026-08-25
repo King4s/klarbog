@@ -246,10 +246,10 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-mail tests",
                 "klarbog-plugin-invoice email::tests",
                 "klarbog-api ui::tests::invoice_flow::ui_send_reminder_compound",
+                "klarbog-mcp email::tests",
             ],
             gaps: &[
                 "rendered PDF attachment (port attaches issued JSON)",
-                "MCP invoice_send_email",
                 "SQLite send log",
                 "audit_log row",
             ],
