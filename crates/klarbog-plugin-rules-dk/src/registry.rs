@@ -298,18 +298,17 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-BOGFORINGSLOVEN-2022-700",
             provisions: &["§ 7, stk. 1", "§ 9, stk. 1"],
             severity: "hard_stop",
-            enforced_by: "klarbog-mail SMTP; invoice-plugin send_invoice_email attaches issued PDF (snapshot or render); email_send_log.jsonl; UI send_email + send_reminder",
+            enforced_by: "klarbog-mail SMTP; invoice-plugin send_invoice_email attaches issued PDF; dual-write email_send_log.jsonl + SQLite email_send_log (message_id UNIQUE) + audit_log invoice_email_send; UI send_email + send_reminder",
             proven_by: &[
                 "klarbog-mail tests",
                 "klarbog-plugin-invoice email::tests",
+                "klarbog-plugin-invoice email_ledger::tests",
+                "klarbog-store-sqlite email_audit::tests",
                 "klarbog-invoice-pdf tests",
                 "klarbog-api ui::tests::invoice_flow::ui_send_reminder_compound",
                 "klarbog-mcp email::tests",
             ],
-            gaps: &[
-                "SQLite send log",
-                "audit_log row",
-            ],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-INVOICE-ISSUE-001",
@@ -317,7 +316,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             source_id: "DK-MOMSBEKENDTGORELSEN-2023-1435",
             provisions: &["§ 58, stk. 1, nr. 2"],
             severity: "hard_stop",
-            enforced_by: "invoice-plugin: fortløbende {scope}-{NNNN}; immutable JSON+PDF under invoices/issued/; sha256 + pdf_sha256 in documents.json notes; retain_until",
+            enforced_by: "invoice-plugin: fortløbende {scope}-{NNNN}; immutable JSON+PDF under invoices/issued/ with top-level currency; sha256 + pdf_sha256 in documents.json notes; retain_until",
             proven_by: &[
                 "klarbog-plugin-invoice invoice_numbers::tests",
                 "klarbog-plugin-documents issued_invoice::tests::attach_writes_immutable_json",
@@ -325,7 +324,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-invoice-pdf tests::deterministic_same_payload_same_hash",
             ],
             gaps: &[
-                "valuta/FX i issued snapshot",
+                "FX conversion (fxRateToDkk / DKK totals) not in Rust product yet",
             ],
         },
     ]

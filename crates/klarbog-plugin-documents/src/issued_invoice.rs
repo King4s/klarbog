@@ -30,6 +30,15 @@ struct IssuedTotals {
     net_amount: String,
     vat_amount: String,
     gross_amount: String,
+    /// Present only when FX conversion was recorded on the invoice (not yet).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fx_rate_to_dkk_bps: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    net_amount_dkk_minor: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    vat_amount_dkk_minor: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    gross_amount_dkk_minor: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -43,6 +52,8 @@ struct IssuedInvoicePayload {
     party_name: String,
     issue_date: String,
     due_date: Option<String>,
+    /// Invoice document currency (from lines; product is DKK-first today).
+    currency: String,
     lines: Vec<IssuedLine>,
     totals: IssuedTotals,
     issued_at: String,
@@ -74,6 +85,11 @@ fn payload_from_invoice(
             (total, 0, total)
         }
     };
+    let currency = invoice
+        .lines
+        .first()
+        .map(|l| l.currency.as_str().to_string())
+        .unwrap_or_else(|| "DKK".to_string());
     Ok(IssuedInvoicePayload {
         kind: "issued_invoice",
         invoice_number: invoice_no.to_string(),
@@ -82,6 +98,7 @@ fn payload_from_invoice(
         party_name: String::new(), // filled by caller
         issue_date: invoice.issue_date.clone().unwrap_or_default(),
         due_date: invoice.due_date.clone(),
+        currency,
         lines: invoice
             .lines
             .iter()
@@ -95,6 +112,11 @@ fn payload_from_invoice(
             net_amount: format_dkk_minor(net),
             vat_amount: format_dkk_minor(vat),
             gross_amount: format_dkk_minor(gross),
+            // FX conversion is not in the Rust product yet — omit rather than fake.
+            fx_rate_to_dkk_bps: None,
+            net_amount_dkk_minor: None,
+            vat_amount_dkk_minor: None,
+            gross_amount_dkk_minor: None,
         },
         issued_at: issued_at.to_string(),
     })
@@ -249,6 +271,10 @@ mod tests {
         assert!(doc.sha256.is_some());
         assert_eq!(doc.kind, DocumentKind::IssuedInvoice);
         assert!(co.join("objects").join(&doc.path_hint).exists());
+        let json = std::fs::read_to_string(co.join("objects").join(&doc.path_hint)).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["currency"], "DKK");
+        assert!(v["totals"].get("fxRateToDkkBps").is_none());
     }
 
     #[tokio::test]
