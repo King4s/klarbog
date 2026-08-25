@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PORT="${UI_SMOKE_PORT:-3196}"
+PORT="${UI_SMOKE_PORT:-$((3200 + RANDOM % 1000))}"
 BASE="http://127.0.0.1:${PORT}"
 API_PID=""
 WORK=""
@@ -238,6 +238,37 @@ expect_ok "b2b invoice create" "$(post /ui/invoices --data-urlencode action=crea
   --data-urlencode description=B2B --data-urlencode amount_minor=10000)"
 getp /ui/invoices | rg -q '125.00 DKK' || fail "invoices: expected brutto 125.00 DKK on b2b draft"
 echo "ok: b2b invoice ekskl. moms (brutto 125.00 DKK)"
+
+# --- EUR draft + FX rate -> send -> issued snapshot with DKK totals ---
+curl -sf "$BASE/health" >/dev/null || fail "server not healthy before eur create"
+expect_ok "eur invoice create" "$(post /ui/invoices --data-urlencode action=create \
+  --data-urlencode "party_id=$PARTY_ID" --data-urlencode kind=sale \
+  --data-urlencode description=EUR smoke --data-urlencode amount_minor=12500 \
+  --data-urlencode currency=EUR --data-urlencode fx_rate_to_dkk=7.46)"
+INVEUR="$(getp /ui/invoices | rg -o 'inv_[0-9a-f-]{36}' | tail -1 || true)"
+[[ -n "$INVEUR" ]] || fail "eur create: invoice_id missing on invoices page"
+PAGE="$(post /ui/invoices --data-urlencode action=send --data-urlencode "invoice_id=$INVEUR")"
+expect_ok "eur send preview" "$PAGE"
+TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"
+[[ -n "$TOKEN" && -n "$EJSON" ]] || fail "eur send: missing token/entry_json"
+expect_ok "eur send commit" "$(post /ui/invoices --data-urlencode action=commit_send \
+  --data-urlencode "invoice_id=$INVEUR" \
+  --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
+EURNO="$(rg -o 'issued:[0-9]{4}-[0-9]{4}' <<<"$EJSON" | head -1 | cut -d: -f2 || true)"
+[[ -n "$EURNO" ]] || fail "eur send: issued invoice number missing in entry_json"
+EURJSON="$COMPANY/objects/invoices/issued/${EURNO}.json"
+[[ -f "$EURJSON" ]] || fail "eur send: issued JSON snapshot missing ($EURNO)"
+python3 -c "
+import json,sys
+v=json.load(open(sys.argv[1]))
+assert v.get('currency')=='EUR', v.get('currency')
+t=v.get('totals') or {}
+assert t.get('fxRateToDkkMicro')==7460000, t.get('fxRateToDkkMicro')
+assert t.get('grossAmountDkkMinor')==93250, t.get('grossAmountDkkMinor')
+" "$EURJSON" || fail "eur send: issued JSON FX/DKK totals wrong"
+[[ -f "$COMPANY/objects/invoices/issued/${EURNO}.pdf" ]] \
+  || fail "eur send: issued PDF snapshot missing"
+echo "ok: EUR issued snapshot ($EURNO.json + DKK totals via FX 7.46)"
 
 # --- kreditnota: partial then residual full credit (cumulative loft) ---
 INV3="$(draft_invoice_id "$(getp /ui/invoices)")"
