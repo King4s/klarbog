@@ -123,6 +123,65 @@ async fn mcp_invoice_create_rejects_non_positive_amount() {
 }
 
 #[tokio::test]
+async fn mcp_invoice_create_eur_requires_fx_rate() {
+    let dir = tempdir().unwrap();
+    let co = dir.path().join("co");
+    std::fs::create_dir_all(&co).unwrap();
+    let owner = Actor::user("owner");
+    init_company(&co, "Demo", &owner).await.unwrap();
+    let party = upsert_party(
+        &co,
+        None,
+        "EU Buyer".into(),
+        klarbog_plugin_crm::PartyKind::Business,
+        None,
+        None,
+    )
+    .unwrap();
+    let missing = invoice_create_draft(
+        &json!({
+            "company": co.to_string_lossy(),
+            "party_id": party.id.to_string(),
+            "kind": "sale",
+            "lines": [{
+                "description": "Consulting",
+                "amount_minor": 10_000,
+                "currency": "EUR"
+            }],
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(!missing.ok);
+    assert!(missing.errors.iter().any(|e| e.contains("fx_rate")));
+
+    let created = invoice_create_draft(
+        &json!({
+            "company": co.to_string_lossy(),
+            "party_id": party.id.to_string(),
+            "kind": "sale",
+            "lines": [{
+                "description": "Consulting",
+                "amount_minor": 10_000,
+                "currency": "EUR"
+            }],
+            "fx_rate_to_dkk": "7.46",
+            "actor_kind": "user",
+            "actor_id": "owner",
+        }),
+        dir.path(),
+    )
+    .await;
+    assert!(created.ok, "{created:?}");
+    assert_eq!(
+        created.data.unwrap()["invoice"]["fx_rate_to_dkk_micro"],
+        7_460_000
+    );
+}
+
+#[tokio::test]
 async fn mcp_invoice_authz_denied() {
     let dir = tempdir().unwrap();
     let co = dir.path().join("co");

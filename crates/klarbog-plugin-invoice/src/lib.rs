@@ -13,6 +13,7 @@ mod email_ledger;
 mod email_pdf;
 mod error;
 mod fx;
+mod fx_parse;
 mod invoice_numbers;
 mod issue;
 mod late_compensation;
@@ -45,6 +46,7 @@ pub use email::{
     EmailSendLogRow, SendInvoiceEmailOutcome, EMAIL_SEND_LOG, RULE_ID as EMAIL_DELIVERY_RULE_ID,
 };
 pub use fx::{convert_minor_at_rate, fx_totals_for_invoice, InvoiceFxTotals, FX_RATE_MICRO};
+pub use fx_parse::{parse_fx_rate_to_dkk_micro, resolve_fx_rate_for_currency};
 pub use invoice_numbers::{
     invoice_no_from_memo, peek_invoice_number, reserve_invoice_number, resolve_invoice_number,
     validate_manual_invoice_number_scope,

@@ -66,12 +66,15 @@ pub fn create_draft(
     kind: InvoiceKind,
     lines: Vec<InvoiceLine>,
     due_date: Option<String>,
+    fx_rate_to_dkk_micro: Option<i64>,
 ) -> Result<Invoice, InvoiceError> {
     if lines.is_empty() {
         return Err(InvoiceError::NoLines);
     }
     let party = get_party(company, &party_id)?
         .ok_or_else(|| InvoiceError::PartyNotFound(party_id.to_string()))?;
+    let currency = lines[0].currency.as_str();
+    let fx = crate::fx_parse::resolve_fx_rate_for_currency(currency, fx_rate_to_dkk_micro)?;
     let mut invoice = Invoice {
         id: InvoiceId::generate(),
         party_id,
@@ -90,7 +93,7 @@ pub fn create_draft(
         interest_claims: Vec::new(),
         reminders: Vec::new(),
         compensation_claims: Vec::new(),
-        fx_rate_to_dkk_micro: None,
+        fx_rate_to_dkk_micro: fx,
     };
     invoice.validate_lines()?;
     invoice.vat = Some(vat_for(party.kind, invoice.total_minor()?)?);
@@ -137,7 +140,7 @@ pub fn create_draft_from_new(
     kind: InvoiceKind,
     raw_lines: Vec<NewLine>,
 ) -> Result<Invoice, InvoiceError> {
-    create_draft_from_new_with_due(company, party_id, kind, raw_lines, None)
+    create_draft_from_new_with_due(company, party_id, kind, raw_lines, None, None)
 }
 
 pub fn create_draft_from_new_with_due(
@@ -146,9 +149,17 @@ pub fn create_draft_from_new_with_due(
     kind: InvoiceKind,
     raw_lines: Vec<NewLine>,
     due_date: Option<String>,
+    fx_rate_to_dkk_micro: Option<i64>,
 ) -> Result<Invoice, InvoiceError> {
     let lines: Result<Vec<_>, _> = raw_lines.into_iter().map(NewLine::into_line).collect();
-    create_draft(company, party_id, kind, lines?, due_date)
+    create_draft(
+        company,
+        party_id,
+        kind,
+        lines?,
+        due_date,
+        fx_rate_to_dkk_micro,
+    )
 }
 
 #[cfg(test)]
@@ -177,7 +188,15 @@ mod tests {
             amount_minor: 10_000,
             currency: Currency::new("DKK").unwrap(),
         };
-        let inv = create_draft(&co, party.id.clone(), InvoiceKind::Sale, vec![line], None).unwrap();
+        let inv = create_draft(
+            &co,
+            party.id.clone(),
+            InvoiceKind::Sale,
+            vec![line],
+            None,
+            None,
+        )
+        .unwrap();
         assert!(co.join(INVOICES_FILENAME).exists());
         assert_eq!(inv.status, InvoiceStatus::Draft);
         // Business → excl. VAT: net 10000, vat 2500, gross 12500.
@@ -209,7 +228,7 @@ mod tests {
             amount_minor: 12_500,
             currency: Currency::new("DKK").unwrap(),
         };
-        let inv = create_draft(&co, party.id, InvoiceKind::Sale, vec![line], None).unwrap();
+        let inv = create_draft(&co, party.id, InvoiceKind::Sale, vec![line], None, None).unwrap();
         // Private → incl. VAT: gross 12500 splits to net 10000 + vat 2500.
         let vat = inv.vat.unwrap();
         assert_eq!(
@@ -235,8 +254,64 @@ mod tests {
             InvoiceKind::Sale,
             vec![line],
             None,
+            None,
         )
         .unwrap_err();
         assert!(matches!(err, InvoiceError::PartyNotFound(_)));
+    }
+
+    #[test]
+    fn eur_draft_requires_fx_rate() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "EU Buyer".into(),
+            PartyKind::Business,
+            None,
+            None,
+        )
+        .unwrap();
+        let line = InvoiceLine {
+            description: "Consulting".into(),
+            amount_minor: 10_000,
+            currency: Currency::new("EUR").unwrap(),
+        };
+        let err =
+            create_draft(&co, party.id, InvoiceKind::Sale, vec![line], None, None).unwrap_err();
+        assert!(matches!(err, InvoiceError::MissingFxRate(_)));
+    }
+
+    #[test]
+    fn eur_draft_stores_fx_rate() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        fs::create_dir_all(&co).unwrap();
+        let party = upsert_party(
+            &co,
+            None,
+            "EU Buyer".into(),
+            PartyKind::Business,
+            None,
+            None,
+        )
+        .unwrap();
+        let line = InvoiceLine {
+            description: "Consulting".into(),
+            amount_minor: 10_000,
+            currency: Currency::new("EUR").unwrap(),
+        };
+        let inv = create_draft(
+            &co,
+            party.id,
+            InvoiceKind::Sale,
+            vec![line],
+            None,
+            Some(7_460_000),
+        )
+        .unwrap();
+        assert_eq!(inv.fx_rate_to_dkk_micro, Some(7_460_000));
     }
 }

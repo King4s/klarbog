@@ -207,6 +207,7 @@ mod tests {
                 currency: Currency::new("DKK").unwrap(),
             }],
             None,
+            None,
         )
         .unwrap();
         attach_document(

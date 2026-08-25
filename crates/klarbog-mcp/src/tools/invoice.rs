@@ -4,9 +4,9 @@ use super::auth::{authorize_company, map_core_error, parse_actor, parse_company}
 use klarbog_core::{journal_preview, ConfirmStore};
 use klarbog_plugin::Registry;
 use klarbog_plugin_invoice::{
-    create_draft_from_new, get_invoice, journal_suggestion, list_invoices, mark_paid_preview,
-    mark_part_paid_preview, patch_status, InvoiceConfig, InvoiceError, InvoiceId, InvoiceKind,
-    InvoiceStatus, NewLine,
+    create_draft_from_new_with_due, get_invoice, journal_suggestion, list_invoices,
+    mark_paid_preview, mark_part_paid_preview, parse_fx_rate_to_dkk_micro, patch_status,
+    InvoiceConfig, InvoiceError, InvoiceId, InvoiceKind, InvoiceStatus, NewLine,
 };
 use klarbog_types::{Envelope, PartyId};
 use serde_json::{json, Value};
@@ -21,6 +21,21 @@ fn parse_invoice_id(args: &Value) -> Result<InvoiceId, &'static str> {
         Some(id) if !id.is_empty() => Ok(InvoiceId::new(id)),
         _ => Err("missing invoice_id"),
     }
+}
+
+fn parse_fx_rate_micro(args: &Value) -> Result<Option<i64>, Envelope<Value>> {
+    if let Some(v) = args.get("fx_rate_to_dkk_micro").and_then(|v| v.as_i64()) {
+        return Ok(Some(v));
+    }
+    if let Some(s) = args.get("fx_rate_to_dkk").and_then(|v| v.as_str()) {
+        if s.trim().is_empty() {
+            return Ok(None);
+        }
+        return parse_fx_rate_to_dkk_micro(s)
+            .map(Some)
+            .map_err(|e| Envelope::err([e.to_string()]));
+    }
+    Ok(None)
 }
 
 /// Mirror POST /api/v1/invoices/drafts — create draft + journal suggestion (no post).
@@ -55,11 +70,28 @@ pub async fn invoice_create_draft(args: &Value, allowlist_root: &Path) -> Envelo
         },
         None => return Envelope::err(["missing lines"]),
     };
+    let fx_rate_to_dkk_micro = match parse_fx_rate_micro(args) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let due_date = args
+        .get("due_date")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
     let path = match authorize_company(allowlist_root, &company, &actor).await {
         Ok(p) => p,
         Err(e) => return map_core_error(e),
     };
-    let invoice = match create_draft_from_new(&path, party_id, kind, lines) {
+    let invoice = match create_draft_from_new_with_due(
+        &path,
+        party_id,
+        kind,
+        lines,
+        due_date,
+        fx_rate_to_dkk_micro,
+    ) {
         Ok(inv) => inv,
         Err(e) => return map_invoice(e),
     };

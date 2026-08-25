@@ -90,11 +90,14 @@ pub fn tools() -> Vec<Value> {
                             "properties": {
                                 "description": {"type": "string"},
                                 "amount_minor": {"type": "integer"},
-                                "currency": {"type": "string"}
+                                "currency": {"type": "string", "description": "ISO 4217 (default DKK); non-DKK requires fx_rate_to_dkk or fx_rate_to_dkk_micro"}
                             },
                             "required": ["description", "amount_minor", "currency"]
                         }
                     },
+                    "due_date": {"type": "string", "description": "Optional YYYY-MM-DD"},
+                    "fx_rate_to_dkk": {"type": "string", "description": "For non-DKK: decimal rate to DKK (e.g. 7.46)"},
+                    "fx_rate_to_dkk_micro": {"type": "integer", "description": "For non-DKK: rate × 1_000_000 (alternative to fx_rate_to_dkk)"},
                     "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
                     "actor_id": {"type": "string"}
                 },

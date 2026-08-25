@@ -246,7 +246,7 @@ mod tests {
     use super::*;
     use chrono::TimeZone;
     use klarbog_plugin_crm::{upsert_party, PartyKind};
-    use klarbog_plugin_invoice::{create_draft_from_new, InvoiceKind, NewLine};
+    use klarbog_plugin_invoice::{create_draft_from_new, InvoiceError, InvoiceKind, NewLine};
     use tempfile::tempdir;
 
     #[tokio::test]
@@ -294,7 +294,21 @@ mod tests {
             None,
         )
         .unwrap();
-        let inv = create_draft_from_new(
+        let party_id = party.id.clone();
+        let err = create_draft_from_new(
+            &co,
+            party_id,
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Consulting".into(),
+                amount_minor: 12_500,
+                currency: "EUR".into(),
+            }],
+        )
+        .unwrap_err();
+        assert!(matches!(err, InvoiceError::MissingFxRate(_)));
+
+        let inv = klarbog_plugin_invoice::create_draft_from_new_with_due(
             &co,
             party.id,
             InvoiceKind::Sale,
@@ -303,21 +317,8 @@ mod tests {
                 amount_minor: 12_500,
                 currency: "EUR".into(),
             }],
-        )
-        .unwrap();
-        let inv_path = co.join("invoices.json");
-        let mut file: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(&inv_path).unwrap()).unwrap();
-        file["invoices"][0]["vat"] = serde_json::json!({
-            "net_minor": 10_000,
-            "vat_minor": 2_500,
-            "gross_minor": 12_500,
-            "rate_bps": 2_500
-        });
-        file["invoices"][0]["fx_rate_to_dkk_micro"] = serde_json::json!(7_460_000);
-        std::fs::write(
-            &inv_path,
-            serde_json::to_string_pretty(&file).expect("write invoices.json"),
+            None,
+            Some(7_460_000),
         )
         .unwrap();
         let issued_at = chrono::Utc.with_ymd_and_hms(2026, 5, 16, 12, 0, 0).unwrap();

@@ -169,6 +169,17 @@
       <label>Beløb (øre)
         <input name="amount_minor" required inputmode="numeric" pattern="[0-9]+" placeholder="12500" />
       </label>
+      <div class="grid two">
+        <label>Valuta
+          <select name="currency">
+            <option value="DKK">DKK</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </label>
+        <label>Valutakurs til DKK (non-DKK, fx 7.46)
+          <input name="fx_rate_to_dkk" placeholder="7.46" inputmode="decimal" />
+        </label>
+      </div>
       <label>Forfaldsdato (valgfri, YYYY-MM-DD)
         <input name="due_date" placeholder="2026-06-15" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" />
       </label>

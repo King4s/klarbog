@@ -141,6 +141,8 @@ pub enum InvoiceError {
     MissingFxRate(String),
     #[error("fx_rate_to_dkk_micro must be positive")]
     InvalidFxRate,
+    #[error("DKK invoices must not set fx_rate_to_dkk")]
+    UnexpectedFxRateForDkk,
     #[error("invalid claim posting account: {0}")]
     InvalidClaimAccount(String),
     #[error(transparent)]

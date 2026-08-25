@@ -7,8 +7,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use klarbog_core::{assert_company_path, open_existing, CoreError};
 use klarbog_plugin_invoice::{
-    create_draft_from_new, get_invoice, journal_suggestion, list_invoices, InvoiceConfig,
-    InvoiceError, InvoiceId, InvoiceKind, NewLine,
+    create_draft_from_new_with_due, get_invoice, journal_suggestion, list_invoices,
+    parse_fx_rate_to_dkk_micro, InvoiceConfig, InvoiceError, InvoiceId, InvoiceKind, NewLine,
 };
 use klarbog_types::{Actor, Envelope, PartyId};
 use serde::Deserialize;
@@ -21,6 +21,12 @@ pub struct CreateBody {
     pub party_id: String,
     pub kind: InvoiceKind,
     pub lines: Vec<NewLine>,
+    #[serde(default)]
+    pub due_date: Option<String>,
+    #[serde(default)]
+    pub fx_rate_to_dkk_micro: Option<i64>,
+    #[serde(default)]
+    pub fx_rate_to_dkk: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -107,6 +113,7 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::CompensationClaimAlreadyPosted
         | InvoiceError::MissingFxRate(_)
         | InvoiceError::InvalidFxRate
+        | InvoiceError::UnexpectedFxRateForDkk
         | InvoiceError::InvalidClaimAccount(_)
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
@@ -162,7 +169,27 @@ pub async fn create_draft(
             (s, Json(env))
         })?;
     let party_id = PartyId::new(body.party_id);
-    let invoice = create_draft_from_new(&path, party_id, body.kind, body.lines).map_err(|e| {
+    let fx_rate_to_dkk_micro = match body.fx_rate_to_dkk_micro {
+        Some(v) => Some(v),
+        None => match body.fx_rate_to_dkk.as_deref() {
+            Some(s) if !s.trim().is_empty() => {
+                Some(parse_fx_rate_to_dkk_micro(s).map_err(|e| {
+                    let (s, env) = map_invoice(e);
+                    (s, Json(env))
+                })?)
+            }
+            _ => None,
+        },
+    };
+    let invoice = create_draft_from_new_with_due(
+        &path,
+        party_id,
+        body.kind,
+        body.lines,
+        body.due_date,
+        fx_rate_to_dkk_micro,
+    )
+    .map_err(|e| {
         let (s, env) = map_invoice(e);
         (s, Json(env))
     })?;

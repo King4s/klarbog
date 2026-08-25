@@ -6,8 +6,8 @@ use axum::response::Response;
 use klarbog_core::{journal_commit, journal_preview};
 use klarbog_journal::JournalEntry;
 use klarbog_plugin_invoice::{
-    create_draft_from_new_with_due, mark_paid_preview, mark_part_paid_preview, parse_iso_date,
-    InvoiceConfig, InvoiceId, InvoiceKind, NewLine,
+    create_draft_from_new_with_due, mark_paid_preview, mark_part_paid_preview,
+    parse_fx_rate_to_dkk_micro, parse_iso_date, InvoiceConfig, InvoiceId, InvoiceKind, NewLine,
 };
 use klarbog_types::{Actor, PartyId};
 
@@ -114,6 +114,24 @@ pub async fn invoices_post(
                 Some("purchase") => InvoiceKind::Purchase,
                 _ => InvoiceKind::Sale,
             };
+            let currency = form
+                .currency
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .unwrap_or("DKK")
+                .to_uppercase();
+            let fx_rate_to_dkk_micro = match form.fx_rate_to_dkk.as_deref() {
+                Some(s) if !s.trim().is_empty() => match parse_fx_rate_to_dkk_micro(s.trim()) {
+                    Ok(v) => Some(v),
+                    Err(e) => {
+                        return html_ok(
+                            load_page(&state, &company, String::new(), e.to_string()).await,
+                        );
+                    }
+                },
+                _ => None,
+            };
             let due_date = form.due_date.as_ref().and_then(|s| {
                 let t = s.trim();
                 if t.is_empty() {
@@ -136,9 +154,10 @@ pub async fn invoices_post(
                 vec![NewLine {
                     description: desc,
                     amount_minor: amount,
-                    currency: "DKK".into(),
+                    currency,
                 }],
                 due_date,
+                fx_rate_to_dkk_micro,
             ) {
                 Ok(inv) => html_ok(
                     load_page(

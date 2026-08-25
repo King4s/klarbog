@@ -58,6 +58,12 @@ pub struct InvoiceActionForm {
     /// Valgfri forfaldsdato på kladde (YYYY-MM-DD).
     #[serde(default)]
     pub due_date: Option<String>,
+    /// Line currency (default DKK).
+    #[serde(default)]
+    pub currency: Option<String>,
+    /// FX rate to DKK for non-DKK invoices (decimal, e.g. 7.46).
+    #[serde(default)]
+    pub fx_rate_to_dkk: Option<String>,
     /// Morarente: pr. dato (YYYY-MM-DD), default i dag.
     #[serde(default)]
     pub as_of_date: Option<String>,
