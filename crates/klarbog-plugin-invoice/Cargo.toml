@@ -13,6 +13,7 @@ klarbog-journal = { workspace = true }
 klarbog-types = { workspace = true }
 klarbog-mail = { workspace = true }
 klarbog-storage = { workspace = true }
+klarbog-invoice-pdf = { workspace = true }
 hex = { workspace = true }
 sha2 = { workspace = true }
 serde = { workspace = true }

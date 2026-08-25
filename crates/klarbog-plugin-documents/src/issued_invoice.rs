@@ -1,7 +1,10 @@
-//! Immutable issued-invoice JSON (DK-INVOICE-ISSUE-001).
+//! Immutable issued-invoice JSON + PDF snapshot (DK-INVOICE-ISSUE-001).
 
 use crate::store::append_document;
 use crate::{Document, DocumentError, DocumentId, DocumentKind};
+use klarbog_invoice_pdf::{
+    build_issued_invoice_pdf, issued_pdf_path_hint, payload_from_fields, pdf_sha256,
+};
 use klarbog_plugin_crm::get_party;
 use klarbog_plugin_invoice::{
     due_date::{add_days, format_iso_date, parse_iso_date},
@@ -97,7 +100,47 @@ fn payload_from_invoice(
     })
 }
 
-/// Persist immutable issued-invoice snapshot. Fail-closed on duplicate path.
+fn pdf_bytes_for_issued(
+    invoice: &Invoice,
+    invoice_no: &str,
+    issue_date: &str,
+    due_date: Option<&str>,
+    party_name: &str,
+) -> Result<Vec<u8>, DocumentError> {
+    let (net, vat, gross, rate) = match &invoice.vat {
+        Some(v) => (v.net_minor, v.vat_minor, v.gross_minor, Some(v.rate_bps)),
+        None => {
+            let total = invoice.total_minor().map_err(DocumentError::Invoice)?;
+            (total, 0, total, None)
+        }
+    };
+    let currency = invoice
+        .lines
+        .first()
+        .map(|l| l.currency.as_str())
+        .unwrap_or("DKK");
+    let lines: Vec<(String, i64)> = invoice
+        .lines
+        .iter()
+        .map(|l| (l.description.clone(), l.amount_minor))
+        .collect();
+    let payload = payload_from_fields(
+        invoice_no,
+        Some(issue_date),
+        due_date,
+        Some(party_name),
+        None,
+        currency,
+        &lines,
+        net,
+        vat,
+        gross,
+        rate,
+    );
+    Ok(build_issued_invoice_pdf(&payload))
+}
+
+/// Persist immutable issued-invoice snapshot (JSON + PDF). Fail-closed on duplicate.
 pub async fn attach_issued_invoice(
     company: &Path,
     invoice_id: &InvoiceId,
@@ -127,23 +170,34 @@ pub async fn attach_issued_invoice(
     };
 
     let path_hint = issued_path_hint(invoice_no);
+    let pdf_hint = issued_pdf_path_hint(invoice_no);
     if crate::list_documents(company)?
         .iter()
-        .any(|d| d.path_hint == path_hint)
+        .any(|d| d.path_hint == path_hint || d.path_hint == pdf_hint)
     {
         return Err(DocumentError::IssuedInvoiceExists(invoice_no.to_string()));
     }
 
     let mut payload = payload_from_invoice(&invoice, invoice_no, &issued_at.to_rfc3339())?;
     payload.issue_date = issue_date.to_string();
-    payload.due_date = due_date;
-    payload.party_name = party.display_name;
+    payload.due_date = due_date.clone();
+    payload.party_name = party.display_name.clone();
 
     let serialized = serde_json::to_string_pretty(&payload)?;
     let hash = sha256_bytes(serialized.as_bytes());
 
+    let pdf_bytes = pdf_bytes_for_issued(
+        &invoice,
+        invoice_no,
+        issue_date,
+        due_date.as_deref(),
+        &party.display_name,
+    )?;
+    let pdf_hash = pdf_sha256(&pdf_bytes);
+
     let storage = klarbog_storage(company)?;
     storage.put(&path_hint, serialized.as_bytes()).await?;
+    storage.put(&pdf_hint, &pdf_bytes).await?;
 
     let basis = chrono::NaiveDate::parse_from_str(issue_date, "%Y-%m-%d")
         .map_err(|_| DocumentError::InvalidIssueDate(issue_date.to_string()))?;
@@ -153,7 +207,7 @@ pub async fn attach_issued_invoice(
         path_hint,
         party_id: Some(invoice.party_id.clone()),
         invoice_id: Some(invoice_id.clone()),
-        notes: format!("Issued invoice {invoice_no}"),
+        notes: format!("Issued invoice {invoice_no}; pdf={pdf_hint}; pdf_sha256={pdf_hash}"),
         created_unix_ms: issued_at.timestamp_millis(),
         retain_until: Some(retain_until_iso(basis, load_fiscal_settings(company))),
         sha256: Some(hash),
@@ -195,5 +249,35 @@ mod tests {
         assert!(doc.sha256.is_some());
         assert_eq!(doc.kind, DocumentKind::IssuedInvoice);
         assert!(co.join("objects").join(&doc.path_hint).exists());
+    }
+
+    #[tokio::test]
+    async fn attach_writes_pdf_alongside_json() {
+        let dir = tempdir().unwrap();
+        let co = dir.path().join("co");
+        std::fs::create_dir_all(&co).unwrap();
+        let party =
+            upsert_party(&co, None, "Buyer".into(), PartyKind::Private, None, None).unwrap();
+        let inv = create_draft_from_new(
+            &co,
+            party.id,
+            InvoiceKind::Sale,
+            vec![NewLine {
+                description: "Widget".into(),
+                amount_minor: 12_500,
+                currency: "DKK".into(),
+            }],
+        )
+        .unwrap();
+        let issued_at = chrono::Utc.with_ymd_and_hms(2026, 5, 16, 12, 0, 0).unwrap();
+        let doc = attach_issued_invoice(&co, &inv.id, "2026-0001", "2026-05-16", 30, issued_at)
+            .await
+            .unwrap();
+        let pdf_path = co.join("objects/invoices/issued/2026-0001.pdf");
+        assert!(pdf_path.exists(), "pdf snapshot missing");
+        let bytes = std::fs::read(&pdf_path).unwrap();
+        assert!(bytes.starts_with(b"%PDF"));
+        assert!(doc.notes.contains("pdf_sha256="));
+        assert!(doc.notes.contains("invoices/issued/2026-0001.pdf"));
     }
 }

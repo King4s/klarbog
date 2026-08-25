@@ -126,14 +126,18 @@ expect_ok "invoice send commit" "$(post /ui/invoices --data-urlencode action=com
   --data-urlencode "confirm_token=$TOKEN" --data-urlencode "entry_json=$EJSON")"
 [[ -f "$COMPANY/objects/invoices/issued/$INVYEAR-0001.json" ]] \
   || fail "invoice send: immutable issued snapshot missing"
-echo "ok: issued invoice snapshot ($INVYEAR-0001.json)"
+[[ -f "$COMPANY/objects/invoices/issued/$INVYEAR-0001.pdf" ]] \
+  || fail "invoice send: issued PDF snapshot missing"
+rg -q '%PDF' "$COMPANY/objects/invoices/issued/$INVYEAR-0001.pdf" \
+  || fail "invoice send: issued PDF missing %PDF magic"
+echo "ok: issued invoice snapshot ($INVYEAR-0001.json + .pdf)"
 expect_ok "invoice email dry-run" "$(post /ui/invoices --data-urlencode action=send_email \
   --data-urlencode "invoice_id=$INV" --data-urlencode email_to=test@example.com)"
 [[ -f "$COMPANY/email_send_log.jsonl" ]] \
   || fail "invoice email: email_send_log.jsonl missing"
 rg -q 'test@example.com' "$COMPANY/email_send_log.jsonl" \
   || fail "invoice email: log row missing recipient"
-echo "ok: invoice email dry-run logged (DK-EMAIL-DELIVERY-001)"
+echo "ok: invoice email dry-run logged (DK-EMAIL-DELIVERY-001, PDF)"
 PAGE="$(post /ui/invoices --data-urlencode action=paid_preview --data-urlencode "invoice_id=$INV")"
 expect_ok "invoice paid preview" "$PAGE"
 TOKEN="$(input_value "$PAGE" confirm_token)"; EJSON="$(input_value "$PAGE" entry_json)"

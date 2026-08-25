@@ -17,6 +17,7 @@ members = [
     "crates/klarbog-storage",
     "crates/klarbog-plugin-retention",
     "crates/klarbog-mail",
+    "crates/klarbog-invoice-pdf",
 ]
 
 [workspace.package]
@@ -39,6 +40,7 @@ klarbog-plugin-documents = { path = "crates/klarbog-plugin-documents" }
 klarbog-plugin-retention = { path = "crates/klarbog-plugin-retention" }
 klarbog-storage = { path = "crates/klarbog-storage" }
 klarbog-mail = { path = "crates/klarbog-mail" }
+klarbog-invoice-pdf = { path = "crates/klarbog-invoice-pdf" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"

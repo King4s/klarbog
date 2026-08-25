@@ -5,6 +5,7 @@ mod credit;
 mod draft;
 pub mod due_date;
 pub mod email;
+mod email_pdf;
 mod error;
 mod invoice_numbers;
 mod issue;

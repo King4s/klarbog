@@ -10,6 +10,7 @@ klarbog-plugin-crm = { workspace = true }
 klarbog-plugin-invoice = { workspace = true }
 klarbog-storage = { workspace = true }
 klarbog-types = { workspace = true }
+klarbog-invoice-pdf = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

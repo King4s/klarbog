@@ -3,7 +3,6 @@
 use crate::{get_invoice, InvoiceError, InvoiceId, InvoiceStatus};
 use klarbog_mail::{email_dry_run_from_env, send_mail_with_attachment, SmtpConfig};
 use klarbog_plugin_crm::get_party;
-use klarbog_storage::company_objects_root;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
@@ -74,11 +73,11 @@ fn body_text_for(kind: EmailKind, invoice_no: &str) -> String {
     match kind {
         EmailKind::Reminder => format!(
             "Hej\r\n\r\nVi kan se at faktura {invoice_no} endnu ikke er betalt. \
-             Fakturaen er vedhæftet som JSON. Kontakt os hvis betalingen allerede er gennemført.\r\n\r\n\
+             Fakturaen er vedhæftet som PDF. Kontakt os hvis betalingen allerede er gennemført.\r\n\r\n\
              Venlig hilsen\r\nKlarbog"
         ),
         EmailKind::Invoice => format!(
-            "Hej\r\n\r\nHermed faktura {invoice_no}, vedhæftet som JSON.\r\n\r\n\
+            "Hej\r\n\r\nHermed faktura {invoice_no}, vedhæftet som PDF.\r\n\r\n\
              Venlig hilsen\r\nKlarbog"
         ),
     }
@@ -151,12 +150,7 @@ fn issued_status_ok(status: InvoiceStatus) -> bool {
     )
 }
 
-fn load_attachment_bytes(company: &Path, path_hint: &str) -> Result<Vec<u8>, InvoiceError> {
-    let object_path = company_objects_root(company).join(path_hint);
-    fs::read(&object_path).map_err(InvoiceError::Io)
-}
-
-/// Send an issued invoice (or reminder) by email with the issued JSON attached.
+/// Send an issued invoice (or reminder) by email with the issued PDF attached.
 pub async fn send_invoice_email(
     company: &Path,
     invoice_id: &InvoiceId,
@@ -183,19 +177,17 @@ pub async fn send_invoice_email(
         .as_ref()
         .filter(|s| !s.trim().is_empty())
         .ok_or(InvoiceError::MissingIssuedDocument)?;
-
-    let path_hint = format!("invoices/issued/{invoice_no}.json");
-    let attachment_bytes = load_attachment_bytes(company, &path_hint)?;
-    let attachment_sha256 = sha256_hex(&attachment_bytes);
     let _issued_doc = doc_id;
+
+    let party = get_party(company, &invoice.party_id)?
+        .ok_or_else(|| InvoiceError::PartyNotFound(invoice.party_id.to_string()))?;
 
     let recipient = if let Some(explicit) = to_override.filter(|s| !s.trim().is_empty()) {
         explicit.trim().to_string()
     } else {
-        let party = get_party(company, &invoice.party_id)?
-            .ok_or_else(|| InvoiceError::PartyNotFound(invoice.party_id.to_string()))?;
         party
             .email
+            .clone()
             .filter(|e| !e.trim().is_empty())
             .ok_or_else(|| InvoiceError::MissingRecipientEmail(invoice_no.clone()))?
     };
@@ -203,6 +195,14 @@ pub async fn send_invoice_email(
     if !looks_like_email(&recipient) {
         return Err(InvoiceError::InvalidRecipientEmail(recipient));
     }
+
+    let attachment_bytes = crate::email_pdf::resolve_invoice_pdf_bytes(
+        company,
+        &invoice,
+        invoice_no,
+        Some(party.display_name.as_str()),
+    )?;
+    let attachment_sha256 = sha256_hex(&attachment_bytes);
 
     let subject = subject_for(kind, invoice_no);
     let body = body_text_for(kind, invoice_no);
@@ -223,7 +223,7 @@ pub async fn send_invoice_email(
         });
     }
 
-    let filename = format!("{invoice_no}.json");
+    let filename = format!("{invoice_no}.pdf");
     let effective_dry_run = dry_run || email_dry_run_from_env() || !smtp.is_configured();
 
     send_mail_with_attachment(
@@ -232,7 +232,7 @@ pub async fn send_invoice_email(
         &subject,
         &body,
         &filename,
-        "application/json",
+        "application/pdf",
         &attachment_bytes,
         effective_dry_run,
     )
@@ -349,6 +349,24 @@ mod tests {
         assert!(second.duplicate);
         assert_eq!(first.message_id, second.message_id);
         assert_eq!(read_send_log(co).unwrap().len(), 1);
+        let body = body_text_for(EmailKind::Invoice, "2026-0001");
+        assert!(body.contains("vedhæftet som PDF"));
+    }
+
+    #[tokio::test]
+    async fn dry_run_attaches_generated_pdf_when_snapshot_missing() {
+        let (_dir, inv_id, co_path) = issued_invoice_fixture(Some("buyer@example.com"));
+        let co = Path::new(&co_path);
+        // Fixture only wrote JSON — PDF must be generated on the fly.
+        assert!(!company_objects_root(co)
+            .join("invoices/issued/2026-0001.pdf")
+            .exists());
+        let smtp = SmtpConfig::from_env();
+        let out = send_invoice_email(co, &inv_id, EmailKind::Invoice, None, &smtp, true)
+            .await
+            .unwrap();
+        assert!(!out.duplicate);
+        assert!(out.subject.contains("2026-0001"));
     }
 
     #[tokio::test]
