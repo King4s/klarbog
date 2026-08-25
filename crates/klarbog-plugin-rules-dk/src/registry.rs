@@ -195,6 +195,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-plugin-invoice late_interest_tests::cumulative_interest_matches_reference_case",
                 "klarbog-plugin-invoice late_interest_tests::staged_claims_bill_incrementally",
                 "klarbog-plugin-invoice late_interest_tests::defaults_to_statutory_table",
+                "klarbog-mcp invoice_settlement::tests::mcp_interest_calc_overdue",
             ],
             gaps: &[
                 "proposeInterestCorrection / postInterestCorrection (over-claimed morarente)",
@@ -214,6 +215,8 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             proven_by: &[
                 "klarbog-plugin-invoice late_interest_tests::register_rejects_duplicate_and_zero_increment",
                 "klarbog-plugin-invoice late_interest_tests::staged_claims_bill_incrementally",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_interest_requires_confirm",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_interest_preview",
             ],
             gaps: &[
                 "SQLite invoice_interest_claims + audit_log rækker",
@@ -229,6 +232,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             enforced_by: "invoice-plugin: interest_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI interest_post_preview/commit; posted_journal_id fail-closed",
             proven_by: &[
                 "klarbog-api ui::tests::invoice_flow::ui_interest_register_and_post",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_interest_preview",
             ],
             gaps: &[
                 "invoice_interest_postings append-only link-tabel",
@@ -246,6 +250,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             proven_by: &[
                 "klarbog-plugin-invoice late_compensation_tests::commercial_overdue_invoice_is_eligible",
                 "klarbog-plugin-invoice late_compensation_tests::private_buyer_is_not_eligible",
+                "klarbog-mcp invoice_settlement::tests::mcp_compensation_calc_overdue_commercial",
             ],
             gaps: &[
                 "EAN/GLN og publicRecipient som alternativ erhvervsbevis (JUR-15)",
@@ -262,6 +267,8 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             proven_by: &[
                 "klarbog-plugin-invoice late_compensation_tests::register_rejects_duplicate_and_private_buyer",
                 "klarbog-plugin-invoice late_compensation_tests::claim_open_balance_includes_compensation",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_compensation_requires_confirm",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_compensation_preview",
             ],
             gaps: &[
                 "SQLite invoice_compensation_claims + audit_log rækker",
@@ -278,6 +285,7 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
             proven_by: &[
                 "klarbog-plugin-invoice late_compensation_tests::posts_compensation_once_and_rejects_double_post",
                 "klarbog-api ui::tests::invoice_flow::ui_compensation_register_and_post",
+                "klarbog-mcp invoice_settlement::tests::mcp_claim_and_post_compensation_preview",
             ],
             gaps: &[
                 "invoice_compensation_postings append-only link-tabel",

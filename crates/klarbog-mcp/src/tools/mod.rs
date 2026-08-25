@@ -14,6 +14,7 @@ mod documents;
 mod email;
 mod helpers;
 mod invoice;
+mod invoice_settlement;
 mod journal;
 mod moms_suggest;
 mod registry;
@@ -102,6 +103,37 @@ pub fn handle_tool_call(
             registry,
         )),
         "invoice_send_email" => rt.block_on(email::invoice_send_email(args, allowlist_root)),
+        "invoice_compensation_calc" => rt.block_on(invoice_settlement::invoice_compensation_calc(
+            args,
+            allowlist_root,
+        )),
+        "invoice_claim_compensation" => rt.block_on(
+            invoice_settlement::invoice_claim_compensation(args, allowlist_root),
+        ),
+        "invoice_post_compensation_preview" => {
+            rt.block_on(invoice_settlement::invoice_post_compensation_preview(
+                args,
+                allowlist_root,
+                store,
+                registry,
+            ))
+        }
+        "invoice_interest_calc" => rt.block_on(invoice_settlement::invoice_interest_calc(
+            args,
+            allowlist_root,
+        )),
+        "invoice_claim_interest" => rt.block_on(invoice_settlement::invoice_claim_interest(
+            args,
+            allowlist_root,
+        )),
+        "invoice_post_interest_preview" => {
+            rt.block_on(invoice_settlement::invoice_post_interest_preview(
+                args,
+                allowlist_root,
+                store,
+                registry,
+            ))
+        }
         "journal_post_preview" => rt.block_on(journal::journal_post_preview(
             args,
             allowlist_root,

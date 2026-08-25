@@ -165,6 +165,112 @@ pub fn tools() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "invoice_compensation_calc",
+            "description": "Calculate late-compensation claim without registering (read-only). Commercial buyer + overdue required.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "as_of": {"type": "string", "description": "YYYY-MM-DD"},
+                    "amount_minor": {"type": "integer", "description": "Optional fixed compensation in øre"},
+                    "amount_dkk": {"type": "number", "description": "Optional fixed compensation in DKK (decimal)"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "as_of", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_claim_compensation",
+            "description": "Register late-compensation claim (no journal post). Requires confirm:true. Call invoice_post_compensation_preview then journal_post_commit.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "as_of": {"type": "string", "description": "YYYY-MM-DD"},
+                    "amount_minor": {"type": "integer"},
+                    "amount_dkk": {"type": "number"},
+                    "note": {"type": "string"},
+                    "confirm": {"type": "boolean"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "as_of", "confirm", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_post_compensation_preview",
+            "description": "Return journal suggestion for oldest unposted compensation claim (no post). Optional preview:true issues ConfirmStore token for journal_post_commit.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "preview": {"type": "boolean"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_interest_calc",
+            "description": "Calculate late interest without registering (read-only). accrued_interest_minor is incremental since last claim.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "as_of": {"type": "string", "description": "YYYY-MM-DD"},
+                    "reference_rate": {"type": "number", "description": "Nationalbank reference rate as percent (e.g. 2.65)"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "as_of", "reference_rate", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_claim_interest",
+            "description": "Register late-interest claim (no journal post). Requires confirm:true. Incremental since last claim.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "as_of": {"type": "string", "description": "YYYY-MM-DD"},
+                    "reference_rate": {"type": "number"},
+                    "note": {"type": "string"},
+                    "confirm": {"type": "boolean"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "as_of", "reference_rate", "confirm", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
+            "name": "invoice_post_interest_preview",
+            "description": "Return journal suggestion for oldest unposted interest claim (no post). Optional preview:true issues ConfirmStore token for journal_post_commit.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string"},
+                    "invoice_id": {"type": "string"},
+                    "invoice_number": {"type": "string"},
+                    "preview": {"type": "boolean"},
+                    "actor_kind": {"type": "string", "enum": ["user", "agent", "system"]},
+                    "actor_id": {"type": "string"}
+                },
+                "required": ["company", "actor_kind", "actor_id"]
+            }
+        }),
+        json!({
             "name": "invoice_send_email",
             "description": "Send issued invoice or payment reminder by email (SMTP via SMTP_SYSTEM_* / KLARBOG_SMTP_FROM; dry-run when unconfigured or KLARBOG_EMAIL_DRY_RUN=1). Append-only email_send_log.jsonl; idempotent. Requires confirm:true.",
             "inputSchema": {

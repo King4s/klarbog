@@ -54,7 +54,7 @@ pub struct InterestSegment {
     pub days: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LateInterestCalculation {
     pub as_of_date: String,
     pub effective_due_date: Option<String>,

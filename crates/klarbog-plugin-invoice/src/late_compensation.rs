@@ -27,7 +27,7 @@ pub struct InvoiceCompensationClaim {
     pub posted_journal_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LateCompensationCalculation {
     pub as_of_date: String,
     pub effective_due_date: Option<String>,

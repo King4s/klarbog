@@ -35,6 +35,13 @@ fn tools_list_names() {
     assert!(names.contains(&"invoice_patch_status"));
     assert!(names.contains(&"invoice_mark_paid_preview"));
     assert!(names.contains(&"invoice_mark_part_paid_preview"));
+    assert!(names.contains(&"invoice_compensation_calc"));
+    assert!(names.contains(&"invoice_claim_compensation"));
+    assert!(names.contains(&"invoice_post_compensation_preview"));
+    assert!(names.contains(&"invoice_interest_calc"));
+    assert!(names.contains(&"invoice_claim_interest"));
+    assert!(names.contains(&"invoice_post_interest_preview"));
+    assert!(names.contains(&"invoice_send_email"));
     assert!(names.contains(&"journal_post_preview"));
     assert!(names.contains(&"journal_post_commit"));
     assert!(names.contains(&"journal_moms_post_suggestion"));
