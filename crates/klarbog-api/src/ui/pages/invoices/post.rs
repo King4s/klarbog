@@ -172,6 +172,16 @@ pub async fn invoices_post(
         "commit_interest" => {
             super::interest::commit_interest(&state, &company, &path, &actor, form).await
         }
+        "compensation_register" => {
+            super::compensation::compensation_register(&state, &company, &path, &form).await
+        }
+        "compensation_post_preview" => {
+            super::compensation::compensation_post_preview(&state, &company, &path, &actor, &form)
+                .await
+        }
+        "commit_compensation" => {
+            super::compensation::commit_compensation(&state, &company, &path, &actor, form).await
+        }
         "reminder_register" => {
             super::reminders::reminder_register(&state, &company, &path, &form).await
         }

@@ -421,6 +421,10 @@ pub fn claim_open_balance_minor(invoice: &Invoice) -> Result<i64, InvoiceError> 
         .collectible_open_minor()?
         .checked_add(total_interest_claims_minor(invoice)?)
         .ok_or(InvoiceError::Overflow)?;
-    base.checked_add(crate::reminders::total_reminder_fees_minor(invoice)?)
+    let with_reminders = base
+        .checked_add(crate::reminders::total_reminder_fees_minor(invoice)?)
+        .ok_or(InvoiceError::Overflow)?;
+    with_reminders
+        .checked_add(crate::late_compensation::total_compensation_minor(invoice)?)
         .ok_or(InvoiceError::Overflow)
 }

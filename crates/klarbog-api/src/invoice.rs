@@ -98,6 +98,12 @@ pub(crate) fn map_invoice(err: InvoiceError) -> (StatusCode, Envelope<Value>) {
         | InvoiceError::ReminderTooSoon { .. }
         | InvoiceError::ReminderNotFound(_)
         | InvoiceError::ReminderAlreadyPosted
+        | InvoiceError::InvalidCompensationAmount
+        | InvoiceError::CompensationExceedsStatutoryMax { .. }
+        | InvoiceError::CompensationNotEligible(_)
+        | InvoiceError::CompensationAlreadyRegistered
+        | InvoiceError::CompensationClaimNotFound(_)
+        | InvoiceError::CompensationClaimAlreadyPosted
         | InvoiceError::NonPositiveAmount
         | InvoiceError::InvalidPartialAmount { .. }
         | InvoiceError::Overpay { .. }

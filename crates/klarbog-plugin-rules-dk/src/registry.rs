@@ -145,8 +145,9 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "klarbog-plugin-invoice issue::tests::record_issue_uses_party_payment_terms",
                 "klarbog-plugin-crm payment_terms::tests",
                 "klarbog-plugin-invoice reminders_tests::registers_statutory_reminder_fee_on_overdue_invoice",
+                "klarbog-plugin-invoice late_compensation_tests::claim_open_balance_includes_compensation",
             ],
-            gaps: &["fast kompensation i claim_open_balance"],
+            gaps: &[],
         },
         RegisteredRule {
             rule_id: "DK-INVOICE-REMINDER-FEE-001",
@@ -233,6 +234,54 @@ pub fn registered_rules() -> &'static [RegisteredRule] {
                 "invoice_interest_postings append-only link-tabel",
                 "accountRoleCompatibility / resolveClaimIncomeAccount",
                 "bogføring af specifikt claim_id når flere unposted",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-COMPENSATION-001",
+            name: "Overdue commercial customer invoices must support deterministic statutory fixed compensation",
+            source_id: "DK-RENTELOVEN-2014-459",
+            provisions: &["§ 9a, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin late_compensation: 310 DKK max; commercial CRM party; overdue + positivt inddriveligt hovedstol; issue_date >= 2013-03-01",
+            proven_by: &[
+                "klarbog-plugin-invoice late_compensation_tests::commercial_overdue_invoice_is_eligible",
+                "klarbog-plugin-invoice late_compensation_tests::private_buyer_is_not_eligible",
+            ],
+            gaps: &[
+                "EAN/GLN og publicRecipient som alternativ erhvervsbevis (JUR-15)",
+                "buyer.vatOrCvr på issued payload",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-COMPENSATION-REGISTER-001",
+            name: "A fixed compensation claim may only be registered once per invoice and must remain traceable in the claim balance",
+            source_id: "DK-RENTELOVEN-2014-459",
+            provisions: &["§ 9a, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: register_invoice_compensation persisterer immutable claim i invoices.json; duplikat afvist; claim_open_balance_minor inkl. total_compensation_minor",
+            proven_by: &[
+                "klarbog-plugin-invoice late_compensation_tests::register_rejects_duplicate_and_private_buyer",
+                "klarbog-plugin-invoice late_compensation_tests::claim_open_balance_includes_compensation",
+            ],
+            gaps: &[
+                "SQLite invoice_compensation_claims + audit_log rækker",
+                "BEGIN IMMEDIATE concurrency på tværs af processer",
+            ],
+        },
+        RegisteredRule {
+            rule_id: "DK-INVOICE-LATE-COMPENSATION-BOOKKEEPING-001",
+            name: "Registered fixed compensation claims must be bookable once to receivables and non-VAT claim income",
+            source_id: "DK-BOGFORINGSLOVEN-2022-700",
+            provisions: &["§ 9, stk. 1"],
+            severity: "hard_stop",
+            enforced_by: "invoice-plugin: compensation_post_journal_suggestion (AR debet / 1010 kredit); to-faset UI compensation_post_preview/commit; posted_journal_id fail-closed",
+            proven_by: &[
+                "klarbog-plugin-invoice late_compensation_tests::posts_compensation_once_and_rejects_double_post",
+                "klarbog-api ui::tests::invoice_flow::ui_compensation_register_and_post",
+            ],
+            gaps: &[
+                "invoice_compensation_postings append-only link-tabel",
+                "accountRoleCompatibility / resolveClaimIncomeAccount",
             ],
         },
         RegisteredRule {

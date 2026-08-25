@@ -19,6 +19,9 @@ pub(super) struct InvoiceRow {
     /// Overdue collectible — morarente kan registreres/bogføres.
     pub can_interest: bool,
     pub has_unposted_interest: bool,
+    /// Overdue commercial collectible — fast kompensation kan registreres/bogføres.
+    pub can_compensate: bool,
+    pub has_unposted_compensation: bool,
     /// Overdue collectible — rykkergebyr kan registreres/bogføres.
     pub can_reminder: bool,
     pub has_unposted_reminder: bool,
@@ -63,6 +66,11 @@ pub struct InvoiceActionForm {
     pub reference_rate_bps: Option<String>,
     #[serde(default)]
     pub interest_note: Option<String>,
+    /// Fast kompensation: beløb i øre; tom = lovligt maks (31000 = 310 DKK).
+    #[serde(default)]
+    pub compensation_amount_minor: Option<String>,
+    #[serde(default)]
+    pub compensation_note: Option<String>,
     /// Rykker: dato (YYYY-MM-DD), default i dag.
     #[serde(default)]
     pub reminder_date: Option<String>,

@@ -8,6 +8,9 @@ pub mod email;
 mod error;
 mod invoice_numbers;
 mod issue;
+mod late_compensation;
+#[cfg(test)]
+mod late_compensation_tests;
 mod late_interest;
 #[cfg(test)]
 mod late_interest_tests;
@@ -39,6 +42,14 @@ pub use invoice_numbers::{
     validate_manual_invoice_number_scope,
 };
 pub use issue::record_issue;
+pub use late_compensation::{
+    buyer_is_commercial_party, calculate_late_compensation, compensation_post_journal_suggestion,
+    mark_compensation_posted, oldest_unposted_compensation_claim, register_invoice_compensation,
+    total_compensation_minor, InvoiceCompensationClaim, LateCompensationCalculation,
+    BOOKKEEPING_RULE_ID as LATE_COMPENSATION_BOOKKEEPING_RULE_ID,
+    REGISTER_RULE_ID as LATE_COMPENSATION_REGISTER_RULE_ID, RULE_ID as LATE_COMPENSATION_RULE_ID,
+    STATUTORY_COMPENSATION_MINOR, STATUTORY_COMPENSATION_START_DATE,
+};
 pub use late_interest::{
     calculate_late_interest, claim_open_balance_minor, cumulative_interest_minor,
     interest_post_journal_suggestion, lookup_statutory_reference_rate, mark_interest_claim_posted,
@@ -185,6 +196,9 @@ pub struct Invoice {
     /// Registrerede rykkergebyrer (DK-INVOICE-REMINDER-FEE-001).
     #[serde(default)]
     pub reminders: Vec<InvoiceReminder>,
+    /// Registreret fast kompensation (DK-INVOICE-LATE-COMPENSATION-REGISTER-001).
+    #[serde(default)]
+    pub compensation_claims: Vec<InvoiceCompensationClaim>,
 }
 
 impl Invoice {

@@ -96,6 +96,18 @@ pub enum InvoiceError {
     ReminderNotFound(String),
     #[error("reminder is already posted")]
     ReminderAlreadyPosted,
+    #[error("compensation amount must be positive")]
+    InvalidCompensationAmount,
+    #[error("compensation amount {amount_minor} exceeds statutory maximum {max_minor} øre")]
+    CompensationExceedsStatutoryMax { amount_minor: i64, max_minor: i64 },
+    #[error("invoice is not eligible for compensation: {0}")]
+    CompensationNotEligible(String),
+    #[error("invoice already has a registered compensation claim")]
+    CompensationAlreadyRegistered,
+    #[error("compensation claim not found for date {0}")]
+    CompensationClaimNotFound(String),
+    #[error("compensation claim is already posted")]
+    CompensationClaimAlreadyPosted,
     #[error("mixed currencies in one invoice")]
     MixedCurrency,
     #[error("overflow")]

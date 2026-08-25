@@ -6,6 +6,7 @@ use axum::http::HeaderMap;
 use axum::response::Response;
 use chrono::Utc;
 use klarbog_plugin_crm::list_parties;
+use klarbog_plugin_crm::{get_party, PartyKind};
 use klarbog_plugin_invoice::{list_invoices, InvoiceStatus};
 
 use super::super::common::{authorize_company, company_from, foot, format_dkk, html_ok, nav};
@@ -153,6 +154,25 @@ pub(super) async fn load_page(
                         .unwrap_or(false),
                 has_unposted_interest: inv
                     .interest_claims
+                    .iter()
+                    .any(|c| c.posted_journal_id.is_none()),
+                can_compensate: {
+                    let overdue = inv
+                        .due_assessment(Utc::now().date_naive())
+                        .map(|a| a.is_overdue)
+                        .unwrap_or(false);
+                    let commercial = get_party(&path, &inv.party_id)
+                        .ok()
+                        .flatten()
+                        .is_some_and(|p| p.kind == PartyKind::Business);
+                    inv.status.allows_late_interest()
+                        && inv.collectible_open_minor().unwrap_or(0) > 0
+                        && overdue
+                        && commercial
+                        && inv.compensation_claims.is_empty()
+                },
+                has_unposted_compensation: inv
+                    .compensation_claims
                     .iter()
                     .any(|c| c.posted_journal_id.is_none()),
                 can_reminder: inv.status.allows_reminder()
