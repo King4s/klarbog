@@ -384,7 +384,10 @@ export function postEuServiceReverseChargePurchase(db: Database, input: ReverseC
     };
   }
   if (identity.identifierKind === "non_eu") return { ok: false, appliedRules: [REVERSE_CHARGE_RULE_ID], errors: ["document supplier identity is non-EU — use the applicable non-EU purchase treatment; do not fabricate an EU VAT ID"] };
-  const viesCheck = requireCachedViesValidation(db, identity.identifier, "document sender_vat_cvr");
+  // VIES freshness is evaluated as of the transaction date, not wall-clock
+  // time: a booking is deterministic and a historical entry must not start
+  // failing merely because the cached validation later expires.
+  const viesCheck = requireCachedViesValidation(db, identity.identifier, "document sender_vat_cvr", input.transactionDate);
   if (!viesCheck.ok) return { ok: false, appliedRules: [...new Set([REVERSE_CHARGE_RULE_ID, ...viesCheck.appliedRules])], errors: viesCheck.errors };
 
   return postServiceReverseChargeLines(db, input, "EU_SERVICE_REVERSE_CHARGE", REVERSE_CHARGE_RULE_ID, "EU");
@@ -442,7 +445,7 @@ export function postForeignServiceReverseChargePurchase(db: Database, input: Rev
   if (identity.identifierKind === "non_eu") {
     return postNonEuServiceReverseChargePurchase(db, input);
   }
-  const viesCheck = requireCachedViesValidation(db, identity.identifier, "document sender_vat_cvr");
+  const viesCheck = requireCachedViesValidation(db, identity.identifier, "document sender_vat_cvr", input.transactionDate);
   if (!viesCheck.ok) return { ok: false, appliedRules: [...new Set([REVERSE_CHARGE_RULE_ID, ...viesCheck.appliedRules])], errors: viesCheck.errors };
   return postServiceReverseChargeLines(db, input, "EU_SERVICE_REVERSE_CHARGE", REVERSE_CHARGE_RULE_ID, "EU");
 }
