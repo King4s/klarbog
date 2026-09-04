@@ -204,4 +204,70 @@ describe("EU service reverse-charge VAT", () => {
     rmSync(root, { recursive: true, force: true });
     rmSync(inbox, { recursive: true, force: true });
   });
+
+  test("VIES freshness is evaluated as of the transaction date, not wall-clock time", () => {
+    // The cached validation expires 2026-06-01. Booking is deterministic: a
+    // transaction dated before that expiry must post regardless of when the
+    // suite runs (guards against re-introducing a wall-clock `Date.now()`
+    // check), while a transaction dated after the expiry must be rejected.
+    const root = mkdtempSync(join(tmpdir(), "rentemester-rc-asof-"));
+    const inbox = mkdtempSync(join(tmpdir(), "rentemester-rc-asof-inbox-"));
+
+    const db = openDb(ensureCompanyDirs(root).db);
+    migrate(db);
+    seedAccounts(db);
+
+    const ingestEuDoc = (invoiceNo: string) => {
+      const sourceFile = join(inbox, `${invoiceNo}.txt`);
+      writeFileSync(sourceFile, `EU service invoice ${invoiceNo}\n1000 DKK\n`);
+      const doc = ingestDocument(db, root, sourceFile, {
+        source: "email",
+        issueDate: "2026-05-16",
+        invoiceNo,
+        deliveryDescription: "EU software service",
+        amountIncVat: 1000,
+        currency: "DKK",
+        sender: { name: "EU Supplier GmbH", address: "Berlin", vatOrCvr: "DE123456789" },
+        recipient: { name: "Rentemester ApS", address: "Testvej 1", vatOrCvr: "DK12345678" },
+        vatAmount: 0,
+        paymentDetails: "Bank transfer"
+      });
+      expect(doc.ok).toBe(true);
+      return doc.documentId!;
+    };
+
+    const beforeExpiry = ingestEuDoc("EU-ASOF-1");
+    const afterExpiry = ingestEuDoc("EU-ASOF-2");
+
+    storeViesValidation(db, {
+      vatOrCvr: "DE123456789",
+      valid: true,
+      validatedAt: "2026-05-15T00:00:00.000Z",
+      expiresAt: "2026-06-01T00:00:00.000Z",
+      rawResponse: JSON.stringify({ valid: true })
+    });
+
+    const valid = postEuServiceReverseChargePurchase(db, {
+      transactionDate: "2026-05-16",
+      text: "EU service purchase before expiry",
+      documentId: beforeExpiry,
+      netAmount: 1000,
+      expenseAccountNo: "3010"
+    });
+    expect(valid.ok).toBe(true);
+
+    const stale = postEuServiceReverseChargePurchase(db, {
+      transactionDate: "2026-06-15",
+      text: "EU service purchase after expiry",
+      documentId: afterExpiry,
+      netAmount: 1000,
+      expenseAccountNo: "3010"
+    });
+    expect(stale.ok).toBe(false);
+    expect(stale.errors[0]).toContain("expired");
+
+    db.close();
+    rmSync(root, { recursive: true, force: true });
+    rmSync(inbox, { recursive: true, force: true });
+  });
 });

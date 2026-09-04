@@ -310,7 +310,10 @@ export function issueInvoice(db: Database, companyRoot: string, rawPayload: Invo
 
   let viesValidation: ReturnType<typeof requireCachedViesValidation>["validation"] | undefined;
   if (payload.vatTreatment === "foreign_reverse_charge") {
-    const viesCheck = requireCachedViesValidation(db, payload.buyer?.vatOrCvr, "buyer.vatOrCvr");
+    // Evaluate VIES freshness as of the invoice's issue date, not wall-clock
+    // time, so an issued invoice stays deterministic and does not begin
+    // failing once the cached validation later expires.
+    const viesCheck = requireCachedViesValidation(db, payload.buyer?.vatOrCvr, "buyer.vatOrCvr", payload.issueDate);
     if (!viesCheck.ok) return { ok: false, appliedRules: [...new Set([...appliedRules, ...viesCheck.appliedRules])], errors: viesCheck.errors };
     viesValidation = viesCheck.validation;
   }
